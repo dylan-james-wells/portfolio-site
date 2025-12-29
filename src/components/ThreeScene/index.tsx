@@ -5,7 +5,7 @@ import * as THREE from 'three'
 
 const GRID_SIZE = 50
 const CUBE_SIZE = 1
-const GAP = 0.05
+const GAP = 0.01
 
 // Animation settings
 const FLIP_DURATION = 0.5 // seconds for one cube to complete its flip
