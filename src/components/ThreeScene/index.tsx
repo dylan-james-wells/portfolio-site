@@ -14,6 +14,9 @@ const WAVE_DELAY = 0.02 // seconds delay between each diagonal wave
 const IMAGE_URLS = [
   'https://images.pexels.com/photos/38136/pexels-photo-38136.jpeg',
   'https://images.pexels.com/photos/957024/forest-trees-perspective-bright-957024.jpeg',
+  'https://images.pexels.com/photos/1632790/pexels-photo-1632790.jpeg',
+  'https://images.pexels.com/photos/33109/fall-autumn-red-season.jpg',
+  'https://images.pexels.com/photos/167698/pexels-photo-167698.jpeg',
 ]
 
 // Easing function for smooth animation
@@ -28,6 +31,7 @@ export const ThreeScene: React.FC = () => {
     if (!containerRef.current) return
 
     const container = containerRef.current
+    const imageCount = IMAGE_URLS.length
 
     // Scene setup
     const scene = new THREE.Scene()
@@ -35,23 +39,18 @@ export const ThreeScene: React.FC = () => {
 
     // Camera setup - use OrthographicCamera with "cover" behavior
     const aspect = container.clientWidth / container.clientHeight
-    // Actual grid size: N cubes + (N-1) gaps, but we position cubes at col*(CUBE_SIZE+GAP)
-    // So total extent from center of first to center of last cube is (GRID_SIZE-1)*(CUBE_SIZE+GAP)
-    // Plus half a cube on each side = GRID_SIZE-1)*(CUBE_SIZE+GAP) + CUBE_SIZE
     const gridExtent = (GRID_SIZE - 1) * (CUBE_SIZE + GAP) + CUBE_SIZE
 
     // Calculate frustum to achieve "cover" effect (grid fills viewport, may be cropped)
     const calculateCoverFrustum = (viewportAspect: number) => {
-      const gridAspect = 1 // Grid is square (GRID_SIZE x GRID_SIZE)
+      const gridAspect = 1
       let frustumWidth: number
       let frustumHeight: number
 
       if (viewportAspect > gridAspect) {
-        // Viewport is wider than grid - fit to width, crop height
         frustumWidth = gridExtent / 2
         frustumHeight = frustumWidth / viewportAspect
       } else {
-        // Viewport is taller than grid - fit to height, crop width
         frustumHeight = gridExtent / 2
         frustumWidth = frustumHeight * viewportAspect
       }
@@ -92,41 +91,52 @@ export const ThreeScene: React.FC = () => {
       row: number
       col: number
       baseZ: number
-      currentRotation: number // 0 = showing front (texture1), Math.PI = showing back (texture2)
+      faceMaterials: THREE.MeshStandardMaterial[] // Store materials for updating textures
     }
     const cubeDataList: CubeData[] = []
 
-    // Create a group to hold all cubes for easier rotation
+    // Create a group to hold all cubes
     const cubeGroup = new THREE.Group()
     scene.add(cubeGroup)
 
     // Animation state
     let animationStartTime: number | null = null
     let isAnimating = false
-    let showingFirstImage = true // Track which image is currently showing
+    let currentImageIndex = 0 // Which image is currently showing (front face)
+    let nextImageIndex = 1 // Which image will be shown after flip
 
     // Start the wave animation
     const startWaveAnimation = () => {
       if (isAnimating) return
       isAnimating = true
       animationStartTime = performance.now() / 1000
-      showingFirstImage = !showingFirstImage
+
+      // Update materials to show next image on the side faces before animation
+      const nextTexture = textures[nextImageIndex]
+      for (const cubeData of cubeDataList) {
+        // Update +X and -X faces (indices 0 and 1) to show the next image
+        cubeData.faceMaterials[0].map = nextTexture
+        cubeData.faceMaterials[1].map = nextTexture
+        cubeData.faceMaterials[0].needsUpdate = true
+        cubeData.faceMaterials[1].needsUpdate = true
+      }
     }
 
-    // Load both textures then create the grid
+    // Load all textures then create the grid
     Promise.all(
       IMAGE_URLS.map(
         (url) =>
           new Promise<THREE.Texture>((resolve) => {
             textureLoader.load(url, (texture) => {
               texture.colorSpace = THREE.SRGBColorSpace
-              textures.push(texture)
               resolve(texture)
             })
           }),
       ),
     ).then((loadedTextures) => {
-      const [texture1, texture2] = loadedTextures
+      textures.push(...loadedTextures)
+
+      const initialTexture = textures[0]
 
       // Create the grid of cubes
       for (let row = 0; row < GRID_SIZE; row++) {
@@ -145,18 +155,9 @@ export const ThreeScene: React.FC = () => {
           const uvAttribute = geometry.getAttribute('uv')
           const uvArray = uvAttribute.array as Float32Array
 
-          // Box faces order: +X, -X, +Y, -Y, +Z, -Z
-          // Each face has 4 vertices, each vertex has 2 UV coords = 8 floats per face
-          // Total: 6 faces * 4 vertices * 2 coords = 48 floats
-
-          // All 4 horizontal faces (front, back, left, right) should show same UV coords
-          // Pattern: Front(A) -> Right(B) -> Back(A) -> Left(B)
-          // This way rotating 90 degrees always alternates between A and B
-
+          // All faces get the same UV mapping for this grid position
           for (let face = 0; face < 6; face++) {
             const baseIndex = face * 8
-
-            // All faces get the same UV mapping for this grid position
             uvArray[baseIndex + 0] = uMin
             uvArray[baseIndex + 1] = vMax
             uvArray[baseIndex + 2] = uMax
@@ -170,16 +171,17 @@ export const ThreeScene: React.FC = () => {
           uvAttribute.needsUpdate = true
 
           // Create materials for each face
-          // Pattern: A, B, A, B around the cube horizontally
           // Face order: +X, -X, +Y, -Y, +Z, -Z
-          // +Z (front) = A, +X (right) = B, -Z (back) = A, -X (left) = B
+          // +X and -X will show the "next" image (updated before each animation)
+          // +Z (front) shows current image
+          // Start with all faces showing the initial image
           const faceMaterials = [
-            new THREE.MeshStandardMaterial({ map: texture2 }), // +X (right) = B
-            new THREE.MeshStandardMaterial({ map: texture2 }), // -X (left) = B
-            new THREE.MeshStandardMaterial({ map: texture1 }), // +Y (top) = A
-            new THREE.MeshStandardMaterial({ map: texture1 }), // -Y (bottom) = A
-            new THREE.MeshStandardMaterial({ map: texture1 }), // +Z (front) = A
-            new THREE.MeshStandardMaterial({ map: texture1 }), // -Z (back) = A
+            new THREE.MeshStandardMaterial({ map: initialTexture }), // +X (right) - will be updated
+            new THREE.MeshStandardMaterial({ map: initialTexture }), // -X (left) - will be updated
+            new THREE.MeshStandardMaterial({ map: initialTexture }), // +Y (top)
+            new THREE.MeshStandardMaterial({ map: initialTexture }), // -Y (bottom)
+            new THREE.MeshStandardMaterial({ map: initialTexture }), // +Z (front) - current
+            new THREE.MeshStandardMaterial({ map: initialTexture }), // -Z (back)
           ]
           materials.push(...faceMaterials)
 
@@ -198,12 +200,12 @@ export const ThreeScene: React.FC = () => {
             row,
             col,
             baseZ: 0,
-            currentRotation: 0,
+            faceMaterials,
           })
         }
       }
 
-      // Center the group - offset by half the grid extent
+      // Center the group
       const centerOffset = gridExtent / 2
       cubeGroup.position.set(-centerOffset + CUBE_SIZE / 2, -centerOffset + CUBE_SIZE / 2, 0)
 
@@ -253,8 +255,7 @@ export const ThreeScene: React.FC = () => {
         let allComplete = true
 
         for (const cubeData of cubeDataList) {
-          // Calculate diagonal distance from top-left (row 0 is bottom, so we flip)
-          // Top-left in visual terms is col=0, row=GRID_SIZE-1
+          // Calculate diagonal distance from top-left
           const flippedRow = GRID_SIZE - 1 - cubeData.row
           const diagonalIndex = cubeData.col + flippedRow
 
@@ -263,34 +264,25 @@ export const ThreeScene: React.FC = () => {
           const cubeElapsed = elapsed - cubeStartTime
 
           if (cubeElapsed < 0) {
-            // This cube hasn't started yet
             allComplete = false
             continue
           }
 
           if (cubeElapsed >= FLIP_DURATION) {
-            // This cube's animation is complete
-            // 90 degrees = PI/2 for horizontal flip showing -X face
-            const targetRotation = showingFirstImage ? 0 : Math.PI / 2
-            cubeData.mesh.rotation.y = targetRotation
+            // Animation complete - snap to 90 degrees
+            cubeData.mesh.rotation.y = Math.PI / 2
             cubeData.mesh.position.z = cubeData.baseZ
-            cubeData.currentRotation = targetRotation
           } else {
-            // Cube is currently animating
+            // Currently animating
             allComplete = false
             const progress = cubeElapsed / FLIP_DURATION
             const easedProgress = easeInOutCubic(progress)
 
-            // Calculate rotation (0 to PI/2 or PI/2 to 0) - horizontal flip
-            const startRotation = showingFirstImage ? Math.PI / 2 : 0
-            const endRotation = showingFirstImage ? 0 : Math.PI / 2
-            const rotation = startRotation + (endRotation - startRotation) * easedProgress
+            // Rotate from 0 to PI/2
+            cubeData.mesh.rotation.y = easedProgress * (Math.PI / 2)
 
-            // Calculate Z position (move forward then back)
-            // Peak at progress = 0.5
+            // Z offset for pop-out effect
             const zOffset = Math.sin(progress * Math.PI) * CUBE_SIZE
-
-            cubeData.mesh.rotation.y = rotation
             cubeData.mesh.position.z = cubeData.baseZ + zOffset
           }
         }
@@ -299,6 +291,28 @@ export const ThreeScene: React.FC = () => {
         if (allComplete && elapsed > (GRID_SIZE * 2 - 1) * WAVE_DELAY + FLIP_DURATION) {
           isAnimating = false
           animationStartTime = null
+
+          // Update the current image index
+          currentImageIndex = nextImageIndex
+          nextImageIndex = (nextImageIndex + 1) % imageCount
+
+          // Reset rotation and update front face to show new current image
+          const currentTexture = textures[currentImageIndex]
+          for (const cubeData of cubeDataList) {
+            cubeData.mesh.rotation.y = 0
+
+            // Update front face (+Z, index 4) to current image
+            cubeData.faceMaterials[4].map = currentTexture
+            cubeData.faceMaterials[4].needsUpdate = true
+
+            // Also update back and top/bottom for consistency
+            cubeData.faceMaterials[5].map = currentTexture
+            cubeData.faceMaterials[2].map = currentTexture
+            cubeData.faceMaterials[3].map = currentTexture
+            cubeData.faceMaterials[5].needsUpdate = true
+            cubeData.faceMaterials[2].needsUpdate = true
+            cubeData.faceMaterials[3].needsUpdate = true
+          }
 
           // Start next animation after a delay
           setTimeout(() => {
