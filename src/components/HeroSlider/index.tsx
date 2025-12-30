@@ -3,9 +3,9 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import type { Scene3D } from './scenes3d'
-import { rotatingCube, waveDots } from './scenes3d'
+import { hypercube, waveDots } from './scenes3d'
 
-const GRID_SIZE = 50
+const GRID_SIZE = 30
 const CUBE_SIZE = 1
 const GAP = 0.01
 
@@ -16,9 +16,15 @@ const DRAG_THRESHOLD = 150 // pixels to drag before committing to advance
 type SlideType = { type: 'image'; url: string } | { type: '3d'; createScene: () => Scene3D }
 
 const SLIDES: SlideType[] = [
-  { type: '3d', createScene: () => rotatingCube.create({ color: 0xff6b6b }) },
+  {
+    type: '3d',
+    createScene: () => hypercube.create({ colorInner: 0xff6b6b, colorOuter: 0x4ecdc4 }),
+  },
   { type: '3d', createScene: () => waveDots.create({ colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }) },
-  { type: '3d', createScene: () => rotatingCube.create({ color: 0x4ecdc4 }) },
+  {
+    type: '3d',
+    createScene: () => hypercube.create({ colorInner: 0x4ecdc4, colorOuter: 0xff6b6b }),
+  },
 ]
 
 // Easing function for smooth animation
