@@ -28,9 +28,9 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
   camera.position.set(0, 3, 4)
   camera.lookAt(0, 0, 0)
 
-  // Create point cloud geometry - larger spread
-  const spreadX = 8
-  const spreadZ = 8
+  // Create point cloud geometry - larger spread with padding to hide corners
+  const spreadX = 12
+  const spreadZ = 12
   const numPoints = gridWidth * gridLength
   const positions = new Float32Array(numPoints * 3)
   const colors = new Float32Array(numPoints * 3)
