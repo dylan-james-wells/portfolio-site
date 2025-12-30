@@ -1,0 +1,381 @@
+import * as THREE from 'three'
+import { Text } from 'troika-three-text'
+import type { Scene3D } from './types'
+
+// Code snippets in various languages
+const CODE_SNIPPETS = [
+  // PHP
+  `<?php
+function fetchUserData($id) {
+    $conn = new PDO($dsn, $user, $pass);
+    $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->execute([$id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}`,
+  `$router->get('/api/users/{id}', function($req, $res) {
+    $user = User::find($req->params['id']);
+    return $res->json($user->toArray());
+});`,
+  // TypeScript
+  `interface ApiResponse<T> {
+  data: T;
+  status: number;
+  message?: string;
+}
+
+async function fetchData<T>(url: string): Promise<ApiResponse<T>> {
+  const res = await fetch(url);
+  return res.json();
+}`,
+  `const useDebounce = <T>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+};`,
+  // Bash
+  `#!/bin/bash
+for file in *.log; do
+    if [ -f "$file" ]; then
+        gzip "$file"
+        mv "$file.gz" /var/archive/
+    fi
+done
+echo "Archive complete"`,
+  `docker build -t myapp:latest . && \\
+docker push registry.io/myapp:latest && \\
+kubectl rollout restart deployment/myapp`,
+  // Python
+  `@app.route('/webhook', methods=['POST'])
+def handle_webhook():
+    payload = request.get_json()
+    signature = request.headers.get('X-Signature')
+    if verify_signature(payload, signature):
+        process_event.delay(payload)
+        return jsonify({'status': 'ok'}), 200
+    return jsonify({'error': 'invalid'}), 401`,
+  // SQL
+  `SELECT u.name, COUNT(o.id) as order_count,
+       SUM(o.total) as total_spent
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE o.created_at > NOW() - INTERVAL '30 days'
+GROUP BY u.id
+HAVING COUNT(o.id) > 5;`,
+  // Go
+  `func (s *Server) handleRequest(w http.ResponseWriter, r *http.Request) {
+    ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+    defer cancel()
+
+    result, err := s.db.QueryContext(ctx, query)
+    if err != nil {
+        http.Error(w, err.Error(), 500)
+        return
+    }
+    json.NewEncoder(w).Encode(result)
+}`,
+  // Rust
+  `impl<T: Clone> Cache<T> {
+    pub fn get_or_insert(&mut self, key: &str, f: impl FnOnce() -> T) -> &T {
+        if !self.data.contains_key(key) {
+            self.data.insert(key.to_string(), f());
+        }
+        self.data.get(key).unwrap()
+    }
+}`,
+  // JavaScript/Node
+  `const rateLimit = (fn, limit) => {
+  const queue = [];
+  let running = 0;
+
+  return async (...args) => {
+    if (running >= limit) {
+      await new Promise(r => queue.push(r));
+    }
+    running++;
+    try { return await fn(...args); }
+    finally { running--; queue.shift()?.(); }
+  };
+};`,
+  // YAML/Config
+  `apiVersion: apps/v1
+kind: Deployment
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: app
+          image: myapp:latest
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"`,
+]
+
+export interface CodeRainOptions {
+  colorStart?: number
+  colorEnd?: number
+  opacity?: number
+  glowOpacity?: number
+  typingSpeed?: number // characters per second
+  marginLeft?: number // percentage of viewport width
+  marginTop?: number // percentage of viewport height
+  marginBottom?: number // percentage of viewport height
+  textWidthPercent?: number // percentage of viewport width for text
+}
+
+export function create(options: CodeRainOptions = {}): Scene3D {
+  const {
+    colorStart = 0xff6b6b,
+    colorEnd = 0x4ecdc4,
+    opacity = 0.25,
+    glowOpacity = 0.15,
+    typingSpeed = 80,
+    marginLeft = 0.05,
+    marginTop = 0.1,
+    marginBottom = 0.1,
+    textWidthPercent = 0.6,
+  } = options
+
+  const scene = new THREE.Scene()
+  scene.background = null // Transparent
+
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
+  camera.position.set(0, 0, 5)
+  camera.lookAt(0, 0, 0)
+
+  // Create main text mesh with gradient shader
+  const textMesh = new Text()
+  textMesh.text = ''
+  textMesh.font =
+    'https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/fonts/ttf/JetBrainsMono-Regular.ttf'
+  textMesh.fontSize = 0.1 // Will be adjusted on resize
+  textMesh.anchorX = 'left'
+  textMesh.anchorY = 'top'
+  textMesh.material = new THREE.ShaderMaterial({
+    transparent: true,
+    uniforms: {
+      colorStart: { value: new THREE.Color(colorStart) },
+      colorEnd: { value: new THREE.Color(colorEnd) },
+      opacity: { value: opacity },
+      time: { value: 0 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 colorStart;
+      uniform vec3 colorEnd;
+      uniform float opacity;
+      uniform float time;
+      varying vec2 vUv;
+
+      void main() {
+        // Animated gradient based on position and time
+        float t = vUv.x * 0.5 + vUv.y * 0.5 + sin(time * 0.5) * 0.1;
+        vec3 color = mix(colorStart, colorEnd, t);
+        gl_FragColor = vec4(color, opacity);
+      }
+    `,
+  })
+  textMesh.maxWidth = 4 // Will be updated on resize
+
+  scene.add(textMesh)
+
+  // Create glow layer (slightly larger, more transparent)
+  const glowMesh = new Text()
+  glowMesh.text = ''
+  glowMesh.font =
+    'https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/fonts/ttf/JetBrainsMono-Regular.ttf'
+  glowMesh.fontSize = 0.1
+  glowMesh.anchorX = 'left'
+  glowMesh.anchorY = 'top'
+  glowMesh.material = new THREE.ShaderMaterial({
+    transparent: true,
+    uniforms: {
+      colorStart: { value: new THREE.Color(colorStart) },
+      colorEnd: { value: new THREE.Color(colorEnd) },
+      opacity: { value: glowOpacity },
+      time: { value: 0 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 colorStart;
+      uniform vec3 colorEnd;
+      uniform float opacity;
+      uniform float time;
+      varying vec2 vUv;
+
+      void main() {
+        float t = vUv.x * 0.5 + vUv.y * 0.5 + sin(time * 0.5) * 0.1;
+        vec3 color = mix(colorStart, colorEnd, t);
+        gl_FragColor = vec4(color, opacity);
+      }
+    `,
+  })
+  glowMesh.maxWidth = 4
+  glowMesh.position.z = -0.01 // Slightly behind main text
+  glowMesh.scale.setScalar(1.02) // Slightly larger for glow effect
+
+  scene.add(glowMesh)
+
+  // State
+  let currentSnippetIndex = Math.floor(Math.random() * CODE_SNIPPETS.length)
+  let currentText = ''
+  let targetText = CODE_SNIPPETS[currentSnippetIndex]
+  let charIndex = 0
+  let timeSinceLastChar = 0
+  let elapsedTime = 0
+  let currentAspect = 1
+  let fillRatio = 0 // How much of the screen is filled (0-1)
+  const maxFillRatio = 0.5 + Math.random() * 0.5 // Random between 0.5 and 1.0
+
+  // Calculate visible dimensions at z=0
+  const getVisibleDimensions = (aspect: number) => {
+    const distance = camera.position.z
+    const vFov = (camera.fov * Math.PI) / 180
+    const visibleHeight = 2 * Math.tan(vFov / 2) * distance
+    const visibleWidth = visibleHeight * aspect
+    return { visibleWidth, visibleHeight }
+  }
+
+  // Position text with margins and calculate font size
+  const updateTextPosition = (aspect: number) => {
+    const { visibleWidth, visibleHeight } = getVisibleDimensions(aspect)
+
+    // Calculate font size based on desired text width percentage
+    // Approximate: ~60 chars per line at textWidthPercent width
+    const targetWidth = visibleWidth * textWidthPercent
+    const charsPerLine = 60
+    const fontSize = targetWidth / charsPerLine
+
+    // Position at top-left with margins
+    const posX = -visibleWidth / 2 + visibleWidth * marginLeft
+    const posY = visibleHeight / 2 - visibleHeight * marginTop
+
+    // Update main text mesh
+    textMesh.fontSize = fontSize
+    textMesh.position.x = posX
+    textMesh.position.y = posY
+    textMesh.position.z = 0
+    textMesh.maxWidth = targetWidth
+
+    // Update glow mesh to match
+    glowMesh.fontSize = fontSize
+    glowMesh.position.x = posX
+    glowMesh.position.y = posY
+    glowMesh.position.z = -0.01
+    glowMesh.maxWidth = targetWidth
+
+    // Sync both meshes
+    textMesh.sync()
+    glowMesh.sync()
+  }
+
+  // Pick a new random snippet
+  const pickNewSnippet = () => {
+    let newIndex = currentSnippetIndex
+    while (newIndex === currentSnippetIndex && CODE_SNIPPETS.length > 1) {
+      newIndex = Math.floor(Math.random() * CODE_SNIPPETS.length)
+    }
+    currentSnippetIndex = newIndex
+    targetText = CODE_SNIPPETS[currentSnippetIndex]
+    charIndex = 0
+    currentText = ''
+  }
+
+  // Check if we've filled enough of the screen
+  const checkFillRatio = () => {
+    if (!textMesh.textRenderInfo) return 0
+
+    const { visibleHeight } = getVisibleDimensions(currentAspect)
+    const usableHeight = visibleHeight * (1 - marginTop - marginBottom)
+
+    const bounds = textMesh.textRenderInfo.blockBounds
+    const textHeight = bounds ? Math.abs(bounds[3] - bounds[1]) : 0
+
+    return textHeight / usableHeight
+  }
+
+  return {
+    scene,
+    camera,
+    update: (deltaTime: number) => {
+      elapsedTime += deltaTime
+      timeSinceLastChar += deltaTime
+
+      // Update shader time uniforms
+      const textMaterial = textMesh.material as THREE.ShaderMaterial
+      const glowMaterial = glowMesh.material as THREE.ShaderMaterial
+      textMaterial.uniforms.time.value = elapsedTime
+      glowMaterial.uniforms.time.value = elapsedTime
+
+      const charInterval = 1 / typingSpeed
+
+      // Type characters
+      while (timeSinceLastChar >= charInterval && charIndex < targetText.length) {
+        timeSinceLastChar -= charInterval
+        charIndex++
+        currentText = targetText.slice(0, charIndex)
+        textMesh.text = currentText
+        glowMesh.text = currentText
+
+        // Check fill ratio periodically
+        if (charIndex % 10 === 0) {
+          fillRatio = checkFillRatio()
+        }
+      }
+
+      // If we've finished typing the current snippet
+      if (charIndex >= targetText.length) {
+        fillRatio = checkFillRatio()
+
+        // If we haven't filled enough, add another snippet
+        if (fillRatio < maxFillRatio) {
+          // Add a newline and pick a new snippet to append
+          let newIndex = currentSnippetIndex
+          while (newIndex === currentSnippetIndex && CODE_SNIPPETS.length > 1) {
+            newIndex = Math.floor(Math.random() * CODE_SNIPPETS.length)
+          }
+          currentSnippetIndex = newIndex
+
+          targetText = currentText + '\n\n' + CODE_SNIPPETS[currentSnippetIndex]
+          // charIndex stays the same, we'll continue from where we are
+        } else {
+          // We've filled enough, reset after a short pause
+          pickNewSnippet()
+          textMesh.text = ''
+          glowMesh.text = ''
+          fillRatio = 0
+        }
+      }
+
+      // Sync both text meshes
+      textMesh.sync()
+      glowMesh.sync()
+    },
+    dispose: () => {
+      textMesh.dispose()
+      glowMesh.dispose()
+    },
+    resize: (width: number, height: number, aspect: number) => {
+      currentAspect = aspect
+      camera.aspect = aspect
+      camera.updateProjectionMatrix()
+      updateTextPosition(aspect)
+    },
+  }
+}

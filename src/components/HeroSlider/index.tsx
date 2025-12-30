@@ -9,7 +9,7 @@ import {
   ChromaticAberrationEffect,
   TiltShiftEffect,
 } from 'postprocessing'
-import { pixelText } from './scenes3d'
+import { pixelText, codeRain } from './scenes3d'
 import { SLIDES } from './slides'
 import {
   GRID_SIZE,
@@ -154,6 +154,30 @@ export const HeroSlider: React.FC = () => {
     } else {
       textCamera.aspect = initialAspect
       textCamera.updateProjectionMatrix()
+    }
+
+    // ============================================
+    // Code Rain Background Text Layer
+    // ============================================
+    const codeRainOverlay = codeRain.create({
+      colorStart: 0xff6b6b,
+      colorEnd: 0x4ecdc4,
+      opacity: 0.3,
+      glowOpacity: 0.2,
+      typingSpeed: 60,
+      marginLeft: 0.05,
+      marginTop: 0.08,
+      marginBottom: 0.08,
+      textWidthPercent: 0.6,
+    })
+
+    // Update code rain camera
+    const codeRainCamera = codeRainOverlay.camera as THREE.PerspectiveCamera
+    if (codeRainOverlay.resize) {
+      codeRainOverlay.resize(container.clientWidth, container.clientHeight, initialAspect)
+    } else {
+      codeRainCamera.aspect = initialAspect
+      codeRainCamera.updateProjectionMatrix()
     }
 
     // Track mouse position for chromatic aberration
@@ -421,6 +445,14 @@ export const HeroSlider: React.FC = () => {
         textCamera.updateProjectionMatrix()
       }
 
+      // Update code rain overlay
+      if (codeRainOverlay.resize) {
+        codeRainOverlay.resize(width, height, newAspect)
+      } else {
+        codeRainCamera.aspect = newAspect
+        codeRainCamera.updateProjectionMatrix()
+      }
+
       const pixelRatio = Math.min(window.devicePixelRatio, 2)
       textRenderTarget.setSize(width * pixelRatio, height * pixelRatio)
       blurMaterial.uniforms.resolution.value.set(width, height)
@@ -666,6 +698,13 @@ export const HeroSlider: React.FC = () => {
 
       composer.render()
 
+      // Render code rain layer (between background and text)
+      codeRainOverlay.update(deltaTime)
+      renderer.autoClear = false
+      renderer.clearDepth()
+      renderer.render(codeRainOverlay.scene, codeRainOverlay.camera)
+      renderer.autoClear = true
+
       // Render text overlay on top with blur
       textOverlay.update(deltaTime)
 
@@ -708,6 +747,7 @@ export const HeroSlider: React.FC = () => {
         as.scene3d.dispose()
       })
       textOverlay.dispose()
+      codeRainOverlay.dispose()
       textRenderTarget.dispose()
       blurMaterial.dispose()
       blurQuad.geometry.dispose()
