@@ -212,15 +212,15 @@ export function create(options: HypercubeOptions = {}): Scene3D {
     camera,
     update: (deltaTime: number) => {
       // Smooth following
-      mouseX += (targetMouseX - mouseX) * 0.05
-      mouseY += (targetMouseY - mouseY) * 0.05
+      mouseX += (targetMouseX - mouseX) * 0.03
+      mouseY += (targetMouseY - mouseY) * 0.03
 
       // Update rotations
       baseRotation += deltaTime * 0.2
       angle4D += deltaTime * 0.3
 
-      // Mouse influence on 4D rotation speed
-      const mouseInfluence = 1 + Math.abs(mouseX) * 0.5
+      // Mouse influence on 4D rotation speed (reduced)
+      const mouseInfluence = 1 + Math.abs(mouseX) * 0.15
 
       // Project all vertices from 4D to 3D
       const projected: THREE.Vector3[] = vertices4D.map((v) =>
@@ -249,9 +249,9 @@ export function create(options: HypercubeOptions = {}): Scene3D {
       outerGlow.mesh.computeLineDistances()
       connectingGlow.mesh.computeLineDistances()
 
-      // 3D rotation influenced by mouse
-      group.rotation.x = baseRotation + mouseY * Math.PI * 0.3
-      group.rotation.y = baseRotation * 0.7 + mouseX * Math.PI * 0.5
+      // 3D rotation influenced by mouse (reduced)
+      group.rotation.x = baseRotation + mouseY * Math.PI * 0.1
+      group.rotation.y = baseRotation * 0.7 + mouseX * Math.PI * 0.15
     },
     dispose: () => {
       window.removeEventListener('mousemove', handleMouseMove)

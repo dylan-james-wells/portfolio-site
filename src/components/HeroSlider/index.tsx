@@ -20,11 +20,12 @@ const SLIDES: SlideType[] = [
     type: '3d',
     createScene: () => hypercube.create({ colorInner: 0xff6b6b, colorOuter: 0x4ecdc4 }),
   },
-  { type: '3d', createScene: () => waveDots.create({ colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }) },
   {
     type: '3d',
     createScene: () => hypercube.create({ colorInner: 0x4ecdc4, colorOuter: 0xff6b6b }),
   },
+  { type: '3d', createScene: () => waveDots.create({ colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }) },
+  { type: '3d', createScene: () => waveDots.create({ colorStart: 0x4ecdc4, colorEnd: 0xff6b6b }) },
 ]
 
 // Easing function for smooth animation
