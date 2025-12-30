@@ -11,6 +11,8 @@ export interface PixelTextOptions {
   depth?: number
   depthLayers?: number
   paddingPercent?: number // Percentage of viewport width to use as padding on each side (0-1)
+  // Callback when text snaps back - receives normalized direction (-1 to 1 for x and y)
+  onSnapBack?: (directionX: number, directionY: number) => void
 }
 
 export function create(options: PixelTextOptions = {}): Scene3D {
@@ -22,6 +24,7 @@ export function create(options: PixelTextOptions = {}): Scene3D {
     depth = 0.15,
     depthLayers = 12,
     paddingPercent = 0.2, // 10% padding on each side
+    onSnapBack,
   } = options
 
   const scene = new THREE.Scene()
@@ -296,26 +299,53 @@ export function create(options: PixelTextOptions = {}): Scene3D {
     }
   }
 
+  // Track click position for detecting clicks vs drags
+  let clickStartX = 0
+  let clickStartY = 0
+
   const handleMouseDown = (event: MouseEvent) => {
     isDragging = true
     dragStartX = event.clientX
     dragStartY = event.clientY
+    clickStartX = event.clientX
+    clickStartY = event.clientY
     dragOffsetX = 0
     dragOffsetY = 0
   }
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (event: MouseEvent) => {
     if (isDragging) {
       const dragMagnitude = Math.sqrt(dragOffsetX * dragOffsetX + dragOffsetY * dragOffsetY)
 
-      // Transfer drag momentum to velocity for wobble
-      velocityX += dragOffsetX * 15
-      velocityY += dragOffsetY * 15
+      // Check if this was a click (minimal movement) vs a drag
+      const clickDist = Math.sqrt(
+        Math.pow(event.clientX - clickStartX, 2) + Math.pow(event.clientY - clickStartY, 2),
+      )
+      const isClick = clickDist < 10
 
-      // Trigger ripple effect if there was significant movement
-      if (dragMagnitude > 0.02) {
+      if (isClick) {
+        // Trigger ripple from click position (normalized to 0-1)
+        const clickNormX = event.clientX / window.innerWidth
+        const clickNormY = 1 - event.clientY / window.innerHeight
+        triggerRipple(clickNormX, clickNormY)
+      } else if (dragMagnitude > 0.02) {
+        // Transfer drag momentum to velocity for wobble
+        velocityX += dragOffsetX * 15
+        velocityY += dragOffsetY * 15
+
         // Origin from center, offset by drag direction
         triggerRipple(0.5 + dragOffsetX * 0.5, 0.5 + dragOffsetY * 0.5)
+
+        // Call snap back callback with opposite direction (where it snaps TO)
+        // Normalize to -1 to 1 range based on drag offset
+        if (onSnapBack) {
+          const snapDirX = -dragOffsetX * 5 // Amplify and invert
+          const snapDirY = -dragOffsetY * 5
+          onSnapBack(
+            Math.max(-1, Math.min(1, snapDirX)),
+            Math.max(-1, Math.min(1, snapDirY)),
+          )
+        }
       }
 
       isDragging = false
@@ -356,6 +386,16 @@ export function create(options: PixelTextOptions = {}): Scene3D {
       // Trigger ripple effect if there was significant movement
       if (dragMagnitude > 0.02) {
         triggerRipple(0.5 + dragOffsetX * 0.5, 0.5 + dragOffsetY * 0.5)
+
+        // Call snap back callback with opposite direction
+        if (onSnapBack) {
+          const snapDirX = -dragOffsetX * 5
+          const snapDirY = -dragOffsetY * 5
+          onSnapBack(
+            Math.max(-1, Math.min(1, snapDirX)),
+            Math.max(-1, Math.min(1, snapDirY)),
+          )
+        }
       }
 
       isDragging = false

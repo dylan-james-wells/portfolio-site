@@ -144,6 +144,9 @@ export const HeroSlider: React.FC = () => {
     // ============================================
     // Text Overlay Setup
     // ============================================
+    // Helper to trigger a grid wave at a position (will be populated after grid is created)
+    let triggerGridWave: ((row: number, col: number) => void) | null = null
+
     const textOverlay = pixelText.create({
       text: 'MAKE\nFUN',
       colorStart: 0xff6b6b,
@@ -151,6 +154,23 @@ export const HeroSlider: React.FC = () => {
       fontSize: 0.4,
       depth: 0.2,
       depthLayers: 16,
+      onSnapBack: (dirX, dirY) => {
+        // Convert direction to grid position
+        // dirX/dirY are -1 to 1, we want to pick a tile in that direction from center
+        const centerRow = Math.floor(GRID_SIZE / 2)
+        const centerCol = Math.floor(GRID_SIZE / 2)
+        // Offset from center based on direction (towards the edge)
+        const offsetAmount = Math.floor(GRID_SIZE * 0.4)
+        const targetRow = Math.round(centerRow + dirY * offsetAmount)
+        const targetCol = Math.round(centerCol + dirX * offsetAmount)
+        // Clamp to grid bounds
+        const clampedRow = Math.max(0, Math.min(GRID_SIZE - 1, targetRow))
+        const clampedCol = Math.max(0, Math.min(GRID_SIZE - 1, targetCol))
+
+        if (triggerGridWave) {
+          triggerGridWave(clampedRow, clampedCol)
+        }
+      },
     })
 
     // Update text camera aspect ratio and initial sizing
@@ -258,6 +278,24 @@ export const HeroSlider: React.FC = () => {
       processedDistances: Set<number> // which distance rings have been processed
     }
     const activeHybridWaves: HybridWave[] = []
+
+    // Assign the triggerGridWave function now that we have access to activeHybridWaves
+    triggerGridWave = (row: number, col: number) => {
+      const now = performance.now() / 1000
+      const tileKey = `${row},${col}`
+      const randomColor = rippleColors[Math.floor(Math.random() * rippleColors.length)]
+
+      const affectedTiles = new Map<string, { color: THREE.Color; activatedTime: number }>()
+      affectedTiles.set(tileKey, { color: randomColor.clone(), activatedTime: now })
+
+      activeHybridWaves.push({
+        originRow: row,
+        originCol: col,
+        startTime: now,
+        affectedTiles,
+        processedDistances: new Set([0]),
+      })
+    }
 
     // Raycaster for click detection
     const raycaster = new THREE.Raycaster()
