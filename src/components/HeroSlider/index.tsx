@@ -616,7 +616,7 @@ export const HeroSlider: React.FC = () => {
       tiltShiftEffect.rotation = mouseX * 0.5
       tiltShiftEffect.focusArea = currentTiltShift.focusArea
       tiltShiftEffect.feather = currentTiltShift.feather
-      tiltShiftEffect.blur = currentTiltShift.blur
+      // tiltShiftEffect.blur = currentTiltShift.blur
 
       // Update and render all animated 3D slides
       for (const animSlide of animatedSlides) {
