@@ -216,23 +216,13 @@ export function create(options: CodeRainOptions = {}): Scene3D {
 
   scene.add(glowMesh)
 
-  // Create debug border (temporary visualization)
-  const borderGeometry = new THREE.BufferGeometry()
-  const borderMaterial = new THREE.LineBasicMaterial({
-    color: 0xff0000,
-    opacity: 0.8,
-    transparent: true,
-  })
-  const debugBorder = new THREE.LineLoop(borderGeometry, borderMaterial)
-  debugBorder.position.z = 0.02
-  scene.add(debugBorder)
 
   // Initialize state
   const snippetIndex = Math.floor(Math.random() * CODE_SNIPPETS.length)
   const state: TextState = {
     textMesh,
     glowMesh,
-    debugBorder,
+    debugBorder: null,
     currentSnippetIndex: snippetIndex,
     currentText: '',
     targetText: CODE_SNIPPETS[snippetIndex],
@@ -283,27 +273,6 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     state.glowMesh.position.x = posX
     state.glowMesh.position.y = posY
     state.glowMesh.maxWidth = containerWidth
-
-    // Update debug border
-    const halfHeight = usableHeight / 2
-    const borderVertices = new Float32Array([
-      posX,
-      -halfHeight,
-      0, // bottom-left
-      posX + containerWidth,
-      -halfHeight,
-      0, // bottom-right
-      posX + containerWidth,
-      halfHeight,
-      0, // top-right
-      posX,
-      halfHeight,
-      0, // top-left
-    ])
-    state.debugBorder?.geometry.setAttribute(
-      'position',
-      new THREE.BufferAttribute(borderVertices, 3),
-    )
 
     // Sync meshes
     state.textMesh.sync()
@@ -417,10 +386,6 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     dispose: () => {
       state.textMesh.dispose()
       state.glowMesh.dispose()
-      if (state.debugBorder) {
-        state.debugBorder.geometry.dispose()
-        ;(state.debugBorder.material as THREE.Material).dispose()
-      }
     },
     resize: (width: number, height: number, aspect: number) => {
       currentAspect = aspect
