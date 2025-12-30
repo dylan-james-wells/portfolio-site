@@ -85,7 +85,7 @@ export function create(options: PixelTextOptions = {}): Scene3D {
     textMesh.position.z = layerZ
 
     if (isfront) {
-      // Front face - animated gradient with Mario 64 stretch effect
+      // Front face - animated gradient with Mario 64 stretch effect and color ripple
       textMesh.material = new THREE.ShaderMaterial({
         uniforms: {
           colorStart: { value: new THREE.Color(colorStart) },
@@ -93,6 +93,12 @@ export function create(options: PixelTextOptions = {}): Scene3D {
           time: { value: 0 },
           stretchX: { value: 0 },
           stretchY: { value: 0 },
+          // Ripple effect uniforms
+          rippleTime: { value: -1.0 }, // -1 means no active ripple
+          rippleOrigin: { value: new THREE.Vector2(0.5, 0.5) },
+          rippleColor1: { value: new THREE.Color(0xff0055) },
+          rippleColor2: { value: new THREE.Color(0x00ff88) },
+          rippleColor3: { value: new THREE.Color(0x00ffff) },
         },
         vertexShader: `
           uniform float stretchX;
@@ -130,15 +136,61 @@ export function create(options: PixelTextOptions = {}): Scene3D {
           uniform float time;
           uniform float stretchX;
           uniform float stretchY;
+          uniform float rippleTime;
+          uniform vec2 rippleOrigin;
+          uniform vec3 rippleColor1;
+          uniform vec3 rippleColor2;
+          uniform vec3 rippleColor3;
           varying vec2 vUv;
           varying vec3 vPosition;
 
+          // Pseudo-random function for blocky effect
+          float random(vec2 st) {
+            return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+          }
+
           void main() {
-            // Add some color shift based on stretch
+            // Base gradient color
             float stretchEffect = (stretchX + stretchY) * 0.1;
             float t = vUv.x + sin(time * 2.0) * 0.2 + stretchEffect;
-            vec3 color = mix(colorStart, colorEnd, t);
-            gl_FragColor = vec4(color, 1.0);
+            vec3 baseColor = mix(colorStart, colorEnd, t);
+
+            // Blocky/pixelated UV for ripple effect
+            float blockSize = 0.08;
+            vec2 blockUv = floor(vUv / blockSize) * blockSize;
+
+            // Ripple effect
+            vec3 finalColor = baseColor;
+            if (rippleTime >= 0.0) {
+              float dist = distance(blockUv, rippleOrigin);
+              float rippleRadius = rippleTime * 2.0; // Speed of ripple expansion
+              float rippleWidth = 0.4;
+
+              // Create multiple wave bands
+              float wave1 = smoothstep(rippleRadius - rippleWidth, rippleRadius, dist) *
+                           (1.0 - smoothstep(rippleRadius, rippleRadius + rippleWidth * 0.5, dist));
+              float wave2 = smoothstep(rippleRadius - rippleWidth * 2.0, rippleRadius - rippleWidth, dist) *
+                           (1.0 - smoothstep(rippleRadius - rippleWidth, rippleRadius - rippleWidth * 0.5, dist));
+              float wave3 = smoothstep(rippleRadius - rippleWidth * 3.0, rippleRadius - rippleWidth * 2.0, dist) *
+                           (1.0 - smoothstep(rippleRadius - rippleWidth * 2.0, rippleRadius - rippleWidth * 1.5, dist));
+
+              // Add randomness for blocky/chaotic feel
+              float blockRand = random(blockUv + floor(rippleTime * 10.0) * 0.1);
+              float chaos = step(0.3, blockRand);
+
+              // Fade out over time
+              float fadeOut = 1.0 - smoothstep(0.0, 1.5, rippleTime);
+
+              // Mix in ripple colors
+              vec3 rippleColor = baseColor;
+              rippleColor = mix(rippleColor, rippleColor1, wave1 * chaos * fadeOut);
+              rippleColor = mix(rippleColor, rippleColor2, wave2 * chaos * fadeOut);
+              rippleColor = mix(rippleColor, rippleColor3, wave3 * chaos * fadeOut);
+
+              finalColor = rippleColor;
+            }
+
+            gl_FragColor = vec4(finalColor, 1.0);
           }
         `,
       })
@@ -190,6 +242,46 @@ export function create(options: PixelTextOptions = {}): Scene3D {
   const springDamping = 12 // How quickly oscillations die down
   const stretchMultiplier = 0.8 // How much the drag affects the stretch
 
+  // Ripple effect state
+  let rippleActive = false
+  let rippleStartTime = 0
+  let rippleOriginX = 0.5
+  let rippleOriginY = 0.5
+
+  // Bright color palette for ripple (matching background effect)
+  const rippleColors = [
+    new THREE.Color(0xff0055), // hot pink
+    new THREE.Color(0x00ff88), // neon green
+    new THREE.Color(0xff3300), // orange-red
+    new THREE.Color(0x00ffff), // cyan
+    new THREE.Color(0xff00ff), // magenta
+    new THREE.Color(0xffff00), // yellow
+    new THREE.Color(0x0088ff), // electric blue
+  ]
+
+  // Function to trigger ripple effect
+  const triggerRipple = (originX: number, originY: number) => {
+    rippleActive = true
+    rippleStartTime = elapsedTime
+    rippleOriginX = originX
+    rippleOriginY = originY
+
+    // Randomize colors for each ripple
+    const frontMesh = textMeshes[0]
+    if (frontMesh) {
+      const material = frontMesh.material as THREE.ShaderMaterial
+      if (material.uniforms) {
+        const c1 = rippleColors[Math.floor(Math.random() * rippleColors.length)]
+        const c2 = rippleColors[Math.floor(Math.random() * rippleColors.length)]
+        const c3 = rippleColors[Math.floor(Math.random() * rippleColors.length)]
+        material.uniforms.rippleColor1.value.copy(c1)
+        material.uniforms.rippleColor2.value.copy(c2)
+        material.uniforms.rippleColor3.value.copy(c3)
+        material.uniforms.rippleOrigin.value.set(originX, originY)
+      }
+    }
+  }
+
   const updateTarget = (clientX: number, clientY: number) => {
     targetMouseX = (clientX / window.innerWidth) * 2 - 1
     targetMouseY = -((clientY / window.innerHeight) * 2 - 1)
@@ -214,9 +306,18 @@ export function create(options: PixelTextOptions = {}): Scene3D {
 
   const handleMouseUp = () => {
     if (isDragging) {
+      const dragMagnitude = Math.sqrt(dragOffsetX * dragOffsetX + dragOffsetY * dragOffsetY)
+
       // Transfer drag momentum to velocity for wobble
       velocityX += dragOffsetX * 15
       velocityY += dragOffsetY * 15
+
+      // Trigger ripple effect if there was significant movement
+      if (dragMagnitude > 0.02) {
+        // Origin from center, offset by drag direction
+        triggerRipple(0.5 + dragOffsetX * 0.5, 0.5 + dragOffsetY * 0.5)
+      }
+
       isDragging = false
       dragOffsetX = 0
       dragOffsetY = 0
@@ -247,8 +348,16 @@ export function create(options: PixelTextOptions = {}): Scene3D {
 
   const handleTouchEnd = () => {
     if (isDragging) {
+      const dragMagnitude = Math.sqrt(dragOffsetX * dragOffsetX + dragOffsetY * dragOffsetY)
+
       velocityX += dragOffsetX * 15
       velocityY += dragOffsetY * 15
+
+      // Trigger ripple effect if there was significant movement
+      if (dragMagnitude > 0.02) {
+        triggerRipple(0.5 + dragOffsetX * 0.5, 0.5 + dragOffsetY * 0.5)
+      }
+
       isDragging = false
       dragOffsetX = 0
       dragOffsetY = 0
@@ -303,6 +412,15 @@ export function create(options: PixelTextOptions = {}): Scene3D {
         }
       }
 
+      // Update ripple effect
+      if (rippleActive) {
+        const rippleAge = elapsedTime - rippleStartTime
+        if (rippleAge > 2.0) {
+          // Ripple finished
+          rippleActive = false
+        }
+      }
+
       // Update shader uniforms on front face
       const frontMesh = textMeshes[0]
       if (frontMesh) {
@@ -311,6 +429,10 @@ export function create(options: PixelTextOptions = {}): Scene3D {
           material.uniforms.time.value = elapsedTime
           material.uniforms.stretchX.value = stretchX
           material.uniforms.stretchY.value = stretchY
+          // Update ripple time (-1 when inactive)
+          material.uniforms.rippleTime.value = rippleActive
+            ? elapsedTime - rippleStartTime
+            : -1.0
         }
       }
 
