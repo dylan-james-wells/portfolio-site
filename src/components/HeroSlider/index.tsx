@@ -168,6 +168,7 @@ export const HeroSlider: React.FC = () => {
         },
         blurAmount: { value: 1.5 },
         aberrationStrength: { value: 0.004 },
+        textZoom: { value: 1.0 },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -181,14 +182,24 @@ export const HeroSlider: React.FC = () => {
         uniform vec2 resolution;
         uniform float blurAmount;
         uniform float aberrationStrength;
+        uniform float textZoom;
         varying vec2 vUv;
 
         void main() {
+          // Apply zoom by scaling UV from center
+          vec2 center = vec2(0.5);
+          vec2 zoomedUv = center + (vUv - center) / textZoom;
+
+          // Early out if outside texture bounds
+          if (zoomedUv.x < 0.0 || zoomedUv.x > 1.0 || zoomedUv.y < 0.0 || zoomedUv.y > 1.0) {
+            gl_FragColor = vec4(0.0);
+            return;
+          }
+
           vec2 texelSize = blurAmount / resolution;
 
           // Chromatic aberration offset based on distance from center
-          vec2 center = vec2(0.5);
-          vec2 dir = vUv - center;
+          vec2 dir = zoomedUv - center;
           float dist = length(dir);
           vec2 aberrationOffset = dir * aberrationStrength * dist;
 
@@ -201,10 +212,10 @@ export const HeroSlider: React.FC = () => {
               vec2 offset = vec2(float(x), float(y)) * texelSize;
 
               // Sample each channel with slight offset for aberration
-              float r = texture2D(tDiffuse, vUv + offset + aberrationOffset).r;
-              float g = texture2D(tDiffuse, vUv + offset).g;
-              float b = texture2D(tDiffuse, vUv + offset - aberrationOffset).b;
-              float a = texture2D(tDiffuse, vUv + offset).a;
+              float r = texture2D(tDiffuse, zoomedUv + offset + aberrationOffset).r;
+              float g = texture2D(tDiffuse, zoomedUv + offset).g;
+              float b = texture2D(tDiffuse, zoomedUv + offset - aberrationOffset).b;
+              float a = texture2D(tDiffuse, zoomedUv + offset).a;
 
               color += vec3(r, g, b);
               alpha += a;
@@ -264,6 +275,17 @@ export const HeroSlider: React.FC = () => {
     let mouseY = 0
     let targetMouseX = 0
     let targetMouseY = 0
+
+    // Scroll-based zoom state
+    let scrollProgress = 0 // 0 = top, 1 = scrolled one viewport height
+    let targetScrollProgress = 0
+    const SCROLL_RANGE = window.innerHeight // How much scroll to reach full effect
+    const BACKGROUND_ZOOM_IN = 0.5 // How much the background zooms in (0.5 = 50% larger)
+    const TEXT_ZOOM_OUT = 0.5 // How much the text zooms out (0.5 = 50% smaller)
+
+    // Store base frustum for scroll zoom calculations
+    let baseFrustumWidth = frustumWidth
+    let baseFrustumHeight = frustumHeight
 
     // Load textures
     const textureLoader = new THREE.TextureLoader()
@@ -567,10 +589,16 @@ export const HeroSlider: React.FC = () => {
       const { frustumWidth: newFrustumWidth, frustumHeight: newFrustumHeight } =
         calculateCoverFrustum(newAspect)
 
-      camera.left = -newFrustumWidth
-      camera.right = newFrustumWidth
-      camera.top = newFrustumHeight
-      camera.bottom = -newFrustumHeight
+      // Update base frustum for scroll zoom
+      baseFrustumWidth = newFrustumWidth
+      baseFrustumHeight = newFrustumHeight
+
+      // Apply current scroll zoom to frustum (zoom in = smaller frustum)
+      const zoomFactor = 1 - scrollProgress * BACKGROUND_ZOOM_IN
+      camera.left = -newFrustumWidth * zoomFactor
+      camera.right = newFrustumWidth * zoomFactor
+      camera.top = newFrustumHeight * zoomFactor
+      camera.bottom = -newFrustumHeight * zoomFactor
       camera.updateProjectionMatrix()
       renderer.setSize(width, height)
       composer.setSize(width, height)
@@ -706,6 +734,13 @@ export const HeroSlider: React.FC = () => {
     container.addEventListener('mouseup', handleClick)
     container.addEventListener('mouseleave', handleMouseLeave)
 
+    // Scroll handler for zoom effect
+    const handleScroll = () => {
+      const scrollY = window.scrollY
+      targetScrollProgress = Math.min(1, Math.max(0, scrollY / SCROLL_RANGE))
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+
     // Animation speed for auto-animation
     const ANIMATION_SPEED = 1.5
 
@@ -723,6 +758,21 @@ export const HeroSlider: React.FC = () => {
       // Smooth mouse following for chromatic aberration
       mouseX += (targetMouseX - mouseX) * 0.1
       mouseY += (targetMouseY - mouseY) * 0.1
+
+      // Smooth scroll following for zoom effects
+      scrollProgress += (targetScrollProgress - scrollProgress) * 0.1
+
+      // Apply scroll zoom to background camera (zoom in = smaller frustum)
+      const bgZoomFactor = 1 - scrollProgress * BACKGROUND_ZOOM_IN
+      camera.left = -baseFrustumWidth * bgZoomFactor
+      camera.right = baseFrustumWidth * bgZoomFactor
+      camera.top = baseFrustumHeight * bgZoomFactor
+      camera.bottom = -baseFrustumHeight * bgZoomFactor
+      camera.updateProjectionMatrix()
+
+      // Apply scroll zoom to text (zoom out = smaller scale)
+      const textZoomFactor = 1 - scrollProgress * TEXT_ZOOM_OUT
+      blurMaterial.uniforms.textZoom.value = textZoomFactor
 
       // Update chromatic aberration based on mouse position
       // Radial modulation pushes the effect outward from center
@@ -963,6 +1013,7 @@ export const HeroSlider: React.FC = () => {
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize)
+      window.removeEventListener('scroll', handleScroll)
       container.removeEventListener('mousedown', handleMouseDown)
       container.removeEventListener('mousedown', handleClickStart)
       container.removeEventListener('mousemove', handleMouseMove)
