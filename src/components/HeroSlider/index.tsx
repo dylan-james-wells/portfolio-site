@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import type { Scene3D } from './scenes3d'
+import { rotatingCubeRed, rotatingCubeTeal } from './scenes3d'
 
 const GRID_SIZE = 50
 const CUBE_SIZE = 1
@@ -10,17 +12,12 @@ const GAP = 0.01
 // Drag interaction settings
 const DRAG_THRESHOLD = 150 // pixels to drag before committing to advance
 
-// Slide definitions - can be either an image URL or a 3D scene config
-type SlideType = { type: 'image'; url: string } | { type: '3d'; sceneId: string; color: number }
+// Slide definitions - can be either an image URL or a 3D scene factory
+type SlideType = { type: 'image'; url: string } | { type: '3d'; createScene: () => Scene3D }
 
 const SLIDES: SlideType[] = [
-  { type: 'image', url: 'https://images.pexels.com/photos/38136/pexels-photo-38136.jpeg' },
-  { type: '3d', sceneId: 'rotating-cube', color: 0xff6b6b }, // Red cube
-  {
-    type: 'image',
-    url: 'https://images.pexels.com/photos/957024/forest-trees-perspective-bright-957024.jpeg',
-  },
-  { type: '3d', sceneId: 'rotating-cube', color: 0x4ecdc4 }, // Teal cube
+  { type: '3d', createScene: rotatingCubeRed.create },
+  { type: '3d', createScene: rotatingCubeTeal.create },
 ]
 
 // Easing function for smooth animation
@@ -28,7 +25,7 @@ const easeInOutCubic = (t: number): number => {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
 }
 
-export const ThreeScene: React.FC = () => {
+export const HeroSlider: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -99,10 +96,7 @@ export const ThreeScene: React.FC = () => {
     interface AnimatedSlide {
       slideIndex: number
       renderTarget: THREE.WebGLRenderTarget
-      scene: THREE.Scene
-      camera: THREE.PerspectiveCamera
-      cube: THREE.Mesh
-      color: number
+      scene3d: Scene3D
     }
     const animatedSlides: AnimatedSlide[] = []
 
@@ -116,39 +110,13 @@ export const ThreeScene: React.FC = () => {
           format: THREE.RGBAFormat,
         })
 
-        // Create scene for this animated slide
-        const animScene = new THREE.Scene()
-        animScene.background = new THREE.Color(0x1a1a2e)
-
-        // Create camera for the animated scene
-        const animCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
-        animCamera.position.z = 5
-
-        // Create rotating cube
-        const cubeGeometry = new THREE.BoxGeometry(2, 2, 2)
-        const cubeMaterial = new THREE.MeshStandardMaterial({
-          color: slide.color,
-          metalness: 0.3,
-          roughness: 0.4,
-        })
-        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial)
-        animScene.add(cube)
-
-        // Add lighting to animated scene
-        const animAmbient = new THREE.AmbientLight(0xffffff, 0.5)
-        animScene.add(animAmbient)
-
-        const animDirectional = new THREE.DirectionalLight(0xffffff, 1)
-        animDirectional.position.set(5, 5, 5)
-        animScene.add(animDirectional)
+        // Create the scene using the factory function
+        const scene3d = slide.createScene()
 
         animatedSlides.push({
           slideIndex: index,
           renderTarget,
-          scene: animScene,
-          camera: animCamera,
-          cube,
-          color: slide.color,
+          scene3d,
         })
 
         // Use the render target's texture for this slide
@@ -437,13 +405,12 @@ export const ThreeScene: React.FC = () => {
       // Update and render all animated 3D slides
       // ============================================
       for (const animSlide of animatedSlides) {
-        // Rotate the cube
-        animSlide.cube.rotation.x += deltaTime * 0.5
-        animSlide.cube.rotation.y += deltaTime * 0.8
+        // Update the scene
+        animSlide.scene3d.update(deltaTime)
 
         // Render to the render target
         renderer.setRenderTarget(animSlide.renderTarget)
-        renderer.render(animSlide.scene, animSlide.camera)
+        renderer.render(animSlide.scene3d.scene, animSlide.scene3d.camera)
       }
 
       // Reset render target to screen
@@ -543,8 +510,7 @@ export const ThreeScene: React.FC = () => {
       })
       animatedSlides.forEach((as) => {
         as.renderTarget.dispose()
-        as.cube.geometry.dispose()
-        ;(as.cube.material as THREE.Material).dispose()
+        as.scene3d.dispose()
       })
       renderer.dispose()
     }

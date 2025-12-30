@@ -12,7 +12,7 @@ import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import PageClient from './page.client'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
-import { ThreeScene } from '@/components/ThreeScene'
+import { HeroSlider } from '@/components/HeroSlider'
 
 export async function generateStaticParams() {
   const payload = await getPayload({ config: configPromise })
@@ -78,7 +78,7 @@ export default async function Page({ params: paramsPromise }: Args) {
       {draft && <LivePreviewListener />}
 
       {isHome ? (
-        <ThreeScene />
+        <HeroSlider />
       ) : (
         <>
           <RenderHero {...hero} />
