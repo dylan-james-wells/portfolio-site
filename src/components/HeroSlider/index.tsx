@@ -2,11 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import type { Scene3D } from './scenes3d'
 import { hypercube, waveDots } from './scenes3d'
-import { createGlitchEffect, type Effect } from './effects'
 
 const GRID_SIZE = 30
 const CUBE_SIZE = 1
@@ -91,16 +88,6 @@ export const HeroSlider: React.FC = () => {
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 2.0
     container.appendChild(renderer.domElement)
-
-    // Post-processing setup
-    const composer = new EffectComposer(renderer)
-    const renderPass = new RenderPass(scene, camera)
-    composer.addPass(renderPass)
-
-    // Effects
-    const effects: Effect[] = []
-    const glitchEffect = createGlitchEffect(composer)
-    effects.push(glitchEffect)
 
     // Load textures
     const textureLoader = new THREE.TextureLoader()
@@ -368,7 +355,6 @@ export const HeroSlider: React.FC = () => {
       camera.bottom = -newFrustumHeight
       camera.updateProjectionMatrix()
       renderer.setSize(width, height)
-      composer.setSize(width, height)
     }
     window.addEventListener('resize', handleResize)
 
@@ -384,8 +370,6 @@ export const HeroSlider: React.FC = () => {
         clearTimeout(autoPlayTimeoutId)
         autoPlayTimeoutId = null
       }
-      // Trigger glitch effect on drag start
-      glitchEffect.trigger(0.3)
     }
 
     const handleMouseMove = (event: MouseEvent) => {
@@ -402,17 +386,11 @@ export const HeroSlider: React.FC = () => {
       const dragProgress = Math.min(Math.abs(dragDeltaX) / DRAG_THRESHOLD, 1) * 0.5
       animationProgress = dragProgress
       targetProgress = dragProgress
-
-      // Increase glitch intensity based on drag progress
-      glitchEffect.trigger(0.3 + dragProgress * 1.2)
     }
 
     const handleMouseUp = () => {
       if (!isDragging) return
       isDragging = false
-
-      // Stop glitch effect
-      glitchEffect.stop()
 
       if (animationProgress >= 0.5) {
         targetProgress = 1
@@ -464,11 +442,6 @@ export const HeroSlider: React.FC = () => {
 
       // Reset render target to screen
       renderer.setRenderTarget(null)
-
-      // Update all effects
-      for (const effect of effects) {
-        effect.update(deltaTime)
-      }
 
       // Auto-animate towards target progress
       if (isAutoAnimating && cubeDataList.length > 0) {
@@ -539,8 +512,7 @@ export const HeroSlider: React.FC = () => {
         }
       }
 
-      // Render with post-processing
-      composer.render()
+      renderer.render(scene, camera)
     }
     animate()
 
@@ -567,8 +539,6 @@ export const HeroSlider: React.FC = () => {
         as.renderTarget.dispose()
         as.scene3d.dispose()
       })
-      effects.forEach((effect) => effect.dispose())
-      composer.dispose()
       renderer.dispose()
     }
   }, [])
