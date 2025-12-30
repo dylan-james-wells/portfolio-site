@@ -2,7 +2,13 @@
 
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import { EffectComposer, EffectPass, RenderPass, ChromaticAberrationEffect } from 'postprocessing'
+import {
+  EffectComposer,
+  EffectPass,
+  RenderPass,
+  ChromaticAberrationEffect,
+  TiltShiftEffect,
+} from 'postprocessing'
 import type { Scene3D } from './scenes3d'
 import { hypercube, waveDots, pixelText } from './scenes3d'
 
@@ -13,20 +19,42 @@ const GAP = 0.01
 // Drag interaction settings
 const DRAG_THRESHOLD = 150 // pixels to drag before committing to advance
 
+// Tilt-shift settings per slide
+interface TiltShiftSettings {
+  focusArea: number
+  feather: number
+  blur: number
+}
+
 // Slide definitions - can be either an image URL or a 3D scene factory
-type SlideType = { type: 'image'; url: string } | { type: '3d'; createScene: () => Scene3D }
+type SlideType =
+  | { type: 'image'; url: string; tiltShift?: TiltShiftSettings }
+  | { type: '3d'; createScene: () => Scene3D; tiltShift?: TiltShiftSettings }
+
+// Default tilt-shift settings
+const defaultTiltShift: TiltShiftSettings = { focusArea: 0.4, feather: 0.3, blur: 0.15 }
 
 const SLIDES: SlideType[] = [
   {
     type: '3d',
     createScene: () => hypercube.create({ colorInner: 0xff6b6b, colorOuter: 0x4ecdc4 }),
+    tiltShift: { focusArea: 0.8, feather: 0.4, blur: 0.08 }, // Less blur for hypercube
   },
   {
     type: '3d',
     createScene: () => hypercube.create({ colorInner: 0x4ecdc4, colorOuter: 0xff6b6b }),
+    tiltShift: { focusArea: 0.8, feather: 0.4, blur: 0.08 }, // Less blur for hypercube
   },
-  { type: '3d', createScene: () => waveDots.create({ colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }) },
-  { type: '3d', createScene: () => waveDots.create({ colorStart: 0x4ecdc4, colorEnd: 0xff6b6b }) },
+  {
+    type: '3d',
+    createScene: () => waveDots.create({ colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }),
+    tiltShift: { focusArea: 0.4, feather: 0.3, blur: 0.15 }, // More blur for dots
+  },
+  {
+    type: '3d',
+    createScene: () => waveDots.create({ colorStart: 0x4ecdc4, colorEnd: 0xff6b6b }),
+    tiltShift: { focusArea: 0.4, feather: 0.3, blur: 0.15 }, // More blur for dots
+  },
 ]
 
 // Easing function for smooth animation
@@ -99,6 +127,18 @@ export const HeroSlider: React.FC = () => {
     })
     const chromaticPass = new EffectPass(camera, chromaticAberrationEffect)
     composer.addPass(chromaticPass)
+
+    // Tilt-shift depth of field effect
+    const tiltShiftEffect = new TiltShiftEffect({
+      offset: 0.0,
+      rotation: 0.0,
+      focusArea: 0.4,
+      feather: 0.3,
+      blur: 0.15,
+      kernelSize: 3,
+    })
+    const tiltShiftPass = new EffectPass(camera, tiltShiftEffect)
+    composer.addPass(tiltShiftPass)
 
     // ============================================
     // Text Overlay Setup
@@ -560,6 +600,15 @@ export const HeroSlider: React.FC = () => {
       const distFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)
       const aberrationStrength = 0.003 + distFromCenter * 0.008
       chromaticAberrationEffect.offset.set(mouseX * aberrationStrength, mouseY * aberrationStrength)
+
+      // Update tilt-shift based on mouse position and current slide settings
+      // Offset moves the focus band up/down, rotation tilts it
+      const currentTiltShift = SLIDES[currentSlideIndex].tiltShift || defaultTiltShift
+      tiltShiftEffect.offset = mouseY * 0.3
+      tiltShiftEffect.rotation = mouseX * 0.5
+      tiltShiftEffect.focusArea = currentTiltShift.focusArea
+      tiltShiftEffect.feather = currentTiltShift.feather
+      tiltShiftEffect.blur = currentTiltShift.blur
 
       // ============================================
       // Update and render all animated 3D slides
