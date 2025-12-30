@@ -108,6 +108,8 @@ export const HeroSlider: React.FC = () => {
       colorStart: 0xff6b6b,
       colorEnd: 0x4ecdc4,
       fontSize: 0.8,
+      depth: 0.2,
+      depthLayers: 16,
     })
 
     // Update text camera aspect ratio
