@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+// @ts-ignore
 import { Text } from 'troika-three-text'
 import type { Scene3D } from './types'
 
