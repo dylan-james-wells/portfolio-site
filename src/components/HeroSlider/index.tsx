@@ -147,6 +147,63 @@ export const HeroSlider: React.FC = () => {
     // Helper to trigger a grid wave at a position (will be populated after grid is created)
     let triggerGridWave: ((row: number, col: number) => void) | null = null
 
+    // Create render target for text with blur effect
+    const textRenderTarget = new THREE.WebGLRenderTarget(
+      container.clientWidth * Math.min(window.devicePixelRatio, 2),
+      container.clientHeight * Math.min(window.devicePixelRatio, 2),
+      {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+      },
+    )
+
+    // Fullscreen quad for rendering blurred text
+    const blurMaterial = new THREE.ShaderMaterial({
+      transparent: true,
+      uniforms: {
+        tDiffuse: { value: textRenderTarget.texture },
+        resolution: {
+          value: new THREE.Vector2(container.clientWidth, container.clientHeight),
+        },
+        blurAmount: { value: 1.5 },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = vec4(position.xy, 0.0, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec2 resolution;
+        uniform float blurAmount;
+        varying vec2 vUv;
+
+        void main() {
+          vec2 texelSize = blurAmount / resolution;
+          vec4 color = vec4(0.0);
+
+          // 9-tap box blur
+          for(int x = -1; x <= 1; x++) {
+            for(int y = -1; y <= 1; y++) {
+              vec2 offset = vec2(float(x), float(y)) * texelSize;
+              color += texture2D(tDiffuse, vUv + offset);
+            }
+          }
+          color /= 9.0;
+
+          gl_FragColor = color;
+        }
+      `,
+    })
+
+    const blurQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), blurMaterial)
+    const blurScene = new THREE.Scene()
+    blurScene.add(blurQuad)
+    const blurCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+
     const textOverlay = pixelText.create({
       text: 'MAKE\nFUN',
       colorStart: 0xff6b6b,
@@ -506,6 +563,11 @@ export const HeroSlider: React.FC = () => {
         textCamera.aspect = newAspect
         textCamera.updateProjectionMatrix()
       }
+
+      // Resize text render target
+      const pixelRatio = Math.min(window.devicePixelRatio, 2)
+      textRenderTarget.setSize(width * pixelRatio, height * pixelRatio)
+      blurMaterial.uniforms.resolution.value.set(width, height)
     }
     window.addEventListener('resize', handleResize)
 
@@ -861,12 +923,20 @@ export const HeroSlider: React.FC = () => {
       composer.render()
 
       // ============================================
-      // Render text overlay on top
+      // Render text overlay on top with blur
       // ============================================
       textOverlay.update(deltaTime)
-      renderer.autoClear = false
-      renderer.clearDepth()
+
+      // First render text to render target
+      renderer.setRenderTarget(textRenderTarget)
+      renderer.setClearColor(0x000000, 0)
+      renderer.clear()
       renderer.render(textOverlay.scene, textOverlay.camera)
+      renderer.setRenderTarget(null)
+
+      // Then render blurred text over the main scene
+      renderer.autoClear = false
+      renderer.render(blurScene, blurCamera)
       renderer.autoClear = true
     }
     animate()
@@ -897,6 +967,9 @@ export const HeroSlider: React.FC = () => {
         as.scene3d.dispose()
       })
       textOverlay.dispose()
+      textRenderTarget.dispose()
+      blurMaterial.dispose()
+      blurQuad.geometry.dispose()
       composer.dispose()
       renderer.dispose()
     }
