@@ -95,6 +95,7 @@ const config = {
       },
       fontFamily: {
         mono: ['var(--font-geist-mono)'],
+        pixel: ['var(--font-press-start)'],
         sans: ['var(--font-geist-sans)'],
       },
       keyframes: {

@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { EffectComposer, EffectPass, RenderPass, ChromaticAberrationEffect } from 'postprocessing'
 import type { Scene3D } from './scenes3d'
-import { hypercube, waveDots } from './scenes3d'
+import { hypercube, waveDots, pixelText } from './scenes3d'
 
 const GRID_SIZE = 30
 const CUBE_SIZE = 1
@@ -27,6 +27,10 @@ const SLIDES: SlideType[] = [
   },
   { type: '3d', createScene: () => waveDots.create({ colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }) },
   { type: '3d', createScene: () => waveDots.create({ colorStart: 0x4ecdc4, colorEnd: 0xff6b6b }) },
+  {
+    type: '3d',
+    createScene: () => pixelText.create({ text: 'HELLO\nWORLD', colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }),
+  },
 ]
 
 // Easing function for smooth animation
