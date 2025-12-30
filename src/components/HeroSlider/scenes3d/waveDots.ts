@@ -73,7 +73,7 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
   const points = new THREE.Points(geometry, material)
   scene.add(points)
 
-  // Mouse interaction state
+  // Interaction state
   let mouseX = 0
   let mouseY = 0
   let targetMouseX = 0
@@ -86,11 +86,9 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
 
   const basePositions = positions.slice()
 
-  // Mouse event handlers
-  const handleMouseMove = (event: MouseEvent) => {
-    // Normalize to -1 to 1
-    targetMouseX = (event.clientX / window.innerWidth) * 2 - 1
-    targetMouseY = -((event.clientY / window.innerHeight) * 2 - 1)
+  const updateTarget = (clientX: number, clientY: number) => {
+    targetMouseX = (clientX / window.innerWidth) * 2 - 1
+    targetMouseY = -((clientY / window.innerHeight) * 2 - 1)
 
     if (isDragging) {
       dragVelocityX = targetMouseX - lastDragX
@@ -100,21 +98,54 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
     }
   }
 
-  const handleMouseDown = (event: MouseEvent) => {
+  const startDrag = (clientX: number, clientY: number) => {
     isDragging = true
-    lastDragX = (event.clientX / window.innerWidth) * 2 - 1
-    lastDragY = -((event.clientY / window.innerHeight) * 2 - 1)
+    lastDragX = (clientX / window.innerWidth) * 2 - 1
+    lastDragY = -((clientY / window.innerHeight) * 2 - 1)
     dragVelocityX = 0
     dragVelocityY = 0
   }
 
-  const handleMouseUp = () => {
+  const endDrag = () => {
     isDragging = false
+  }
+
+  // Mouse event handlers
+  const handleMouseMove = (event: MouseEvent) => {
+    updateTarget(event.clientX, event.clientY)
+  }
+
+  const handleMouseDown = (event: MouseEvent) => {
+    startDrag(event.clientX, event.clientY)
+  }
+
+  const handleMouseUp = () => {
+    endDrag()
+  }
+
+  // Touch event handlers
+  const handleTouchMove = (event: TouchEvent) => {
+    if (event.touches.length > 0) {
+      updateTarget(event.touches[0].clientX, event.touches[0].clientY)
+    }
+  }
+
+  const handleTouchStart = (event: TouchEvent) => {
+    if (event.touches.length > 0) {
+      startDrag(event.touches[0].clientX, event.touches[0].clientY)
+    }
+  }
+
+  const handleTouchEnd = () => {
+    endDrag()
   }
 
   window.addEventListener('mousemove', handleMouseMove)
   window.addEventListener('mousedown', handleMouseDown)
   window.addEventListener('mouseup', handleMouseUp)
+  window.addEventListener('touchmove', handleTouchMove, { passive: true })
+  window.addEventListener('touchstart', handleTouchStart, { passive: true })
+  window.addEventListener('touchend', handleTouchEnd)
 
   // Animation state
   let elapsedTime = 0
@@ -125,7 +156,7 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
     update: (deltaTime: number) => {
       elapsedTime += deltaTime
 
-      // Smooth mouse following
+      // Smooth following
       mouseX += (targetMouseX - mouseX) * 0.1
       mouseY += (targetMouseY - mouseY) * 0.1
 
@@ -148,20 +179,24 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
           const baseX = basePositions[3 * k]
           const baseZ = basePositions[3 * k + 2]
 
-          // Distance from mouse position (mapped to grid space)
+          // Distance from pointer position (mapped to grid space)
           const gridMouseX = mouseX * 2
           const gridMouseY = mouseY * 2
           const dx = (u - 0.5) * 4 - gridMouseX
           const dz = (v - 0.5) * 4 - gridMouseY
           const distFromMouse = Math.sqrt(dx * dx + dz * dz)
 
-          // Wave that follows mouse - ripples outward from cursor
-          const mouseWave = Math.sin(distFromMouse * 4 - elapsedTime * 3) * Math.exp(-distFromMouse * 0.5) * 0.3
+          // Wave that follows pointer - ripples outward from cursor
+          const mouseWave =
+            Math.sin(distFromMouse * 4 - elapsedTime * 3) * Math.exp(-distFromMouse * 0.5) * 0.3
 
           // Drag-induced wave - intensity based on drag speed
-          const dragWave = Math.sin(distFromMouse * 6 - elapsedTime * 8) * Math.exp(-distFromMouse * 0.3) * dragIntensity
+          const dragWave =
+            Math.sin(distFromMouse * 6 - elapsedTime * 8) *
+            Math.exp(-distFromMouse * 0.3) *
+            dragIntensity
 
-          // Push effect - points near mouse get pushed down when dragging
+          // Push effect - points near pointer get pushed down when dragging
           const pushEffect = isDragging ? Math.exp(-distFromMouse * 2) * -0.2 : 0
 
           // Combine effects
@@ -177,7 +212,7 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
 
       positionAttribute.needsUpdate = true
 
-      // Camera follows mouse subtly
+      // Camera follows pointer subtly
       camera.position.x = mouseX * 0.3
       camera.position.z = 3 + mouseY * 0.2
       camera.lookAt(0, 0, 0)
@@ -186,6 +221,9 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mousedown', handleMouseDown)
       window.removeEventListener('mouseup', handleMouseUp)
+      window.removeEventListener('touchmove', handleTouchMove)
+      window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchend', handleTouchEnd)
       geometry.dispose()
       material.dispose()
     },

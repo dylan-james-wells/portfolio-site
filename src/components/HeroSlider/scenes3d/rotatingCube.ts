@@ -31,14 +31,45 @@ export function create(options: RotatingCubeOptions): Scene3D {
   directionalLight.position.set(5, 5, 5)
   scene.add(directionalLight)
 
+  // Interaction state
+  let mouseX = 0
+  let mouseY = 0
+  let targetMouseX = 0
+  let targetMouseY = 0
+
+  const updateTarget = (clientX: number, clientY: number) => {
+    targetMouseX = (clientX / window.innerWidth) * 2 - 1
+    targetMouseY = -((clientY / window.innerHeight) * 2 - 1)
+  }
+
+  const handleMouseMove = (event: MouseEvent) => {
+    updateTarget(event.clientX, event.clientY)
+  }
+
+  const handleTouchMove = (event: TouchEvent) => {
+    if (event.touches.length > 0) {
+      updateTarget(event.touches[0].clientX, event.touches[0].clientY)
+    }
+  }
+
+  window.addEventListener('mousemove', handleMouseMove)
+  window.addEventListener('touchmove', handleTouchMove, { passive: true })
+
   return {
     scene,
     camera,
-    update: (deltaTime: number) => {
-      cube.rotation.x += deltaTime * 0.5
-      cube.rotation.y += deltaTime * 0.8
+    update: () => {
+      // Smooth following
+      mouseX += (targetMouseX - mouseX) * 0.05
+      mouseY += (targetMouseY - mouseY) * 0.05
+
+      // Map position to rotation
+      cube.rotation.y = mouseX * Math.PI
+      cube.rotation.x = mouseY * Math.PI * 0.5
     },
     dispose: () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('touchmove', handleTouchMove)
       geometry.dispose()
       material.dispose()
     },
