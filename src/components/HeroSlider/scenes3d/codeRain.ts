@@ -120,11 +120,17 @@ export interface CodeRainOptions {
   colorEnd?: number
   opacity?: number
   glowOpacity?: number
-  typingSpeed?: number // characters per second
+  typingSpeed?: number // base characters per second
+  burstMin?: number // minimum chars per burst
+  burstMax?: number // maximum chars per burst
+  pauseMin?: number // minimum pause between bursts (seconds)
+  pauseMax?: number // maximum pause between bursts (seconds)
   marginLeft?: number // percentage of viewport width
   marginTop?: number // percentage of viewport height
   marginBottom?: number // percentage of viewport height
   textWidthPercent?: number // percentage of viewport width for text
+  outlineColor?: number // outline color for readability
+  outlineWidth?: number // outline width as percentage of font size
 }
 
 export function create(options: CodeRainOptions = {}): Scene3D {
@@ -133,11 +139,17 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     colorEnd = 0x4ecdc4,
     opacity = 0.25,
     glowOpacity = 0.15,
-    typingSpeed = 80,
+    typingSpeed = 200,
+    burstMin = 3,
+    burstMax = 15,
+    pauseMin = 0.02,
+    pauseMax = 0.15,
     marginLeft = 0.05,
     marginTop = 0.1,
     marginBottom = 0.1,
     textWidthPercent = 0.6,
+    outlineColor = 0x000000,
+    outlineWidth = 0.08,
   } = options
 
   const scene = new THREE.Scene()
@@ -147,7 +159,7 @@ export function create(options: CodeRainOptions = {}): Scene3D {
   camera.position.set(0, 0, 5)
   camera.lookAt(0, 0, 0)
 
-  // Create main text mesh with gradient shader
+  // Create main text mesh with troika's native styling
   const textMesh = new Text()
   textMesh.text = ''
   textMesh.font =
@@ -155,36 +167,12 @@ export function create(options: CodeRainOptions = {}): Scene3D {
   textMesh.fontSize = 0.1 // Will be adjusted on resize
   textMesh.anchorX = 'left'
   textMesh.anchorY = 'top'
-  textMesh.material = new THREE.ShaderMaterial({
-    transparent: true,
-    uniforms: {
-      colorStart: { value: new THREE.Color(colorStart) },
-      colorEnd: { value: new THREE.Color(colorEnd) },
-      opacity: { value: opacity },
-      time: { value: 0 },
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 colorStart;
-      uniform vec3 colorEnd;
-      uniform float opacity;
-      uniform float time;
-      varying vec2 vUv;
-
-      void main() {
-        // Animated gradient based on position and time
-        float t = vUv.x * 0.5 + vUv.y * 0.5 + sin(time * 0.5) * 0.1;
-        vec3 color = mix(colorStart, colorEnd, t);
-        gl_FragColor = vec4(color, opacity);
-      }
-    `,
-  })
+  // Use troika's native color and outline
+  textMesh.color = colorStart
+  textMesh.fillOpacity = opacity
+  textMesh.outlineColor = outlineColor
+  textMesh.outlineWidth = `${outlineWidth * 100}%`
+  textMesh.outlineOpacity = opacity * 0.8
   textMesh.maxWidth = 4 // Will be updated on resize
 
   scene.add(textMesh)
@@ -197,35 +185,8 @@ export function create(options: CodeRainOptions = {}): Scene3D {
   glowMesh.fontSize = 0.1
   glowMesh.anchorX = 'left'
   glowMesh.anchorY = 'top'
-  glowMesh.material = new THREE.ShaderMaterial({
-    transparent: true,
-    uniforms: {
-      colorStart: { value: new THREE.Color(colorStart) },
-      colorEnd: { value: new THREE.Color(colorEnd) },
-      opacity: { value: glowOpacity },
-      time: { value: 0 },
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 colorStart;
-      uniform vec3 colorEnd;
-      uniform float opacity;
-      uniform float time;
-      varying vec2 vUv;
-
-      void main() {
-        float t = vUv.x * 0.5 + vUv.y * 0.5 + sin(time * 0.5) * 0.1;
-        vec3 color = mix(colorStart, colorEnd, t);
-        gl_FragColor = vec4(color, opacity);
-      }
-    `,
-  })
+  glowMesh.color = colorEnd
+  glowMesh.fillOpacity = glowOpacity
   glowMesh.maxWidth = 4
   glowMesh.position.z = -0.01 // Slightly behind main text
   glowMesh.scale.setScalar(1.02) // Slightly larger for glow effect
@@ -237,11 +198,32 @@ export function create(options: CodeRainOptions = {}): Scene3D {
   let currentText = ''
   let targetText = CODE_SNIPPETS[currentSnippetIndex]
   let charIndex = 0
-  let timeSinceLastChar = 0
-  let elapsedTime = 0
   let currentAspect = 1
   let fillRatio = 0 // How much of the screen is filled (0-1)
   const maxFillRatio = 0.5 + Math.random() * 0.5 // Random between 0.5 and 1.0
+
+  // Erratic typing state
+  let burstCharsRemaining = 0 // chars left in current burst
+  let pauseTimeRemaining = 0 // time until next burst starts
+  let timeSinceLastChar = 0
+
+  // Get random value in range
+  const randomRange = (min: number, max: number) => min + Math.random() * (max - min)
+
+  // Start a new typing burst
+  const startNewBurst = () => {
+    burstCharsRemaining = Math.floor(randomRange(burstMin, burstMax))
+    pauseTimeRemaining = 0
+  }
+
+  // Start a pause between bursts
+  const startPause = () => {
+    pauseTimeRemaining = randomRange(pauseMin, pauseMax)
+    burstCharsRemaining = 0
+  }
+
+  // Initialize with a burst
+  startNewBurst()
 
   // Calculate visible dimensions at z=0
   const getVisibleDimensions = (aspect: number) => {
@@ -314,28 +296,39 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     scene,
     camera,
     update: (deltaTime: number) => {
-      elapsedTime += deltaTime
       timeSinceLastChar += deltaTime
-
-      // Update shader time uniforms
-      const textMaterial = textMesh.material as THREE.ShaderMaterial
-      const glowMaterial = glowMesh.material as THREE.ShaderMaterial
-      textMaterial.uniforms.time.value = elapsedTime
-      glowMaterial.uniforms.time.value = elapsedTime
 
       const charInterval = 1 / typingSpeed
 
-      // Type characters
-      while (timeSinceLastChar >= charInterval && charIndex < targetText.length) {
-        timeSinceLastChar -= charInterval
-        charIndex++
-        currentText = targetText.slice(0, charIndex)
-        textMesh.text = currentText
-        glowMesh.text = currentText
+      // Handle pause between bursts
+      if (pauseTimeRemaining > 0) {
+        pauseTimeRemaining -= deltaTime
+        if (pauseTimeRemaining <= 0) {
+          startNewBurst()
+        }
+      } else {
+        // Type characters in bursts
+        while (
+          timeSinceLastChar >= charInterval &&
+          charIndex < targetText.length &&
+          burstCharsRemaining > 0
+        ) {
+          timeSinceLastChar -= charInterval
+          charIndex++
+          burstCharsRemaining--
+          currentText = targetText.slice(0, charIndex)
+          textMesh.text = currentText
+          glowMesh.text = currentText
 
-        // Check fill ratio periodically
-        if (charIndex % 10 === 0) {
-          fillRatio = checkFillRatio()
+          // Check fill ratio periodically
+          if (charIndex % 10 === 0) {
+            fillRatio = checkFillRatio()
+          }
+        }
+
+        // If burst is done but more chars to type, start a pause
+        if (burstCharsRemaining <= 0 && charIndex < targetText.length) {
+          startPause()
         }
       }
 
@@ -353,13 +346,14 @@ export function create(options: CodeRainOptions = {}): Scene3D {
           currentSnippetIndex = newIndex
 
           targetText = currentText + '\n\n' + CODE_SNIPPETS[currentSnippetIndex]
-          // charIndex stays the same, we'll continue from where we are
+          startNewBurst() // Start a new burst for the new snippet
         } else {
           // We've filled enough, reset after a short pause
           pickNewSnippet()
           textMesh.text = ''
           glowMesh.text = ''
           fillRatio = 0
+          startNewBurst()
         }
       }
 

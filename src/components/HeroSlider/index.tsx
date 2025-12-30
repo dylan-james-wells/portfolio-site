@@ -164,11 +164,17 @@ export const HeroSlider: React.FC = () => {
       colorEnd: 0x4ecdc4,
       opacity: 0.3,
       glowOpacity: 0.2,
-      typingSpeed: 60,
+      typingSpeed: 300,
+      burstMin: 5,
+      burstMax: 20,
+      pauseMin: 0.01,
+      pauseMax: 0.12,
       marginLeft: 0.05,
       marginTop: 0.08,
       marginBottom: 0.08,
       textWidthPercent: 0.6,
+      outlineColor: 0x000000,
+      outlineWidth: 0.06,
     })
 
     // Update code rain camera
