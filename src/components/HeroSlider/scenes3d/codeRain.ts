@@ -159,11 +159,14 @@ export function create(options: CodeRainOptions = {}): Scene3D {
   camera.position.set(0, 0, 5)
   camera.lookAt(0, 0, 0)
 
+  // Monospace font URL
+  const monoFontUrl =
+    'https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/fonts/ttf/JetBrainsMono-Regular.ttf'
+
   // Create main text mesh with troika's native styling
   const textMesh = new Text()
   textMesh.text = ''
-  textMesh.font =
-    'https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/fonts/ttf/JetBrainsMono-Regular.ttf'
+  textMesh.font = monoFontUrl
   textMesh.fontSize = 0.1 // Will be adjusted on resize
   textMesh.anchorX = 'left'
   textMesh.anchorY = 'top'
@@ -177,19 +180,21 @@ export function create(options: CodeRainOptions = {}): Scene3D {
 
   scene.add(textMesh)
 
-  // Create glow layer (slightly larger, more transparent)
+  // Create glow layer (slightly larger, additive blending for screen/brighten effect)
   const glowMesh = new Text()
   glowMesh.text = ''
-  glowMesh.font =
-    'https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/fonts/ttf/JetBrainsMono-Regular.ttf'
+  glowMesh.font = monoFontUrl
   glowMesh.fontSize = 0.1
   glowMesh.anchorX = 'left'
   glowMesh.anchorY = 'top'
   glowMesh.color = colorEnd
   glowMesh.fillOpacity = glowOpacity
   glowMesh.maxWidth = 4
-  glowMesh.position.z = -0.01 // Slightly behind main text
-  glowMesh.scale.setScalar(1.02) // Slightly larger for glow effect
+  glowMesh.position.z = 0.01 // Slightly in front of main text for glow
+  glowMesh.scale.setScalar(1.03) // Slightly larger for glow effect
+  // Set up additive blending for screen/brighten effect
+  glowMesh.depthWrite = false
+  glowMesh.material.blending = THREE.AdditiveBlending
 
   scene.add(glowMesh)
 
@@ -200,7 +205,7 @@ export function create(options: CodeRainOptions = {}): Scene3D {
   let charIndex = 0
   let currentAspect = 1
   let fillRatio = 0 // How much of the screen is filled (0-1)
-  const maxFillRatio = 0.5 + Math.random() * 0.5 // Random between 0.5 and 1.0
+  const maxFillRatio = 0.7 + Math.random() * 0.3 // Random between 0.7 and 1.0
 
   // Erratic typing state
   let burstCharsRemaining = 0 // chars left in current burst
@@ -255,16 +260,23 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     textMesh.position.z = 0
     textMesh.maxWidth = targetWidth
 
-    // Update glow mesh to match
+    // Update glow mesh to match (in front for additive blending)
     glowMesh.fontSize = fontSize
     glowMesh.position.x = posX
     glowMesh.position.y = posY
-    glowMesh.position.z = -0.01
+    glowMesh.position.z = 0.01
     glowMesh.maxWidth = targetWidth
 
     // Sync both meshes
     textMesh.sync()
-    glowMesh.sync()
+    glowMesh.sync(() => {
+      // Apply additive blending after material is ready
+      if (glowMesh.material) {
+        glowMesh.material.blending = THREE.AdditiveBlending
+        glowMesh.material.depthWrite = false
+        glowMesh.material.needsUpdate = true
+      }
+    })
   }
 
   // Pick a new random snippet
@@ -359,7 +371,13 @@ export function create(options: CodeRainOptions = {}): Scene3D {
 
       // Sync both text meshes
       textMesh.sync()
-      glowMesh.sync()
+      glowMesh.sync(() => {
+        // Ensure additive blending is applied
+        if (glowMesh.material) {
+          glowMesh.material.blending = THREE.AdditiveBlending
+          glowMesh.material.depthWrite = false
+        }
+      })
     },
     dispose: () => {
       textMesh.dispose()
