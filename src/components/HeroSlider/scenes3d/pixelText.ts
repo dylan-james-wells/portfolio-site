@@ -10,6 +10,7 @@ export interface PixelTextOptions {
   fontSize?: number
   depth?: number
   depthLayers?: number
+  paddingPercent?: number // Percentage of viewport width to use as padding on each side (0-1)
 }
 
 export function create(options: PixelTextOptions = {}): Scene3D {
@@ -17,9 +18,10 @@ export function create(options: PixelTextOptions = {}): Scene3D {
     text = 'HELLO\nWORLD',
     colorStart = 0xff6b6b,
     colorEnd = 0x4ecdc4,
-    fontSize = 0.5,
+    fontSize: initialFontSize = 0.5,
     depth = 0.15,
     depthLayers = 12,
+    paddingPercent = 0.2, // 10% padding on each side
   } = options
 
   const scene = new THREE.Scene()
@@ -37,6 +39,36 @@ export function create(options: PixelTextOptions = {}): Scene3D {
   // Store all text meshes for animation
   const textMeshes: InstanceType<typeof Text>[] = []
 
+  // Track state for responsive sizing
+  let currentAspect = 1
+  let hasSizedText = false
+
+  // Calculate visible width at z=0 based on camera FOV and aspect ratio
+  const getVisibleWidth = (aspect: number): number => {
+    const distance = camera.position.z
+    const vFov = (camera.fov * Math.PI) / 180
+    const visibleHeight = 2 * Math.tan(vFov / 2) * distance
+    return visibleHeight * aspect
+  }
+
+  // Resize text to fit viewport
+  const resizeTextToFit = (aspect: number) => {
+    const frontMesh = textMeshes[0]
+    if (!frontMesh || !frontMesh.textRenderInfo) return
+
+    const bounds = frontMesh.textRenderInfo.blockBounds
+    const textWidth = bounds[2] - bounds[0]
+    if (textWidth <= 0) return
+
+    const visibleWidth = getVisibleWidth(aspect)
+    const targetWidth = visibleWidth * (1 - paddingPercent * 2)
+    const scale = targetWidth / textWidth
+
+    // Apply scale to the group instead of changing font size
+    textGroup.scale.setScalar(scale)
+    hasSizedText = true
+  }
+
   // Create multiple layers for depth effect
   for (let i = 0; i < depthLayers; i++) {
     const layerZ = -i * (depth / depthLayers)
@@ -44,8 +76,9 @@ export function create(options: PixelTextOptions = {}): Scene3D {
 
     const textMesh = new Text()
     textMesh.text = text
-    textMesh.font = 'https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf'
-    textMesh.fontSize = fontSize
+    textMesh.font =
+      'https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf'
+    textMesh.fontSize = initialFontSize
     textMesh.anchorX = 'center'
     textMesh.anchorY = 'middle'
     textMesh.textAlign = 'center'
@@ -90,7 +123,14 @@ export function create(options: PixelTextOptions = {}): Scene3D {
       })
     }
 
-    textMesh.sync()
+    // On front mesh sync, trigger initial sizing
+    if (isfront) {
+      textMesh.sync(() => {
+        resizeTextToFit(currentAspect)
+      })
+    } else {
+      textMesh.sync()
+    }
     textGroup.add(textMesh)
     textMeshes.push(textMesh)
   }
@@ -155,6 +195,12 @@ export function create(options: PixelTextOptions = {}): Scene3D {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('touchmove', handleTouchMove)
       textMeshes.forEach((mesh) => mesh.dispose())
+    },
+    resize: (_width: number, _height: number, aspect: number) => {
+      currentAspect = aspect
+      camera.aspect = aspect
+      camera.updateProjectionMatrix()
+      resizeTextToFit(aspect)
     },
   }
 }

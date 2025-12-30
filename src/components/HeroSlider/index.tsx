@@ -145,18 +145,23 @@ export const HeroSlider: React.FC = () => {
     // Text Overlay Setup
     // ============================================
     const textOverlay = pixelText.create({
-      text: 'HELLO\nWORLD',
+      text: 'MAKE\nFUN',
       colorStart: 0xff6b6b,
       colorEnd: 0x4ecdc4,
-      fontSize: 0.8,
+      fontSize: 0.4,
       depth: 0.2,
       depthLayers: 16,
     })
 
-    // Update text camera aspect ratio
+    // Update text camera aspect ratio and initial sizing
     const textCamera = textOverlay.camera as THREE.PerspectiveCamera
-    textCamera.aspect = container.clientWidth / container.clientHeight
-    textCamera.updateProjectionMatrix()
+    const initialAspect = container.clientWidth / container.clientHeight
+    if (textOverlay.resize) {
+      textOverlay.resize(container.clientWidth, container.clientHeight, initialAspect)
+    } else {
+      textCamera.aspect = initialAspect
+      textCamera.updateProjectionMatrix()
+    }
 
     // Track mouse position for chromatic aberration
     let mouseX = 0
@@ -456,9 +461,13 @@ export const HeroSlider: React.FC = () => {
       renderer.setSize(width, height)
       composer.setSize(width, height)
 
-      // Update text overlay camera
-      textCamera.aspect = newAspect
-      textCamera.updateProjectionMatrix()
+      // Update text overlay camera and sizing
+      if (textOverlay.resize) {
+        textOverlay.resize(width, height, newAspect)
+      } else {
+        textCamera.aspect = newAspect
+        textCamera.updateProjectionMatrix()
+      }
     }
     window.addEventListener('resize', handleResize)
 
@@ -601,7 +610,10 @@ export const HeroSlider: React.FC = () => {
       const distFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)
       const baseStrength = 0.004
       const mouseStrength = distFromCenter * 0.006
-      chromaticAberrationEffect.offset.set(baseStrength + mouseStrength, baseStrength + mouseStrength)
+      chromaticAberrationEffect.offset.set(
+        baseStrength + mouseStrength,
+        baseStrength + mouseStrength,
+      )
 
       // Update tilt-shift based on mouse position and current slide settings
       // Offset moves the focus band up/down, rotation tilts it
