@@ -84,7 +84,7 @@ export function create(options: PixelTextOptions = {}): Scene3D {
     textMesh.fontSize = initialFontSize
     textMesh.anchorX = 'center'
     textMesh.anchorY = 'middle'
-    textMesh.textAlign = 'center'
+    textMesh.textAlign = 'left'
     textMesh.position.z = layerZ
 
     if (isfront) {
@@ -341,10 +341,7 @@ export function create(options: PixelTextOptions = {}): Scene3D {
         if (onSnapBack) {
           const snapDirX = -dragOffsetX * 5 // Amplify and invert
           const snapDirY = -dragOffsetY * 5
-          onSnapBack(
-            Math.max(-1, Math.min(1, snapDirX)),
-            Math.max(-1, Math.min(1, snapDirY)),
-          )
+          onSnapBack(Math.max(-1, Math.min(1, snapDirX)), Math.max(-1, Math.min(1, snapDirY)))
         }
       }
 
@@ -391,10 +388,7 @@ export function create(options: PixelTextOptions = {}): Scene3D {
         if (onSnapBack) {
           const snapDirX = -dragOffsetX * 5
           const snapDirY = -dragOffsetY * 5
-          onSnapBack(
-            Math.max(-1, Math.min(1, snapDirX)),
-            Math.max(-1, Math.min(1, snapDirY)),
-          )
+          onSnapBack(Math.max(-1, Math.min(1, snapDirX)), Math.max(-1, Math.min(1, snapDirY)))
         }
       }
 
@@ -470,9 +464,7 @@ export function create(options: PixelTextOptions = {}): Scene3D {
           material.uniforms.stretchX.value = stretchX
           material.uniforms.stretchY.value = stretchY
           // Update ripple time (-1 when inactive)
-          material.uniforms.rippleTime.value = rippleActive
-            ? elapsedTime - rippleStartTime
-            : -1.0
+          material.uniforms.rippleTime.value = rippleActive ? elapsedTime - rippleStartTime : -1.0
         }
       }
 

@@ -9,6 +9,8 @@ export interface Scene3D {
   render?: (renderer: THREE.WebGLRenderer, renderTarget: THREE.WebGLRenderTarget) => void
   // Optional resize handler for responsive scenes
   resize?: (width: number, height: number, aspect: number) => void
+  // Optional color scheme transition (0 = primary color scheme, 1 = secondary color scheme)
+  setColorScheme?: (scheme: number) => void
 }
 
 export interface Scene3DFactory {

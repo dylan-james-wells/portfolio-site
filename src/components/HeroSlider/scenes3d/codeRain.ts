@@ -150,6 +150,16 @@ interface TextState {
   timeSinceLastChar: number
 }
 
+// Color transition state
+interface ColorState {
+  currentScheme: number // 0 = pink primary, 1 = teal primary
+  targetScheme: number
+  colorStart: THREE.Color // pink
+  colorEnd: THREE.Color // teal
+  currentTextColor: THREE.Color
+  currentGlowColor: THREE.Color
+}
+
 export function create(options: CodeRainOptions = {}): Scene3D {
   const {
     colorStart = 0xff6b6b,
@@ -169,6 +179,8 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     outlineColor = 0x000000,
     outlineWidth = 0.08,
   } = options
+
+  console.log('opacity', options.opacity)
 
   const scene = new THREE.Scene()
   scene.background = null // Transparent
@@ -216,7 +228,6 @@ export function create(options: CodeRainOptions = {}): Scene3D {
 
   scene.add(glowMesh)
 
-
   // Initialize state
   const snippetIndex = Math.floor(Math.random() * CODE_SNIPPETS.length)
   const state: TextState = {
@@ -232,6 +243,42 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     burstCharsRemaining: Math.floor(randomRange(burstMin, burstMax)),
     pauseTimeRemaining: 0,
     timeSinceLastChar: 0,
+  }
+
+  // Initialize color state for smooth transitions
+  const colorState: ColorState = {
+    currentScheme: 0,
+    targetScheme: 0,
+    colorStart: new THREE.Color(colorStart), // pink
+    colorEnd: new THREE.Color(colorEnd), // teal
+    currentTextColor: new THREE.Color(colorStart),
+    currentGlowColor: new THREE.Color(colorEnd),
+  }
+
+  // Speed of color transition (1 = instant, lower = slower)
+  const COLOR_LERP_SPEED = 3
+
+  // Update colors based on scheme (0 = pink text/teal glow, 1 = teal text/pink glow)
+  const updateColors = (deltaTime: number) => {
+    // Smoothly interpolate current scheme towards target
+    const diff = colorState.targetScheme - colorState.currentScheme
+    if (Math.abs(diff) > 0.001) {
+      colorState.currentScheme += diff * Math.min(1, deltaTime * COLOR_LERP_SPEED)
+    } else {
+      colorState.currentScheme = colorState.targetScheme
+    }
+
+    const t = colorState.currentScheme
+
+    // Interpolate text color: pink (0) -> teal (1)
+    colorState.currentTextColor.copy(colorState.colorStart).lerp(colorState.colorEnd, t)
+
+    // Interpolate glow color: teal (0) -> pink (1)
+    colorState.currentGlowColor.copy(colorState.colorEnd).lerp(colorState.colorStart, t)
+
+    // Apply colors to meshes
+    state.textMesh.color = colorState.currentTextColor.getHex()
+    state.glowMesh.color = colorState.currentGlowColor.getHex()
   }
 
   let currentAspect = 1
@@ -382,6 +429,7 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     camera,
     update: (deltaTime: number) => {
       updateTyping(deltaTime)
+      updateColors(deltaTime)
     },
     dispose: () => {
       state.textMesh.dispose()
@@ -392,6 +440,9 @@ export function create(options: CodeRainOptions = {}): Scene3D {
       camera.aspect = aspect
       camera.updateProjectionMatrix()
       updateTextPosition(aspect)
+    },
+    setColorScheme: (scheme: number) => {
+      colorState.targetScheme = Math.max(0, Math.min(1, scheme))
     },
   }
 }

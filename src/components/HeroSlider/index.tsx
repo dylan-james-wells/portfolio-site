@@ -162,7 +162,7 @@ export const HeroSlider: React.FC = () => {
     const codeRainOverlay = codeRain.create({
       colorStart: 0xff6b6b,
       colorEnd: 0x4ecdc4,
-      opacity: 0.3,
+      opacity: 0.6,
       glowOpacity: 0.2,
       typingSpeed: 300,
       burstMin: 5,
@@ -704,6 +704,13 @@ export const HeroSlider: React.FC = () => {
       }
 
       composer.render()
+
+      // Update code rain color scheme based on current slide
+      // Slides 0-1 (hypercube) = scheme 0 (pink text), slides 2-3 (waveDots) = scheme 1 (teal text)
+      if (codeRainOverlay.setColorScheme) {
+        const colorScheme = currentSlideIndex >= 2 ? 1 : 0
+        codeRainOverlay.setColorScheme(colorScheme)
+      }
 
       // Render code rain layer (between background and text)
       codeRainOverlay.update(deltaTime)
