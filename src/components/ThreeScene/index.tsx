@@ -11,6 +11,10 @@ const GAP = 0.01
 const FLIP_DURATION = 0.5 // seconds for one cube to complete its flip
 const WAVE_DELAY = 0.02 // seconds delay between each diagonal wave
 
+// Drag interaction settings
+const DRAG_THRESHOLD = 150 // pixels to drag before committing to advance
+const MAX_DRAG_ROTATION = Math.PI / 2 // max rotation during drag (90 degrees)
+
 const IMAGE_URLS = [
   'https://images.pexels.com/photos/38136/pexels-photo-38136.jpeg',
   'https://images.pexels.com/photos/957024/forest-trees-perspective-bright-957024.jpeg',
@@ -100,26 +104,76 @@ export const ThreeScene: React.FC = () => {
     scene.add(cubeGroup)
 
     // Animation state
-    let animationStartTime: number | null = null
-    let isAnimating = false
     let currentImageIndex = 0 // Which image is currently showing (front face)
-    let nextImageIndex = 1 // Which image will be shown after flip
+    let animationDirection: 'forward' | 'backward' = 'forward'
 
-    // Start the wave animation
-    const startWaveAnimation = () => {
-      if (isAnimating) return
-      isAnimating = true
-      animationStartTime = performance.now() / 1000
+    // Unified animation progress (0 = current image, 1 = next image fully shown)
+    let animationProgress = 0
+    let targetProgress = 0 // Where we're animating towards
+    let isAutoAnimating = false // True when animation is running automatically (not dragged)
+    let autoPlayTimeoutId: ReturnType<typeof setTimeout> | null = null
 
-      // Update materials to show next image on the side faces before animation
-      const nextTexture = textures[nextImageIndex]
+    // Drag state
+    let isDragging = false
+    let dragStartX = 0
+
+    // Get the next image index based on direction
+    const getNextImageIndex = (direction: 'forward' | 'backward') => {
+      return direction === 'forward'
+        ? (currentImageIndex + 1) % imageCount
+        : (currentImageIndex - 1 + imageCount) % imageCount
+    }
+
+    // Update side face textures to show the target image
+    const updateSideTextures = (direction: 'forward' | 'backward') => {
+      const targetIndex = getNextImageIndex(direction)
+      const targetTexture = textures[targetIndex]
       for (const cubeData of cubeDataList) {
-        // Update +X and -X faces (indices 0 and 1) to show the next image
-        cubeData.faceMaterials[0].map = nextTexture
-        cubeData.faceMaterials[1].map = nextTexture
+        cubeData.faceMaterials[0].map = targetTexture
+        cubeData.faceMaterials[1].map = targetTexture
         cubeData.faceMaterials[0].needsUpdate = true
         cubeData.faceMaterials[1].needsUpdate = true
       }
+    }
+
+    // Complete the transition - update current image and reset
+    const completeTransition = () => {
+      currentImageIndex = getNextImageIndex(animationDirection)
+      animationProgress = 0
+      targetProgress = 0
+
+      // Update all face textures to show the new current image
+      const currentTexture = textures[currentImageIndex]
+      for (const cubeData of cubeDataList) {
+        cubeData.mesh.rotation.y = 0
+        cubeData.mesh.position.z = cubeData.baseZ
+        cubeData.faceMaterials[4].map = currentTexture
+        cubeData.faceMaterials[5].map = currentTexture
+        cubeData.faceMaterials[2].map = currentTexture
+        cubeData.faceMaterials[3].map = currentTexture
+        cubeData.faceMaterials[4].needsUpdate = true
+        cubeData.faceMaterials[5].needsUpdate = true
+        cubeData.faceMaterials[2].needsUpdate = true
+        cubeData.faceMaterials[3].needsUpdate = true
+      }
+
+      isAutoAnimating = false
+      scheduleAutoPlay()
+    }
+
+    // Schedule auto-play
+    const scheduleAutoPlay = () => {
+      if (autoPlayTimeoutId) {
+        clearTimeout(autoPlayTimeoutId)
+      }
+      autoPlayTimeoutId = setTimeout(() => {
+        if (!isDragging && !isAutoAnimating && animationProgress === 0) {
+          animationDirection = 'forward'
+          updateSideTextures('forward')
+          targetProgress = 1
+          isAutoAnimating = true
+        }
+      }, 2000)
     }
 
     // Load all textures then create the grid
@@ -211,7 +265,10 @@ export const ThreeScene: React.FC = () => {
 
       // Start the first animation after a short delay
       setTimeout(() => {
-        startWaveAnimation()
+        animationDirection = 'forward'
+        updateSideTextures('forward')
+        targetProgress = 1
+        isAutoAnimating = true
       }, 1000)
     })
 
@@ -242,82 +299,153 @@ export const ThreeScene: React.FC = () => {
     }
     window.addEventListener('resize', handleResize)
 
+    // Drag handlers
+    let lastDragDirection: 'forward' | 'backward' | null = null
+
+    const handleMouseDown = (event: MouseEvent) => {
+      // Don't allow dragging during auto-animation
+      if (isAutoAnimating) return
+      isDragging = true
+      dragStartX = event.clientX
+      lastDragDirection = null
+      // Cancel auto-play while dragging
+      if (autoPlayTimeoutId) {
+        clearTimeout(autoPlayTimeoutId)
+        autoPlayTimeoutId = null
+      }
+    }
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isDragging || isAutoAnimating) return
+      const dragDeltaX = event.clientX - dragStartX
+      const newDirection: 'forward' | 'backward' = dragDeltaX < 0 ? 'forward' : 'backward'
+
+      // Update textures if direction changed
+      if (newDirection !== lastDragDirection) {
+        lastDragDirection = newDirection
+        animationDirection = newDirection
+        updateSideTextures(newDirection)
+      }
+
+      // Map drag distance to 0-0.5 progress (drag controls first half)
+      const dragProgress = Math.min(Math.abs(dragDeltaX) / DRAG_THRESHOLD, 1) * 0.5
+      animationProgress = dragProgress
+      targetProgress = dragProgress
+    }
+
+    const handleMouseUp = () => {
+      if (!isDragging) return
+      isDragging = false
+
+      if (animationProgress >= 0.5) {
+        // Past threshold - complete the animation
+        targetProgress = 1
+        isAutoAnimating = true
+      } else if (animationProgress > 0) {
+        // Before threshold - animate back to 0
+        targetProgress = 0
+        isAutoAnimating = true
+      } else {
+        // No movement - just resume auto-play
+        scheduleAutoPlay()
+      }
+    }
+
+    const handleMouseLeave = () => {
+      if (isDragging) {
+        handleMouseUp()
+      }
+    }
+
+    container.addEventListener('mousedown', handleMouseDown)
+    container.addEventListener('mousemove', handleMouseMove)
+    container.addEventListener('mouseup', handleMouseUp)
+    container.addEventListener('mouseleave', handleMouseLeave)
+
+    // Animation speed for auto-animation
+    const ANIMATION_SPEED = 1.5 // progress per second
+
     // Animation loop
     let animationId: number
+    let lastTime = performance.now() / 1000
+
     const animate = () => {
       animationId = requestAnimationFrame(animate)
 
       const currentTime = performance.now() / 1000
+      const deltaTime = currentTime - lastTime
+      lastTime = currentTime
 
-      // Update cube animations
-      if (isAnimating && animationStartTime !== null) {
-        const elapsed = currentTime - animationStartTime
-        let allComplete = true
-
-        for (const cubeData of cubeDataList) {
-          // Calculate diagonal distance from top-left
-          const flippedRow = GRID_SIZE - 1 - cubeData.row
-          const diagonalIndex = cubeData.col + flippedRow
-
-          // Calculate when this cube should start animating
-          const cubeStartTime = diagonalIndex * WAVE_DELAY
-          const cubeElapsed = elapsed - cubeStartTime
-
-          if (cubeElapsed < 0) {
-            allComplete = false
-            continue
-          }
-
-          if (cubeElapsed >= FLIP_DURATION) {
-            // Animation complete - snap to 90 degrees
-            cubeData.mesh.rotation.y = Math.PI / 2
-            cubeData.mesh.position.z = cubeData.baseZ
-          } else {
-            // Currently animating
-            allComplete = false
-            const progress = cubeElapsed / FLIP_DURATION
-            const easedProgress = easeInOutCubic(progress)
-
-            // Rotate from 0 to PI/2
-            cubeData.mesh.rotation.y = easedProgress * (Math.PI / 2)
-
-            // Z offset for pop-out effect
-            const zOffset = Math.sin(progress * Math.PI) * CUBE_SIZE
-            cubeData.mesh.position.z = cubeData.baseZ + zOffset
-          }
+      // Auto-animate towards target progress
+      if (isAutoAnimating && cubeDataList.length > 0) {
+        if (animationProgress < targetProgress) {
+          animationProgress = Math.min(animationProgress + deltaTime * ANIMATION_SPEED, targetProgress)
+        } else if (animationProgress > targetProgress) {
+          animationProgress = Math.max(animationProgress - deltaTime * ANIMATION_SPEED, targetProgress)
         }
 
-        // Check if all cubes have finished animating
-        if (allComplete && elapsed > (GRID_SIZE * 2 - 1) * WAVE_DELAY + FLIP_DURATION) {
-          isAnimating = false
-          animationStartTime = null
+        // Check if animation is complete
+        if (animationProgress === targetProgress) {
+          if (targetProgress >= 1) {
+            // Completed transition to next image
+            completeTransition()
+          } else if (targetProgress === 0) {
+            // Returned to start
+            isAutoAnimating = false
+            for (const cubeData of cubeDataList) {
+              cubeData.mesh.rotation.y = 0
+              cubeData.mesh.position.z = cubeData.baseZ
+            }
+            scheduleAutoPlay()
+          }
+        }
+      }
 
-          // Update the current image index
-          currentImageIndex = nextImageIndex
-          nextImageIndex = (nextImageIndex + 1) % imageCount
+      // Apply animation progress to cubes (works for both drag and auto-animation)
+      if ((isDragging || isAutoAnimating) && cubeDataList.length > 0 && animationProgress > 0) {
+        const maxDiagonal = (GRID_SIZE - 1) * 2
 
-          // Reset rotation and update front face to show new current image
-          const currentTexture = textures[currentImageIndex]
-          for (const cubeData of cubeDataList) {
-            cubeData.mesh.rotation.y = 0
-
-            // Update front face (+Z, index 4) to current image
-            cubeData.faceMaterials[4].map = currentTexture
-            cubeData.faceMaterials[4].needsUpdate = true
-
-            // Also update back and top/bottom for consistency
-            cubeData.faceMaterials[5].map = currentTexture
-            cubeData.faceMaterials[2].map = currentTexture
-            cubeData.faceMaterials[3].map = currentTexture
-            cubeData.faceMaterials[5].needsUpdate = true
-            cubeData.faceMaterials[2].needsUpdate = true
-            cubeData.faceMaterials[3].needsUpdate = true
+        for (const cubeData of cubeDataList) {
+          // Calculate diagonal index based on direction
+          const flippedRow = GRID_SIZE - 1 - cubeData.row
+          let diagonalIndex: number
+          if (animationDirection === 'forward') {
+            // Top-left to bottom-right
+            diagonalIndex = cubeData.col + flippedRow
+          } else {
+            // Bottom-right to top-left
+            diagonalIndex = (GRID_SIZE - 1 - cubeData.col) + cubeData.row
           }
 
-          // Start next animation after a delay
-          setTimeout(() => {
-            startWaveAnimation()
-          }, 2000)
+          // Normalize diagonal index to 0-1 range
+          const normalizedDiagonal = diagonalIndex / maxDiagonal
+
+          // Calculate this cube's individual progress based on wave
+          // Each cube starts at a different time in the wave
+          // The wave spreads across the grid as overall progress increases
+          const waveSpread = 0.3 // How spread out the wave is (0 = all together, 1 = very spread)
+          const cubeStartProgress = normalizedDiagonal * waveSpread
+          const cubeEndProgress = cubeStartProgress + (1 - waveSpread)
+
+          // Map overall progress to this cube's local progress
+          let cubeProgress = 0
+          if (animationProgress > cubeStartProgress) {
+            cubeProgress = Math.min(1, (animationProgress - cubeStartProgress) / (cubeEndProgress - cubeStartProgress))
+          }
+
+          if (cubeProgress > 0) {
+            const easedProgress = easeInOutCubic(cubeProgress)
+            // Rotate based on direction (full 90 degrees at progress = 1)
+            const rotation = easedProgress * (Math.PI / 2) * (animationDirection === 'forward' ? 1 : -1)
+            cubeData.mesh.rotation.y = rotation
+
+            // Z offset for pop-out effect (peaks at middle of animation)
+            const zOffset = Math.sin(cubeProgress * Math.PI) * CUBE_SIZE
+            cubeData.mesh.position.z = cubeData.baseZ + zOffset
+          } else {
+            cubeData.mesh.rotation.y = 0
+            cubeData.mesh.position.z = cubeData.baseZ
+          }
         }
       }
 
@@ -328,6 +456,13 @@ export const ThreeScene: React.FC = () => {
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize)
+      container.removeEventListener('mousedown', handleMouseDown)
+      container.removeEventListener('mousemove', handleMouseMove)
+      container.removeEventListener('mouseup', handleMouseUp)
+      container.removeEventListener('mouseleave', handleMouseLeave)
+      if (autoPlayTimeoutId) {
+        clearTimeout(autoPlayTimeoutId)
+      }
       cancelAnimationFrame(animationId)
       container.removeChild(renderer.domElement)
       geometries.forEach((g) => g.dispose())
