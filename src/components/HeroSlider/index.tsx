@@ -27,10 +27,6 @@ const SLIDES: SlideType[] = [
   },
   { type: '3d', createScene: () => waveDots.create({ colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }) },
   { type: '3d', createScene: () => waveDots.create({ colorStart: 0x4ecdc4, colorEnd: 0xff6b6b }) },
-  {
-    type: '3d',
-    createScene: () => pixelText.create({ text: 'HELLO\nWORLD', colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }),
-  },
 ]
 
 // Easing function for smooth animation
@@ -103,6 +99,21 @@ export const HeroSlider: React.FC = () => {
     })
     const chromaticPass = new EffectPass(camera, chromaticAberrationEffect)
     composer.addPass(chromaticPass)
+
+    // ============================================
+    // Text Overlay Setup
+    // ============================================
+    const textOverlay = pixelText.create({
+      text: 'HELLO\nWORLD',
+      colorStart: 0xff6b6b,
+      colorEnd: 0x4ecdc4,
+      fontSize: 0.8,
+    })
+
+    // Update text camera aspect ratio
+    const textCamera = textOverlay.camera as THREE.PerspectiveCamera
+    textCamera.aspect = container.clientWidth / container.clientHeight
+    textCamera.updateProjectionMatrix()
 
     // Track mouse position for chromatic aberration
     let mouseX = 0
@@ -401,6 +412,10 @@ export const HeroSlider: React.FC = () => {
       camera.updateProjectionMatrix()
       renderer.setSize(width, height)
       composer.setSize(width, height)
+
+      // Update text overlay camera
+      textCamera.aspect = newAspect
+      textCamera.updateProjectionMatrix()
     }
     window.addEventListener('resize', handleResize)
 
@@ -741,6 +756,15 @@ export const HeroSlider: React.FC = () => {
       }
 
       composer.render()
+
+      // ============================================
+      // Render text overlay on top
+      // ============================================
+      textOverlay.update(deltaTime)
+      renderer.autoClear = false
+      renderer.clearDepth()
+      renderer.render(textOverlay.scene, textOverlay.camera)
+      renderer.autoClear = true
     }
     animate()
 
@@ -769,6 +793,7 @@ export const HeroSlider: React.FC = () => {
         as.renderTarget.dispose()
         as.scene3d.dispose()
       })
+      textOverlay.dispose()
       composer.dispose()
       renderer.dispose()
     }

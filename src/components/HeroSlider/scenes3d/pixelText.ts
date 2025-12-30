@@ -20,7 +20,8 @@ export function create(options: PixelTextOptions = {}): Scene3D {
   } = options
 
   const scene = new THREE.Scene()
-  scene.background = new THREE.Color(backgroundColor)
+  // Transparent background for overlay mode
+  scene.background = null
 
   const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
   camera.position.set(0, 0, 5)
