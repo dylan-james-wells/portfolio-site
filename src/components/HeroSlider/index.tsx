@@ -122,8 +122,9 @@ export const HeroSlider: React.FC = () => {
 
     // Chromatic aberration effect on the main scene
     const chromaticAberrationEffect = new ChromaticAberrationEffect({
-      offset: new THREE.Vector2(0.005, 0.005),
-      radialModulation: false,
+      offset: new THREE.Vector2(0.002, 0.002),
+      radialModulation: true,
+      modulationOffset: 0.2,
     })
     const chromaticPass = new EffectPass(camera, chromaticAberrationEffect)
     composer.addPass(chromaticPass)
@@ -596,10 +597,11 @@ export const HeroSlider: React.FC = () => {
       mouseY += (targetMouseY - mouseY) * 0.1
 
       // Update chromatic aberration based on mouse position
-      // Offset increases as mouse moves away from center
+      // Radial modulation pushes the effect outward from center
       const distFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)
-      const aberrationStrength = 0.003 + distFromCenter * 0.008
-      chromaticAberrationEffect.offset.set(mouseX * aberrationStrength, mouseY * aberrationStrength)
+      const baseStrength = 0.004
+      const mouseStrength = distFromCenter * 0.006
+      chromaticAberrationEffect.offset.set(baseStrength + mouseStrength, baseStrength + mouseStrength)
 
       // Update tilt-shift based on mouse position and current slide settings
       // Offset moves the focus band up/down, rotation tilts it
