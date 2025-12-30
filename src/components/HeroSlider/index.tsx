@@ -9,58 +9,23 @@ import {
   ChromaticAberrationEffect,
   TiltShiftEffect,
 } from 'postprocessing'
-import type { Scene3D } from './scenes3d'
-import { hypercube, waveDots, pixelText } from './scenes3d'
-
-const GRID_SIZE = 30
-const CUBE_SIZE = 1
-const GAP = 0.01
-
-// Drag interaction settings
-const DRAG_THRESHOLD = 150 // pixels to drag before committing to advance
-
-// Tilt-shift settings per slide
-interface TiltShiftSettings {
-  focusArea: number
-  feather: number
-  blur: number
-}
-
-// Slide definitions - can be either an image URL or a 3D scene factory
-type SlideType =
-  | { type: 'image'; url: string; tiltShift?: TiltShiftSettings }
-  | { type: '3d'; createScene: () => Scene3D; tiltShift?: TiltShiftSettings }
-
-// Default tilt-shift settings
-const defaultTiltShift: TiltShiftSettings = { focusArea: 0.4, feather: 0.3, blur: 0.15 }
-
-const SLIDES: SlideType[] = [
-  {
-    type: '3d',
-    createScene: () => hypercube.create({ colorInner: 0xff6b6b, colorOuter: 0x4ecdc4 }),
-    tiltShift: { focusArea: 0.8, feather: 0.4, blur: 0.08 }, // Less blur for hypercube
-  },
-  {
-    type: '3d',
-    createScene: () => hypercube.create({ colorInner: 0x4ecdc4, colorOuter: 0xff6b6b }),
-    tiltShift: { focusArea: 0.8, feather: 0.4, blur: 0.08 }, // Less blur for hypercube
-  },
-  {
-    type: '3d',
-    createScene: () => waveDots.create({ colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }),
-    tiltShift: { focusArea: 0.4, feather: 0.3, blur: 0.15 }, // More blur for dots
-  },
-  {
-    type: '3d',
-    createScene: () => waveDots.create({ colorStart: 0x4ecdc4, colorEnd: 0xff6b6b }),
-    tiltShift: { focusArea: 0.4, feather: 0.3, blur: 0.15 }, // More blur for dots
-  },
-]
-
-// Easing function for smooth animation
-const easeInOutCubic = (t: number): number => {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-}
+import { pixelText } from './scenes3d'
+import { SLIDES } from './slides'
+import {
+  GRID_SIZE,
+  CUBE_SIZE,
+  GAP,
+  DRAG_THRESHOLD,
+  ANIMATION_SPEED,
+  RENDER_TARGET_SIZE,
+  BACKGROUND_ZOOM_IN,
+  TEXT_ZOOM_OUT,
+} from './constants'
+import { defaultTiltShift } from './types'
+import type { CubeData, AnimatedSlide, HybridWave } from './types'
+import { GRID_EXTENT, easeInOutCubic, calculateCoverFrustum } from './utils'
+import { textBlurVertexShader, textBlurFragmentShader } from './shaders/textBlur'
+import { createWave, processWaves } from './rippleWave'
 
 export const HeroSlider: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -77,25 +42,6 @@ export const HeroSlider: React.FC = () => {
 
     // Camera setup - use OrthographicCamera with "cover" behavior
     const aspect = container.clientWidth / container.clientHeight
-    const gridExtent = (GRID_SIZE - 1) * (CUBE_SIZE + GAP) + CUBE_SIZE
-
-    // Calculate frustum to achieve "cover" effect (grid fills viewport, may be cropped)
-    const calculateCoverFrustum = (viewportAspect: number) => {
-      const gridAspect = 1
-      let frustumWidth: number
-      let frustumHeight: number
-
-      if (viewportAspect > gridAspect) {
-        frustumWidth = gridExtent / 2
-        frustumHeight = frustumWidth / viewportAspect
-      } else {
-        frustumHeight = gridExtent / 2
-        frustumWidth = frustumHeight * viewportAspect
-      }
-
-      return { frustumWidth, frustumHeight }
-    }
-
     const { frustumWidth, frustumHeight } = calculateCoverFrustum(aspect)
 
     const camera = new THREE.OrthographicCamera(
@@ -144,7 +90,6 @@ export const HeroSlider: React.FC = () => {
     // ============================================
     // Text Overlay Setup
     // ============================================
-    // Helper to trigger a grid wave at a position (will be populated after grid is created)
     let triggerGridWave: ((row: number, col: number) => void) | null = null
 
     // Create render target for text with blur effect
@@ -170,63 +115,8 @@ export const HeroSlider: React.FC = () => {
         aberrationStrength: { value: 0.004 },
         textZoom: { value: 1.0 },
       },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = vec4(position.xy, 0.0, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform sampler2D tDiffuse;
-        uniform vec2 resolution;
-        uniform float blurAmount;
-        uniform float aberrationStrength;
-        uniform float textZoom;
-        varying vec2 vUv;
-
-        void main() {
-          // Apply zoom by scaling UV from center
-          vec2 center = vec2(0.5);
-          vec2 zoomedUv = center + (vUv - center) / textZoom;
-
-          // Early out if outside texture bounds
-          if (zoomedUv.x < 0.0 || zoomedUv.x > 1.0 || zoomedUv.y < 0.0 || zoomedUv.y > 1.0) {
-            gl_FragColor = vec4(0.0);
-            return;
-          }
-
-          vec2 texelSize = blurAmount / resolution;
-
-          // Chromatic aberration offset based on distance from center
-          vec2 dir = zoomedUv - center;
-          float dist = length(dir);
-          vec2 aberrationOffset = dir * aberrationStrength * dist;
-
-          vec3 color = vec3(0.0);
-          float alpha = 0.0;
-
-          // 9-tap blur with chromatic aberration
-          for(int x = -1; x <= 1; x++) {
-            for(int y = -1; y <= 1; y++) {
-              vec2 offset = vec2(float(x), float(y)) * texelSize;
-
-              // Sample each channel with slight offset for aberration
-              float r = texture2D(tDiffuse, zoomedUv + offset + aberrationOffset).r;
-              float g = texture2D(tDiffuse, zoomedUv + offset).g;
-              float b = texture2D(tDiffuse, zoomedUv + offset - aberrationOffset).b;
-              float a = texture2D(tDiffuse, zoomedUv + offset).a;
-
-              color += vec3(r, g, b);
-              alpha += a;
-            }
-          }
-          color /= 9.0;
-          alpha /= 9.0;
-
-          gl_FragColor = vec4(color, alpha);
-        }
-      `,
+      vertexShader: textBlurVertexShader,
+      fragmentShader: textBlurFragmentShader,
     })
 
     const blurQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), blurMaterial)
@@ -242,15 +132,11 @@ export const HeroSlider: React.FC = () => {
       depth: 0.2,
       depthLayers: 16,
       onSnapBack: (dirX, dirY) => {
-        // Convert direction to grid position
-        // dirX/dirY are -1 to 1, we want to pick a tile in that direction from center
         const centerRow = Math.floor(GRID_SIZE / 2)
         const centerCol = Math.floor(GRID_SIZE / 2)
-        // Offset from center based on direction (towards the edge)
         const offsetAmount = Math.floor(GRID_SIZE * 0.4)
         const targetRow = Math.round(centerRow + dirY * offsetAmount)
         const targetCol = Math.round(centerCol + dirX * offsetAmount)
-        // Clamp to grid bounds
         const clampedRow = Math.max(0, Math.min(GRID_SIZE - 1, targetRow))
         const clampedCol = Math.max(0, Math.min(GRID_SIZE - 1, targetCol))
 
@@ -277,11 +163,9 @@ export const HeroSlider: React.FC = () => {
     let targetMouseY = 0
 
     // Scroll-based zoom state
-    let scrollProgress = 0 // 0 = top, 1 = scrolled one viewport height
+    let scrollProgress = 0
     let targetScrollProgress = 0
-    const SCROLL_RANGE = window.innerHeight // How much scroll to reach full effect
-    const BACKGROUND_ZOOM_IN = 0.5 // How much the background zooms in (0.5 = 50% larger)
-    const TEXT_ZOOM_OUT = 0.5 // How much the text zooms out (0.5 = 50% smaller)
+    const SCROLL_RANGE = window.innerHeight
 
     // Store base frustum for scroll zoom calculations
     let baseFrustumWidth = frustumWidth
@@ -291,7 +175,7 @@ export const HeroSlider: React.FC = () => {
     const textureLoader = new THREE.TextureLoader()
     textureLoader.crossOrigin = 'anonymous'
 
-    // Array to hold textures for each slide (either loaded images or render targets)
+    // Array to hold textures for each slide
     const slideTextures: THREE.Texture[] = []
     const geometries: THREE.BufferGeometry[] = []
     const materials: THREE.Material[] = []
@@ -299,27 +183,17 @@ export const HeroSlider: React.FC = () => {
     // ============================================
     // 3D Scene Setup for animated slides
     // ============================================
-    const RENDER_TARGET_SIZE = 1024
-
-    // Create render targets for 3D slides
-    interface AnimatedSlide {
-      slideIndex: number
-      renderTarget: THREE.WebGLRenderTarget
-      scene3d: Scene3D
-    }
     const animatedSlides: AnimatedSlide[] = []
 
     // Setup 3D scenes for animated slides
     SLIDES.forEach((slide, index) => {
       if (slide.type === '3d') {
-        // Create render target
         const renderTarget = new THREE.WebGLRenderTarget(RENDER_TARGET_SIZE, RENDER_TARGET_SIZE, {
           minFilter: THREE.LinearFilter,
           magFilter: THREE.LinearFilter,
           format: THREE.RGBAFormat,
         })
 
-        // Create the scene using the factory function
         const scene3d = slide.createScene()
 
         animatedSlides.push({
@@ -328,71 +202,20 @@ export const HeroSlider: React.FC = () => {
           scene3d,
         })
 
-        // Use the render target's texture for this slide
         slideTextures[index] = renderTarget.texture
       }
     })
 
     // Store cube data with animation state
-    interface CubeData {
-      mesh: THREE.Mesh
-      row: number
-      col: number
-      baseZ: number
-      faceMaterials: THREE.MeshStandardMaterial[]
-      // Ripple effect state
-      rippleColor: THREE.Color | null
-      rippleIntensity: number
-    }
     const cubeDataList: CubeData[] = []
 
-    // Bright color palette for ripple effect
-    const rippleColors = [
-      new THREE.Color(0xff0055), // hot pink
-      new THREE.Color(0x00ff88), // neon green
-      new THREE.Color(0xff3300), // orange-red
-      new THREE.Color(0x00ffff), // cyan
-      new THREE.Color(0xff00ff), // magenta
-      new THREE.Color(0xffff00), // yellow
-      new THREE.Color(0x0088ff), // electric blue
-      new THREE.Color(0xff0000), // red
-      new THREE.Color(0x00ff00), // green
-      new THREE.Color(0xff8800), // orange
-    ]
-
-    // Hybrid wave-chaos settings
-    const SPREAD_DROPOFF = 0.85 // Probability multiplier per step (higher = spreads further)
-    const WAVE_SPEED = 30 // Tiles per second for the wave front
-    const COLOR_FADE_DURATION = 0.5 // Seconds for color to fade out
-    const WAVE_WIDTH = 4.0 // Width of the glowing wave front
-    const COLOR_INTENSITY = 0.3 // Max emissive intensity (0-1, higher = brighter colors)
-
     // Track active hybrid waves
-    interface HybridWave {
-      originRow: number
-      originCol: number
-      startTime: number
-      affectedTiles: Map<string, { color: THREE.Color; activatedTime: number }> // tiles that passed the probability check
-      processedDistances: Set<number> // which distance rings have been processed
-    }
     const activeHybridWaves: HybridWave[] = []
 
-    // Assign the triggerGridWave function now that we have access to activeHybridWaves
+    // Assign the triggerGridWave function
     triggerGridWave = (row: number, col: number) => {
       const now = performance.now() / 1000
-      const tileKey = `${row},${col}`
-      const randomColor = rippleColors[Math.floor(Math.random() * rippleColors.length)]
-
-      const affectedTiles = new Map<string, { color: THREE.Color; activatedTime: number }>()
-      affectedTiles.set(tileKey, { color: randomColor.clone(), activatedTime: now })
-
-      activeHybridWaves.push({
-        originRow: row,
-        originCol: col,
-        startTime: now,
-        affectedTiles,
-        processedDistances: new Set([0]),
-      })
+      activeHybridWaves.push(createWave(row, col, now))
     }
 
     // Raycaster for click detection
@@ -406,8 +229,6 @@ export const HeroSlider: React.FC = () => {
     // Animation state
     let currentSlideIndex = 0
     let animationDirection: 'forward' | 'backward' = 'forward'
-
-    // Unified animation progress (0 = current slide, 1 = next slide fully shown)
     let animationProgress = 0
     let targetProgress = 0
     let isAutoAnimating = false
@@ -442,7 +263,6 @@ export const HeroSlider: React.FC = () => {
       animationProgress = 0
       targetProgress = 0
 
-      // Update all face textures to show the new current slide
       const currentTexture = slideTextures[currentSlideIndex]
       for (const cubeData of cubeDataList) {
         cubeData.mesh.rotation.y = 0
@@ -496,21 +316,17 @@ export const HeroSlider: React.FC = () => {
       // Create the grid of cubes
       for (let row = 0; row < GRID_SIZE; row++) {
         for (let col = 0; col < GRID_SIZE; col++) {
-          // Calculate UV offset for this cube's position in the grid
           const uMin = col / GRID_SIZE
           const uMax = (col + 1) / GRID_SIZE
           const vMin = row / GRID_SIZE
           const vMax = (row + 1) / GRID_SIZE
 
-          // Create geometry with custom UVs for each face
           const geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE)
           geometries.push(geometry)
 
-          // Get the UV attribute
           const uvAttribute = geometry.getAttribute('uv')
           const uvArray = uvAttribute.array as Float32Array
 
-          // All faces get the same UV mapping for this grid position
           for (let face = 0; face < 6; face++) {
             const baseIndex = face * 8
             uvArray[baseIndex + 0] = uMin
@@ -525,7 +341,6 @@ export const HeroSlider: React.FC = () => {
 
           uvAttribute.needsUpdate = true
 
-          // Create materials for each face
           const faceMaterials = [
             new THREE.MeshStandardMaterial({ map: initialTexture }),
             new THREE.MeshStandardMaterial({ map: initialTexture }),
@@ -538,14 +353,12 @@ export const HeroSlider: React.FC = () => {
 
           const cube = new THREE.Mesh(geometry, faceMaterials)
 
-          // Position cube in grid
           const x = col * (CUBE_SIZE + GAP)
           const y = row * (CUBE_SIZE + GAP)
           cube.position.set(x, y, 0)
 
           cubeGroup.add(cube)
 
-          // Store cube data for animation
           cubeDataList.push({
             mesh: cube,
             row,
@@ -559,7 +372,7 @@ export const HeroSlider: React.FC = () => {
       }
 
       // Center the group
-      const centerOffset = gridExtent / 2
+      const centerOffset = GRID_EXTENT / 2
       cubeGroup.position.set(-centerOffset + CUBE_SIZE / 2, -centerOffset + CUBE_SIZE / 2, 0)
 
       // Start the first animation after a short delay
@@ -589,11 +402,9 @@ export const HeroSlider: React.FC = () => {
       const { frustumWidth: newFrustumWidth, frustumHeight: newFrustumHeight } =
         calculateCoverFrustum(newAspect)
 
-      // Update base frustum for scroll zoom
       baseFrustumWidth = newFrustumWidth
       baseFrustumHeight = newFrustumHeight
 
-      // Apply current scroll zoom to frustum (zoom in = smaller frustum)
       const zoomFactor = 1 - scrollProgress * BACKGROUND_ZOOM_IN
       camera.left = -newFrustumWidth * zoomFactor
       camera.right = newFrustumWidth * zoomFactor
@@ -603,7 +414,6 @@ export const HeroSlider: React.FC = () => {
       renderer.setSize(width, height)
       composer.setSize(width, height)
 
-      // Update text overlay camera and sizing
       if (textOverlay.resize) {
         textOverlay.resize(width, height, newAspect)
       } else {
@@ -611,7 +421,6 @@ export const HeroSlider: React.FC = () => {
         textCamera.updateProjectionMatrix()
       }
 
-      // Resize text render target
       const pixelRatio = Math.min(window.devicePixelRatio, 2)
       textRenderTarget.setSize(width * pixelRatio, height * pixelRatio)
       blurMaterial.uniforms.resolution.value.set(width, height)
@@ -633,7 +442,6 @@ export const HeroSlider: React.FC = () => {
     }
 
     const handleMouseMove = (event: MouseEvent) => {
-      // Update target mouse position for chromatic aberration
       const rect = container.getBoundingClientRect()
       targetMouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1
       targetMouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1
@@ -683,18 +491,15 @@ export const HeroSlider: React.FC = () => {
     }
 
     const handleClick = (event: MouseEvent) => {
-      // Only trigger ripple if it wasn't a drag (mouse didn't move much)
       const dragDistance = Math.sqrt(
         Math.pow(event.clientX - clickStartX, 2) + Math.pow(event.clientY - clickStartY, 2),
       )
       if (dragDistance > 10) return
 
-      // Update click mouse position for raycasting
       const rect = container.getBoundingClientRect()
       clickMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
       clickMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
 
-      // Raycast to find clicked cube
       raycaster.setFromCamera(clickMouse, camera)
       const intersects = raycaster.intersectObjects(
         cubeDataList.map((c) => c.mesh),
@@ -708,21 +513,7 @@ export const HeroSlider: React.FC = () => {
         if (hitIndex !== -1) {
           const cubeData = cubeDataList[hitIndex]
           const now = performance.now() / 1000
-
-          // Start a new hybrid wave from this tile
-          const tileKey = `${cubeData.row},${cubeData.col}`
-          const randomColor = rippleColors[Math.floor(Math.random() * rippleColors.length)]
-
-          const affectedTiles = new Map<string, { color: THREE.Color; activatedTime: number }>()
-          affectedTiles.set(tileKey, { color: randomColor.clone(), activatedTime: now })
-
-          activeHybridWaves.push({
-            originRow: cubeData.row,
-            originCol: cubeData.col,
-            startTime: now,
-            affectedTiles,
-            processedDistances: new Set([0]),
-          })
+          activeHybridWaves.push(createWave(cubeData.row, cubeData.col, now))
         }
       }
     }
@@ -740,9 +531,6 @@ export const HeroSlider: React.FC = () => {
       targetScrollProgress = Math.min(1, Math.max(0, scrollY / SCROLL_RANGE))
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
-
-    // Animation speed for auto-animation
-    const ANIMATION_SPEED = 1.5
 
     // Animation loop
     let animationId: number
@@ -762,7 +550,7 @@ export const HeroSlider: React.FC = () => {
       // Smooth scroll following for zoom effects
       scrollProgress += (targetScrollProgress - scrollProgress) * 0.1
 
-      // Apply scroll zoom to background camera (zoom in = smaller frustum)
+      // Apply scroll zoom to background camera
       const bgZoomFactor = 1 - scrollProgress * BACKGROUND_ZOOM_IN
       camera.left = -baseFrustumWidth * bgZoomFactor
       camera.right = baseFrustumWidth * bgZoomFactor
@@ -770,12 +558,11 @@ export const HeroSlider: React.FC = () => {
       camera.bottom = -baseFrustumHeight * bgZoomFactor
       camera.updateProjectionMatrix()
 
-      // Apply scroll zoom to text (zoom out = smaller scale)
+      // Apply scroll zoom to text
       const textZoomFactor = 1 - scrollProgress * TEXT_ZOOM_OUT
       blurMaterial.uniforms.textZoom.value = textZoomFactor
 
       // Update chromatic aberration based on mouse position
-      // Radial modulation pushes the effect outward from center
       const distFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)
       const baseStrength = 0.004
       const mouseStrength = distFromCenter * 0.006
@@ -785,7 +572,6 @@ export const HeroSlider: React.FC = () => {
       )
 
       // Update tilt-shift based on mouse position and current slide settings
-      // Offset moves the focus band up/down, rotation tilts it
       const currentTiltShift = SLIDES[currentSlideIndex].tiltShift || defaultTiltShift
       tiltShiftEffect.offset = mouseY * 0.3
       tiltShiftEffect.rotation = mouseX * 0.5
@@ -793,132 +579,21 @@ export const HeroSlider: React.FC = () => {
       tiltShiftEffect.feather = currentTiltShift.feather
       tiltShiftEffect.blur = currentTiltShift.blur
 
-      // ============================================
       // Update and render all animated 3D slides
-      // ============================================
       for (const animSlide of animatedSlides) {
-        // Update the scene
         animSlide.scene3d.update(deltaTime)
 
-        // Use custom render function if available (for post-processing effects)
         if (animSlide.scene3d.render) {
           animSlide.scene3d.render(renderer, animSlide.renderTarget)
         } else {
-          // Fallback to standard rendering
           renderer.setRenderTarget(animSlide.renderTarget)
           renderer.render(animSlide.scene3d.scene, animSlide.scene3d.camera)
           renderer.setRenderTarget(null)
         }
       }
 
-      // ============================================
       // Process hybrid wave-chaos effects
-      // ============================================
-      // Reset all cube ripple intensities
-      for (const cubeData of cubeDataList) {
-        cubeData.rippleIntensity = 0
-        cubeData.rippleColor = null
-      }
-
-      // Process each active hybrid wave
-      for (let w = activeHybridWaves.length - 1; w >= 0; w--) {
-        const wave = activeHybridWaves[w]
-        const waveAge = currentTime - wave.startTime
-        const currentWaveRadius = waveAge * WAVE_SPEED
-
-        // Determine which distance rings the wave front is currently at
-        const minRingDist = Math.max(0, currentWaveRadius - WAVE_WIDTH)
-        const maxRingDist = currentWaveRadius
-
-        // Process new distance rings as the wave expands
-        const maxPossibleDist = Math.ceil(currentWaveRadius) + 1
-        for (let dist = 0; dist <= maxPossibleDist && dist < GRID_SIZE * 2; dist++) {
-          if (wave.processedDistances.has(dist)) continue
-
-          // Only process this ring if the wave has reached it
-          if (currentWaveRadius < dist) continue
-
-          wave.processedDistances.add(dist)
-
-          // Find all tiles at this distance and apply probability
-          for (const cubeData of cubeDataList) {
-            const dx = cubeData.col - wave.originCol
-            const dy = cubeData.row - wave.originRow
-            const tileDist = Math.sqrt(dx * dx + dy * dy)
-
-            // Check if this tile is approximately at this distance ring
-            if (Math.abs(tileDist - dist) < 0.5) {
-              const tileKey = `${cubeData.row},${cubeData.col}`
-              if (wave.affectedTiles.has(tileKey)) continue
-
-              // Probability decreases with distance
-              const spreadProbability = Math.pow(SPREAD_DROPOFF, dist)
-
-              if (Math.random() < spreadProbability) {
-                const randomColor = rippleColors[Math.floor(Math.random() * rippleColors.length)]
-                wave.affectedTiles.set(tileKey, {
-                  color: randomColor.clone(),
-                  activatedTime: currentTime,
-                })
-              }
-            }
-          }
-        }
-
-        // Apply wave effect to affected tiles
-        for (const [tileKey, tileData] of wave.affectedTiles) {
-          const [rowStr, colStr] = tileKey.split(',')
-          const row = parseInt(rowStr)
-          const col = parseInt(colStr)
-
-          const cubeData = cubeDataList.find((c) => c.row === row && c.col === col)
-          if (!cubeData) continue
-
-          const dx = col - wave.originCol
-          const dy = row - wave.originRow
-          const tileDist = Math.sqrt(dx * dx + dy * dy)
-
-          // Calculate intensity based on wave position
-          const distFromWaveFront = Math.abs(tileDist - currentWaveRadius)
-          const waveIntensity =
-            distFromWaveFront < WAVE_WIDTH ? 1 - distFromWaveFront / WAVE_WIDTH : 0
-
-          // Also fade based on time since activation
-          const timeSinceActivation = currentTime - tileData.activatedTime
-          const timeFade = Math.max(0, 1 - timeSinceActivation / COLOR_FADE_DURATION)
-
-          // Combine: strong when wave passes, then fades over time
-          const intensity = Math.max(waveIntensity * 0.8, timeFade * 0.5)
-
-          if (intensity > cubeData.rippleIntensity) {
-            cubeData.rippleIntensity = intensity
-            cubeData.rippleColor = tileData.color
-          }
-        }
-
-        // Remove wave if it's completely faded
-        const maxWaveDist = GRID_SIZE * 1.5
-        if (waveAge > maxWaveDist / WAVE_SPEED + COLOR_FADE_DURATION) {
-          activeHybridWaves.splice(w, 1)
-        }
-      }
-
-      // Apply colors to materials
-      for (const cubeData of cubeDataList) {
-        if (cubeData.rippleIntensity > 0 && cubeData.rippleColor) {
-          const intensity = cubeData.rippleIntensity
-          for (const mat of cubeData.faceMaterials) {
-            mat.emissive.copy(cubeData.rippleColor)
-            mat.emissiveIntensity = intensity * COLOR_INTENSITY
-          }
-        } else {
-          // Reset to default (no emissive)
-          for (const mat of cubeData.faceMaterials) {
-            mat.emissive.setHex(0x000000)
-            mat.emissiveIntensity = 0
-          }
-        }
-      }
+      processWaves(activeHybridWaves, cubeDataList, currentTime)
 
       // Auto-animate towards target progress
       if (isAutoAnimating && cubeDataList.length > 0) {
@@ -991,19 +666,15 @@ export const HeroSlider: React.FC = () => {
 
       composer.render()
 
-      // ============================================
       // Render text overlay on top with blur
-      // ============================================
       textOverlay.update(deltaTime)
 
-      // First render text to render target
       renderer.setRenderTarget(textRenderTarget)
       renderer.setClearColor(0x000000, 0)
       renderer.clear()
       renderer.render(textOverlay.scene, textOverlay.camera)
       renderer.setRenderTarget(null)
 
-      // Then render blurred text over the main scene
       renderer.autoClear = false
       renderer.render(blurScene, blurCamera)
       renderer.autoClear = true
