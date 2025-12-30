@@ -159,8 +159,38 @@ export const HeroSlider: React.FC = () => {
       col: number
       baseZ: number
       faceMaterials: THREE.MeshStandardMaterial[]
+      // Ripple effect state
+      rippleColor: THREE.Color | null
+      rippleIntensity: number
     }
     const cubeDataList: CubeData[] = []
+
+    // Bright color palette for ripple effect
+    const rippleColors = [
+      new THREE.Color(0xff0055), // hot pink
+      new THREE.Color(0x00ff88), // neon green
+      new THREE.Color(0xff3300), // orange-red
+      new THREE.Color(0x00ffff), // cyan
+      new THREE.Color(0xff00ff), // magenta
+      new THREE.Color(0xffff00), // yellow
+      new THREE.Color(0x0088ff), // electric blue
+      new THREE.Color(0xff0000), // red
+      new THREE.Color(0x00ff00), // green
+      new THREE.Color(0xff8800), // orange
+    ]
+
+    // Track active ripples
+    interface Ripple {
+      originRow: number
+      originCol: number
+      startTime: number
+      speed: number // tiles per second
+    }
+    const activeRipples: Ripple[] = []
+
+    // Raycaster for click detection
+    const raycaster = new THREE.Raycaster()
+    const clickMouse = new THREE.Vector2()
 
     // Create a group to hold all cubes
     const cubeGroup = new THREE.Group()
@@ -315,6 +345,8 @@ export const HeroSlider: React.FC = () => {
             col,
             baseZ: 0,
             faceMaterials,
+            rippleColor: null,
+            rippleIntensity: 0,
           })
         }
       }
@@ -416,9 +448,56 @@ export const HeroSlider: React.FC = () => {
       }
     }
 
+    // Click handler for ripple effect
+    let clickStartX = 0
+    let clickStartY = 0
+    const handleClickStart = (event: MouseEvent) => {
+      clickStartX = event.clientX
+      clickStartY = event.clientY
+    }
+
+    const handleClick = (event: MouseEvent) => {
+      // Only trigger ripple if it wasn't a drag (mouse didn't move much)
+      const dragDistance = Math.sqrt(
+        Math.pow(event.clientX - clickStartX, 2) + Math.pow(event.clientY - clickStartY, 2),
+      )
+      if (dragDistance > 10) return
+
+      // Update click mouse position for raycasting
+      const rect = container.getBoundingClientRect()
+      clickMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+      clickMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
+      // Raycast to find clicked cube
+      raycaster.setFromCamera(clickMouse, camera)
+      const intersects = raycaster.intersectObjects(
+        cubeDataList.map((c) => c.mesh),
+        false,
+      )
+
+      if (intersects.length > 0) {
+        const hitMesh = intersects[0].object as THREE.Mesh
+        const hitIndex = cubeDataList.findIndex((c) => c.mesh === hitMesh)
+
+        if (hitIndex !== -1) {
+          const cubeData = cubeDataList[hitIndex]
+
+          // Start a new ripple from this tile
+          activeRipples.push({
+            originRow: cubeData.row,
+            originCol: cubeData.col,
+            startTime: performance.now() / 1000,
+            speed: 15, // tiles per second
+          })
+        }
+      }
+    }
+
     container.addEventListener('mousedown', handleMouseDown)
+    container.addEventListener('mousedown', handleClickStart)
     container.addEventListener('mousemove', handleMouseMove)
     container.addEventListener('mouseup', handleMouseUp)
+    container.addEventListener('mouseup', handleClick)
     container.addEventListener('mouseleave', handleMouseLeave)
 
     // Animation speed for auto-animation
@@ -463,6 +542,74 @@ export const HeroSlider: React.FC = () => {
           renderer.setRenderTarget(animSlide.renderTarget)
           renderer.render(animSlide.scene3d.scene, animSlide.scene3d.camera)
           renderer.setRenderTarget(null)
+        }
+      }
+
+      // ============================================
+      // Process ripple effects
+      // ============================================
+      const RIPPLE_DURATION = 3.0 // seconds for ripple to fully fade
+      const RIPPLE_WIDTH = 3.0 // tiles wide for the ripple ring
+
+      // Reset all cube ripple intensities
+      for (const cubeData of cubeDataList) {
+        cubeData.rippleIntensity = 0
+        cubeData.rippleColor = null
+      }
+
+      // Process each active ripple
+      for (let i = activeRipples.length - 1; i >= 0; i--) {
+        const ripple = activeRipples[i]
+        const rippleAge = currentTime - ripple.startTime
+        const rippleRadius = rippleAge * ripple.speed
+
+        // Remove old ripples that have expanded beyond the grid
+        if (rippleAge > RIPPLE_DURATION + (GRID_SIZE * 1.5) / ripple.speed) {
+          activeRipples.splice(i, 1)
+          continue
+        }
+
+        // Apply ripple to each cube
+        for (const cubeData of cubeDataList) {
+          const dx = cubeData.col - ripple.originCol
+          const dy = cubeData.row - ripple.originRow
+          const dist = Math.sqrt(dx * dx + dy * dy)
+
+          // Check if cube is within the ripple ring
+          const distFromRipple = Math.abs(dist - rippleRadius)
+          if (distFromRipple < RIPPLE_WIDTH) {
+            // Calculate intensity based on distance from ripple edge and age
+            const edgeFade = 1 - distFromRipple / RIPPLE_WIDTH
+            const ageFade = Math.max(0, 1 - rippleAge / RIPPLE_DURATION)
+            const intensity = edgeFade * ageFade
+
+            // Only apply if this ripple's intensity is stronger
+            if (intensity > cubeData.rippleIntensity) {
+              cubeData.rippleIntensity = intensity
+              // Pick a random color for this tile based on its position + time
+              const colorIndex =
+                Math.floor((cubeData.row * GRID_SIZE + cubeData.col + rippleRadius * 2) * 7) %
+                rippleColors.length
+              cubeData.rippleColor = rippleColors[colorIndex]
+            }
+          }
+        }
+      }
+
+      // Apply ripple colors to materials
+      for (const cubeData of cubeDataList) {
+        if (cubeData.rippleIntensity > 0 && cubeData.rippleColor) {
+          const intensity = cubeData.rippleIntensity
+          for (const mat of cubeData.faceMaterials) {
+            mat.emissive.copy(cubeData.rippleColor)
+            mat.emissiveIntensity = intensity * 0.8
+          }
+        } else {
+          // Reset to default (no emissive)
+          for (const mat of cubeData.faceMaterials) {
+            mat.emissive.setHex(0x000000)
+            mat.emissiveIntensity = 0
+          }
         }
       }
 
@@ -543,8 +690,10 @@ export const HeroSlider: React.FC = () => {
     return () => {
       window.removeEventListener('resize', handleResize)
       container.removeEventListener('mousedown', handleMouseDown)
+      container.removeEventListener('mousedown', handleClickStart)
       container.removeEventListener('mousemove', handleMouseMove)
       container.removeEventListener('mouseup', handleMouseUp)
+      container.removeEventListener('mouseup', handleClick)
       container.removeEventListener('mouseleave', handleMouseLeave)
       if (autoPlayTimeoutId) {
         clearTimeout(autoPlayTimeoutId)
