@@ -83,7 +83,7 @@ export const HeroSlider: React.FC = () => {
       feather: 0.3,
       kernelSize: 3,
     })
-    tiltShiftEffect.blur = 0.15
+    // tiltShiftEffect.blur = 0.15
     const tiltShiftPass = new EffectPass(camera, tiltShiftEffect)
     composer.addPass(tiltShiftPass)
 
