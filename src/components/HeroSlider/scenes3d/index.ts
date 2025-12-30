@@ -1,3 +1,3 @@
 export type { Scene3D, Scene3DFactory } from './types'
-export * as rotatingCubeRed from './rotatingCubeRed'
-export * as rotatingCubeTeal from './rotatingCubeTeal'
+export * as rotatingCube from './rotatingCube'
+export * as waveDots from './waveDots'

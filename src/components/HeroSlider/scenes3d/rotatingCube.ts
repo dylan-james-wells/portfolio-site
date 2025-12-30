@@ -1,18 +1,23 @@
 import * as THREE from 'three'
 import type { Scene3D } from './types'
 
-export const COLOR = 0xff6b6b
+export interface RotatingCubeOptions {
+  color: number
+  backgroundColor?: number
+}
 
-export function create(): Scene3D {
+export function create(options: RotatingCubeOptions): Scene3D {
+  const { color, backgroundColor = 0x1a1a2e } = options
+
   const scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x1a1a2e)
+  scene.background = new THREE.Color(backgroundColor)
 
   const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
   camera.position.z = 5
 
   const geometry = new THREE.BoxGeometry(2, 2, 2)
   const material = new THREE.MeshStandardMaterial({
-    color: COLOR,
+    color,
     metalness: 0.3,
     roughness: 0.4,
   })

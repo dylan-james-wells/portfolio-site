@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import type { Scene3D } from './scenes3d'
-import { rotatingCubeRed, rotatingCubeTeal } from './scenes3d'
+import { rotatingCube, waveDots } from './scenes3d'
 
 const GRID_SIZE = 50
 const CUBE_SIZE = 1
@@ -16,8 +16,9 @@ const DRAG_THRESHOLD = 150 // pixels to drag before committing to advance
 type SlideType = { type: 'image'; url: string } | { type: '3d'; createScene: () => Scene3D }
 
 const SLIDES: SlideType[] = [
-  { type: '3d', createScene: rotatingCubeRed.create },
-  { type: '3d', createScene: rotatingCubeTeal.create },
+  { type: '3d', createScene: () => rotatingCube.create({ color: 0xff6b6b }) },
+  { type: '3d', createScene: () => waveDots.create({ colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }) },
+  { type: '3d', createScene: () => rotatingCube.create({ color: 0x4ecdc4 }) },
 ]
 
 // Easing function for smooth animation
