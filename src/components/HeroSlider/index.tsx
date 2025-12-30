@@ -158,7 +158,7 @@ export const HeroSlider: React.FC = () => {
       },
     )
 
-    // Fullscreen quad for rendering blurred text
+    // Fullscreen quad for rendering blurred text with chromatic aberration
     const blurMaterial = new THREE.ShaderMaterial({
       transparent: true,
       uniforms: {
@@ -167,6 +167,7 @@ export const HeroSlider: React.FC = () => {
           value: new THREE.Vector2(container.clientWidth, container.clientHeight),
         },
         blurAmount: { value: 1.5 },
+        aberrationStrength: { value: 0.004 },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -179,22 +180,40 @@ export const HeroSlider: React.FC = () => {
         uniform sampler2D tDiffuse;
         uniform vec2 resolution;
         uniform float blurAmount;
+        uniform float aberrationStrength;
         varying vec2 vUv;
 
         void main() {
           vec2 texelSize = blurAmount / resolution;
-          vec4 color = vec4(0.0);
 
-          // 9-tap box blur
+          // Chromatic aberration offset based on distance from center
+          vec2 center = vec2(0.5);
+          vec2 dir = vUv - center;
+          float dist = length(dir);
+          vec2 aberrationOffset = dir * aberrationStrength * dist;
+
+          vec3 color = vec3(0.0);
+          float alpha = 0.0;
+
+          // 9-tap blur with chromatic aberration
           for(int x = -1; x <= 1; x++) {
             for(int y = -1; y <= 1; y++) {
               vec2 offset = vec2(float(x), float(y)) * texelSize;
-              color += texture2D(tDiffuse, vUv + offset);
+
+              // Sample each channel with slight offset for aberration
+              float r = texture2D(tDiffuse, vUv + offset + aberrationOffset).r;
+              float g = texture2D(tDiffuse, vUv + offset).g;
+              float b = texture2D(tDiffuse, vUv + offset - aberrationOffset).b;
+              float a = texture2D(tDiffuse, vUv + offset).a;
+
+              color += vec3(r, g, b);
+              alpha += a;
             }
           }
           color /= 9.0;
+          alpha /= 9.0;
 
-          gl_FragColor = color;
+          gl_FragColor = vec4(color, alpha);
         }
       `,
     })
