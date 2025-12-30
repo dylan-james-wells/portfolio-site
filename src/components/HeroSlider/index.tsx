@@ -179,14 +179,22 @@ export const HeroSlider: React.FC = () => {
       new THREE.Color(0xff8800), // orange
     ]
 
-    // Track active ripples
-    interface Ripple {
+    // Hybrid wave-chaos settings
+    const SPREAD_DROPOFF = 0.85 // Probability multiplier per step (higher = spreads further)
+    const WAVE_SPEED = 30 // Tiles per second for the wave front
+    const COLOR_FADE_DURATION = 0.5 // Seconds for color to fade out
+    const WAVE_WIDTH = 4.0 // Width of the glowing wave front
+    const COLOR_INTENSITY = 0.3 // Max emissive intensity (0-1, higher = brighter colors)
+
+    // Track active hybrid waves
+    interface HybridWave {
       originRow: number
       originCol: number
       startTime: number
-      speed: number // tiles per second
+      affectedTiles: Map<string, { color: THREE.Color; activatedTime: number }> // tiles that passed the probability check
+      processedDistances: Set<number> // which distance rings have been processed
     }
-    const activeRipples: Ripple[] = []
+    const activeHybridWaves: HybridWave[] = []
 
     // Raycaster for click detection
     const raycaster = new THREE.Raycaster()
@@ -481,13 +489,21 @@ export const HeroSlider: React.FC = () => {
 
         if (hitIndex !== -1) {
           const cubeData = cubeDataList[hitIndex]
+          const now = performance.now() / 1000
 
-          // Start a new ripple from this tile
-          activeRipples.push({
+          // Start a new hybrid wave from this tile
+          const tileKey = `${cubeData.row},${cubeData.col}`
+          const randomColor = rippleColors[Math.floor(Math.random() * rippleColors.length)]
+
+          const affectedTiles = new Map<string, { color: THREE.Color; activatedTime: number }>()
+          affectedTiles.set(tileKey, { color: randomColor.clone(), activatedTime: now })
+
+          activeHybridWaves.push({
             originRow: cubeData.row,
             originCol: cubeData.col,
-            startTime: performance.now() / 1000,
-            speed: 15, // tiles per second
+            startTime: now,
+            affectedTiles,
+            processedDistances: new Set([0]),
           })
         }
       }
@@ -522,10 +538,7 @@ export const HeroSlider: React.FC = () => {
       // Offset increases as mouse moves away from center
       const distFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)
       const aberrationStrength = 0.003 + distFromCenter * 0.008
-      chromaticAberrationEffect.offset.set(
-        mouseX * aberrationStrength,
-        mouseY * aberrationStrength,
-      )
+      chromaticAberrationEffect.offset.set(mouseX * aberrationStrength, mouseY * aberrationStrength)
 
       // ============================================
       // Update and render all animated 3D slides
@@ -546,63 +559,104 @@ export const HeroSlider: React.FC = () => {
       }
 
       // ============================================
-      // Process ripple effects
+      // Process hybrid wave-chaos effects
       // ============================================
-      const RIPPLE_DURATION = 3.0 // seconds for ripple to fully fade
-      const RIPPLE_WIDTH = 3.0 // tiles wide for the ripple ring
-
       // Reset all cube ripple intensities
       for (const cubeData of cubeDataList) {
         cubeData.rippleIntensity = 0
         cubeData.rippleColor = null
       }
 
-      // Process each active ripple
-      for (let i = activeRipples.length - 1; i >= 0; i--) {
-        const ripple = activeRipples[i]
-        const rippleAge = currentTime - ripple.startTime
-        const rippleRadius = rippleAge * ripple.speed
+      // Process each active hybrid wave
+      for (let w = activeHybridWaves.length - 1; w >= 0; w--) {
+        const wave = activeHybridWaves[w]
+        const waveAge = currentTime - wave.startTime
+        const currentWaveRadius = waveAge * WAVE_SPEED
 
-        // Remove old ripples that have expanded beyond the grid
-        if (rippleAge > RIPPLE_DURATION + (GRID_SIZE * 1.5) / ripple.speed) {
-          activeRipples.splice(i, 1)
-          continue
-        }
+        // Determine which distance rings the wave front is currently at
+        const minRingDist = Math.max(0, currentWaveRadius - WAVE_WIDTH)
+        const maxRingDist = currentWaveRadius
 
-        // Apply ripple to each cube
-        for (const cubeData of cubeDataList) {
-          const dx = cubeData.col - ripple.originCol
-          const dy = cubeData.row - ripple.originRow
-          const dist = Math.sqrt(dx * dx + dy * dy)
+        // Process new distance rings as the wave expands
+        const maxPossibleDist = Math.ceil(currentWaveRadius) + 1
+        for (let dist = 0; dist <= maxPossibleDist && dist < GRID_SIZE * 2; dist++) {
+          if (wave.processedDistances.has(dist)) continue
 
-          // Check if cube is within the ripple ring
-          const distFromRipple = Math.abs(dist - rippleRadius)
-          if (distFromRipple < RIPPLE_WIDTH) {
-            // Calculate intensity based on distance from ripple edge and age
-            const edgeFade = 1 - distFromRipple / RIPPLE_WIDTH
-            const ageFade = Math.max(0, 1 - rippleAge / RIPPLE_DURATION)
-            const intensity = edgeFade * ageFade
+          // Only process this ring if the wave has reached it
+          if (currentWaveRadius < dist) continue
 
-            // Only apply if this ripple's intensity is stronger
-            if (intensity > cubeData.rippleIntensity) {
-              cubeData.rippleIntensity = intensity
-              // Pick a random color for this tile based on its position + time
-              const colorIndex =
-                Math.floor((cubeData.row * GRID_SIZE + cubeData.col + rippleRadius * 2) * 7) %
-                rippleColors.length
-              cubeData.rippleColor = rippleColors[colorIndex]
+          wave.processedDistances.add(dist)
+
+          // Find all tiles at this distance and apply probability
+          for (const cubeData of cubeDataList) {
+            const dx = cubeData.col - wave.originCol
+            const dy = cubeData.row - wave.originRow
+            const tileDist = Math.sqrt(dx * dx + dy * dy)
+
+            // Check if this tile is approximately at this distance ring
+            if (Math.abs(tileDist - dist) < 0.5) {
+              const tileKey = `${cubeData.row},${cubeData.col}`
+              if (wave.affectedTiles.has(tileKey)) continue
+
+              // Probability decreases with distance
+              const spreadProbability = Math.pow(SPREAD_DROPOFF, dist)
+
+              if (Math.random() < spreadProbability) {
+                const randomColor = rippleColors[Math.floor(Math.random() * rippleColors.length)]
+                wave.affectedTiles.set(tileKey, {
+                  color: randomColor.clone(),
+                  activatedTime: currentTime,
+                })
+              }
             }
           }
         }
+
+        // Apply wave effect to affected tiles
+        for (const [tileKey, tileData] of wave.affectedTiles) {
+          const [rowStr, colStr] = tileKey.split(',')
+          const row = parseInt(rowStr)
+          const col = parseInt(colStr)
+
+          const cubeData = cubeDataList.find((c) => c.row === row && c.col === col)
+          if (!cubeData) continue
+
+          const dx = col - wave.originCol
+          const dy = row - wave.originRow
+          const tileDist = Math.sqrt(dx * dx + dy * dy)
+
+          // Calculate intensity based on wave position
+          const distFromWaveFront = Math.abs(tileDist - currentWaveRadius)
+          const waveIntensity =
+            distFromWaveFront < WAVE_WIDTH ? 1 - distFromWaveFront / WAVE_WIDTH : 0
+
+          // Also fade based on time since activation
+          const timeSinceActivation = currentTime - tileData.activatedTime
+          const timeFade = Math.max(0, 1 - timeSinceActivation / COLOR_FADE_DURATION)
+
+          // Combine: strong when wave passes, then fades over time
+          const intensity = Math.max(waveIntensity * 0.8, timeFade * 0.5)
+
+          if (intensity > cubeData.rippleIntensity) {
+            cubeData.rippleIntensity = intensity
+            cubeData.rippleColor = tileData.color
+          }
+        }
+
+        // Remove wave if it's completely faded
+        const maxWaveDist = GRID_SIZE * 1.5
+        if (waveAge > maxWaveDist / WAVE_SPEED + COLOR_FADE_DURATION) {
+          activeHybridWaves.splice(w, 1)
+        }
       }
 
-      // Apply ripple colors to materials
+      // Apply colors to materials
       for (const cubeData of cubeDataList) {
         if (cubeData.rippleIntensity > 0 && cubeData.rippleColor) {
           const intensity = cubeData.rippleIntensity
           for (const mat of cubeData.faceMaterials) {
             mat.emissive.copy(cubeData.rippleColor)
-            mat.emissiveIntensity = intensity * 0.8
+            mat.emissiveIntensity = intensity * COLOR_INTENSITY
           }
         } else {
           // Reset to default (no emissive)
