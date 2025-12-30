@@ -7,20 +7,20 @@ const GRID_SIZE = 50
 const CUBE_SIZE = 1
 const GAP = 0.01
 
-// Animation settings
-const FLIP_DURATION = 0.5 // seconds for one cube to complete its flip
-const WAVE_DELAY = 0.02 // seconds delay between each diagonal wave
-
 // Drag interaction settings
 const DRAG_THRESHOLD = 150 // pixels to drag before committing to advance
-const MAX_DRAG_ROTATION = Math.PI / 2 // max rotation during drag (90 degrees)
 
-const IMAGE_URLS = [
-  'https://images.pexels.com/photos/38136/pexels-photo-38136.jpeg',
-  'https://images.pexels.com/photos/957024/forest-trees-perspective-bright-957024.jpeg',
-  'https://images.pexels.com/photos/1632790/pexels-photo-1632790.jpeg',
-  'https://images.pexels.com/photos/33109/fall-autumn-red-season.jpg',
-  'https://images.pexels.com/photos/167698/pexels-photo-167698.jpeg',
+// Slide definitions - can be either an image URL or a 3D scene config
+type SlideType = { type: 'image'; url: string } | { type: '3d'; sceneId: string; color: number }
+
+const SLIDES: SlideType[] = [
+  { type: 'image', url: 'https://images.pexels.com/photos/38136/pexels-photo-38136.jpeg' },
+  { type: '3d', sceneId: 'rotating-cube', color: 0xff6b6b }, // Red cube
+  {
+    type: 'image',
+    url: 'https://images.pexels.com/photos/957024/forest-trees-perspective-bright-957024.jpeg',
+  },
+  { type: '3d', sceneId: 'rotating-cube', color: 0x4ecdc4 }, // Teal cube
 ]
 
 // Easing function for smooth animation
@@ -35,7 +35,7 @@ export const ThreeScene: React.FC = () => {
     if (!containerRef.current) return
 
     const container = containerRef.current
-    const imageCount = IMAGE_URLS.length
+    const slideCount = SLIDES.length
 
     // Scene setup
     const scene = new THREE.Scene()
@@ -78,16 +78,83 @@ export const ThreeScene: React.FC = () => {
     // Renderer setup
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setSize(container.clientWidth, container.clientHeight)
-    renderer.setPixelRatio(window.devicePixelRatio)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     container.appendChild(renderer.domElement)
 
     // Load textures
     const textureLoader = new THREE.TextureLoader()
     textureLoader.crossOrigin = 'anonymous'
 
-    const textures: THREE.Texture[] = []
+    // Array to hold textures for each slide (either loaded images or render targets)
+    const slideTextures: THREE.Texture[] = []
     const geometries: THREE.BufferGeometry[] = []
     const materials: THREE.Material[] = []
+
+    // ============================================
+    // 3D Scene Setup for animated slides
+    // ============================================
+    const RENDER_TARGET_SIZE = 1024
+
+    // Create render targets for 3D slides
+    interface AnimatedSlide {
+      slideIndex: number
+      renderTarget: THREE.WebGLRenderTarget
+      scene: THREE.Scene
+      camera: THREE.PerspectiveCamera
+      cube: THREE.Mesh
+      color: number
+    }
+    const animatedSlides: AnimatedSlide[] = []
+
+    // Setup 3D scenes for animated slides
+    SLIDES.forEach((slide, index) => {
+      if (slide.type === '3d') {
+        // Create render target
+        const renderTarget = new THREE.WebGLRenderTarget(RENDER_TARGET_SIZE, RENDER_TARGET_SIZE, {
+          minFilter: THREE.LinearFilter,
+          magFilter: THREE.LinearFilter,
+          format: THREE.RGBAFormat,
+        })
+
+        // Create scene for this animated slide
+        const animScene = new THREE.Scene()
+        animScene.background = new THREE.Color(0x1a1a2e)
+
+        // Create camera for the animated scene
+        const animCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
+        animCamera.position.z = 5
+
+        // Create rotating cube
+        const cubeGeometry = new THREE.BoxGeometry(2, 2, 2)
+        const cubeMaterial = new THREE.MeshStandardMaterial({
+          color: slide.color,
+          metalness: 0.3,
+          roughness: 0.4,
+        })
+        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial)
+        animScene.add(cube)
+
+        // Add lighting to animated scene
+        const animAmbient = new THREE.AmbientLight(0xffffff, 0.5)
+        animScene.add(animAmbient)
+
+        const animDirectional = new THREE.DirectionalLight(0xffffff, 1)
+        animDirectional.position.set(5, 5, 5)
+        animScene.add(animDirectional)
+
+        animatedSlides.push({
+          slideIndex: index,
+          renderTarget,
+          scene: animScene,
+          camera: animCamera,
+          cube,
+          color: slide.color,
+        })
+
+        // Use the render target's texture for this slide
+        slideTextures[index] = renderTarget.texture
+      }
+    })
 
     // Store cube data with animation state
     interface CubeData {
@@ -95,7 +162,7 @@ export const ThreeScene: React.FC = () => {
       row: number
       col: number
       baseZ: number
-      faceMaterials: THREE.MeshStandardMaterial[] // Store materials for updating textures
+      faceMaterials: THREE.MeshStandardMaterial[]
     }
     const cubeDataList: CubeData[] = []
 
@@ -104,30 +171,30 @@ export const ThreeScene: React.FC = () => {
     scene.add(cubeGroup)
 
     // Animation state
-    let currentImageIndex = 0 // Which image is currently showing (front face)
+    let currentSlideIndex = 0
     let animationDirection: 'forward' | 'backward' = 'forward'
 
-    // Unified animation progress (0 = current image, 1 = next image fully shown)
+    // Unified animation progress (0 = current slide, 1 = next slide fully shown)
     let animationProgress = 0
-    let targetProgress = 0 // Where we're animating towards
-    let isAutoAnimating = false // True when animation is running automatically (not dragged)
+    let targetProgress = 0
+    let isAutoAnimating = false
     let autoPlayTimeoutId: ReturnType<typeof setTimeout> | null = null
 
     // Drag state
     let isDragging = false
     let dragStartX = 0
 
-    // Get the next image index based on direction
-    const getNextImageIndex = (direction: 'forward' | 'backward') => {
+    // Get the next slide index based on direction
+    const getNextSlideIndex = (direction: 'forward' | 'backward') => {
       return direction === 'forward'
-        ? (currentImageIndex + 1) % imageCount
-        : (currentImageIndex - 1 + imageCount) % imageCount
+        ? (currentSlideIndex + 1) % slideCount
+        : (currentSlideIndex - 1 + slideCount) % slideCount
     }
 
-    // Update side face textures to show the target image
+    // Update side face textures to show the target slide
     const updateSideTextures = (direction: 'forward' | 'backward') => {
-      const targetIndex = getNextImageIndex(direction)
-      const targetTexture = textures[targetIndex]
+      const targetIndex = getNextSlideIndex(direction)
+      const targetTexture = slideTextures[targetIndex]
       for (const cubeData of cubeDataList) {
         cubeData.faceMaterials[0].map = targetTexture
         cubeData.faceMaterials[1].map = targetTexture
@@ -136,14 +203,14 @@ export const ThreeScene: React.FC = () => {
       }
     }
 
-    // Complete the transition - update current image and reset
+    // Complete the transition - update current slide and reset
     const completeTransition = () => {
-      currentImageIndex = getNextImageIndex(animationDirection)
+      currentSlideIndex = getNextSlideIndex(animationDirection)
       animationProgress = 0
       targetProgress = 0
 
-      // Update all face textures to show the new current image
-      const currentTexture = textures[currentImageIndex]
+      // Update all face textures to show the new current slide
+      const currentTexture = slideTextures[currentSlideIndex]
       for (const cubeData of cubeDataList) {
         cubeData.mesh.rotation.y = 0
         cubeData.mesh.position.z = cubeData.baseZ
@@ -176,21 +243,22 @@ export const ThreeScene: React.FC = () => {
       }, 2000)
     }
 
-    // Load all textures then create the grid
-    Promise.all(
-      IMAGE_URLS.map(
-        (url) =>
-          new Promise<THREE.Texture>((resolve) => {
-            textureLoader.load(url, (texture) => {
-              texture.colorSpace = THREE.SRGBColorSpace
-              resolve(texture)
-            })
-          }),
-      ),
-    ).then((loadedTextures) => {
-      textures.push(...loadedTextures)
+    // Load image textures and create the grid
+    const imageLoadPromises = SLIDES.map((slide, index) => {
+      if (slide.type === 'image') {
+        return new Promise<void>((resolve) => {
+          textureLoader.load(slide.url, (texture) => {
+            texture.colorSpace = THREE.SRGBColorSpace
+            slideTextures[index] = texture
+            resolve()
+          })
+        })
+      }
+      return Promise.resolve()
+    })
 
-      const initialTexture = textures[0]
+    Promise.all(imageLoadPromises).then(() => {
+      const initialTexture = slideTextures[0]
 
       // Create the grid of cubes
       for (let row = 0; row < GRID_SIZE; row++) {
@@ -225,17 +293,13 @@ export const ThreeScene: React.FC = () => {
           uvAttribute.needsUpdate = true
 
           // Create materials for each face
-          // Face order: +X, -X, +Y, -Y, +Z, -Z
-          // +X and -X will show the "next" image (updated before each animation)
-          // +Z (front) shows current image
-          // Start with all faces showing the initial image
           const faceMaterials = [
-            new THREE.MeshStandardMaterial({ map: initialTexture }), // +X (right) - will be updated
-            new THREE.MeshStandardMaterial({ map: initialTexture }), // -X (left) - will be updated
-            new THREE.MeshStandardMaterial({ map: initialTexture }), // +Y (top)
-            new THREE.MeshStandardMaterial({ map: initialTexture }), // -Y (bottom)
-            new THREE.MeshStandardMaterial({ map: initialTexture }), // +Z (front) - current
-            new THREE.MeshStandardMaterial({ map: initialTexture }), // -Z (back)
+            new THREE.MeshStandardMaterial({ map: initialTexture }),
+            new THREE.MeshStandardMaterial({ map: initialTexture }),
+            new THREE.MeshStandardMaterial({ map: initialTexture }),
+            new THREE.MeshStandardMaterial({ map: initialTexture }),
+            new THREE.MeshStandardMaterial({ map: initialTexture }),
+            new THREE.MeshStandardMaterial({ map: initialTexture }),
           ]
           materials.push(...faceMaterials)
 
@@ -303,12 +367,10 @@ export const ThreeScene: React.FC = () => {
     let lastDragDirection: 'forward' | 'backward' | null = null
 
     const handleMouseDown = (event: MouseEvent) => {
-      // Don't allow dragging during auto-animation
       if (isAutoAnimating) return
       isDragging = true
       dragStartX = event.clientX
       lastDragDirection = null
-      // Cancel auto-play while dragging
       if (autoPlayTimeoutId) {
         clearTimeout(autoPlayTimeoutId)
         autoPlayTimeoutId = null
@@ -320,14 +382,12 @@ export const ThreeScene: React.FC = () => {
       const dragDeltaX = event.clientX - dragStartX
       const newDirection: 'forward' | 'backward' = dragDeltaX < 0 ? 'forward' : 'backward'
 
-      // Update textures if direction changed
       if (newDirection !== lastDragDirection) {
         lastDragDirection = newDirection
         animationDirection = newDirection
         updateSideTextures(newDirection)
       }
 
-      // Map drag distance to 0-0.5 progress (drag controls first half)
       const dragProgress = Math.min(Math.abs(dragDeltaX) / DRAG_THRESHOLD, 1) * 0.5
       animationProgress = dragProgress
       targetProgress = dragProgress
@@ -338,15 +398,12 @@ export const ThreeScene: React.FC = () => {
       isDragging = false
 
       if (animationProgress >= 0.5) {
-        // Past threshold - complete the animation
         targetProgress = 1
         isAutoAnimating = true
       } else if (animationProgress > 0) {
-        // Before threshold - animate back to 0
         targetProgress = 0
         isAutoAnimating = true
       } else {
-        // No movement - just resume auto-play
         scheduleAutoPlay()
       }
     }
@@ -363,7 +420,7 @@ export const ThreeScene: React.FC = () => {
     container.addEventListener('mouseleave', handleMouseLeave)
 
     // Animation speed for auto-animation
-    const ANIMATION_SPEED = 1.5 // progress per second
+    const ANIMATION_SPEED = 1.5
 
     // Animation loop
     let animationId: number
@@ -376,21 +433,40 @@ export const ThreeScene: React.FC = () => {
       const deltaTime = currentTime - lastTime
       lastTime = currentTime
 
+      // ============================================
+      // Update and render all animated 3D slides
+      // ============================================
+      for (const animSlide of animatedSlides) {
+        // Rotate the cube
+        animSlide.cube.rotation.x += deltaTime * 0.5
+        animSlide.cube.rotation.y += deltaTime * 0.8
+
+        // Render to the render target
+        renderer.setRenderTarget(animSlide.renderTarget)
+        renderer.render(animSlide.scene, animSlide.camera)
+      }
+
+      // Reset render target to screen
+      renderer.setRenderTarget(null)
+
       // Auto-animate towards target progress
       if (isAutoAnimating && cubeDataList.length > 0) {
         if (animationProgress < targetProgress) {
-          animationProgress = Math.min(animationProgress + deltaTime * ANIMATION_SPEED, targetProgress)
+          animationProgress = Math.min(
+            animationProgress + deltaTime * ANIMATION_SPEED,
+            targetProgress,
+          )
         } else if (animationProgress > targetProgress) {
-          animationProgress = Math.max(animationProgress - deltaTime * ANIMATION_SPEED, targetProgress)
+          animationProgress = Math.max(
+            animationProgress - deltaTime * ANIMATION_SPEED,
+            targetProgress,
+          )
         }
 
-        // Check if animation is complete
         if (animationProgress === targetProgress) {
           if (targetProgress >= 1) {
-            // Completed transition to next image
             completeTransition()
           } else if (targetProgress === 0) {
-            // Returned to start
             isAutoAnimating = false
             for (const cubeData of cubeDataList) {
               cubeData.mesh.rotation.y = 0
@@ -401,45 +477,38 @@ export const ThreeScene: React.FC = () => {
         }
       }
 
-      // Apply animation progress to cubes (works for both drag and auto-animation)
+      // Apply animation progress to cubes
       if ((isDragging || isAutoAnimating) && cubeDataList.length > 0 && animationProgress > 0) {
         const maxDiagonal = (GRID_SIZE - 1) * 2
 
         for (const cubeData of cubeDataList) {
-          // Calculate diagonal index based on direction
           const flippedRow = GRID_SIZE - 1 - cubeData.row
           let diagonalIndex: number
           if (animationDirection === 'forward') {
-            // Top-left to bottom-right
             diagonalIndex = cubeData.col + flippedRow
           } else {
-            // Bottom-right to top-left
-            diagonalIndex = (GRID_SIZE - 1 - cubeData.col) + cubeData.row
+            diagonalIndex = GRID_SIZE - 1 - cubeData.col + cubeData.row
           }
 
-          // Normalize diagonal index to 0-1 range
           const normalizedDiagonal = diagonalIndex / maxDiagonal
-
-          // Calculate this cube's individual progress based on wave
-          // Each cube starts at a different time in the wave
-          // The wave spreads across the grid as overall progress increases
-          const waveSpread = 0.3 // How spread out the wave is (0 = all together, 1 = very spread)
+          const waveSpread = 0.3
           const cubeStartProgress = normalizedDiagonal * waveSpread
           const cubeEndProgress = cubeStartProgress + (1 - waveSpread)
 
-          // Map overall progress to this cube's local progress
           let cubeProgress = 0
           if (animationProgress > cubeStartProgress) {
-            cubeProgress = Math.min(1, (animationProgress - cubeStartProgress) / (cubeEndProgress - cubeStartProgress))
+            cubeProgress = Math.min(
+              1,
+              (animationProgress - cubeStartProgress) / (cubeEndProgress - cubeStartProgress),
+            )
           }
 
           if (cubeProgress > 0) {
             const easedProgress = easeInOutCubic(cubeProgress)
-            // Rotate based on direction (full 90 degrees at progress = 1)
-            const rotation = easedProgress * (Math.PI / 2) * (animationDirection === 'forward' ? 1 : -1)
+            const rotation =
+              easedProgress * (Math.PI / 2) * (animationDirection === 'forward' ? 1 : -1)
             cubeData.mesh.rotation.y = rotation
 
-            // Z offset for pop-out effect (peaks at middle of animation)
             const zOffset = Math.sin(cubeProgress * Math.PI) * CUBE_SIZE
             cubeData.mesh.position.z = cubeData.baseZ + zOffset
           } else {
@@ -467,7 +536,16 @@ export const ThreeScene: React.FC = () => {
       container.removeChild(renderer.domElement)
       geometries.forEach((g) => g.dispose())
       materials.forEach((m) => m.dispose())
-      textures.forEach((t) => t.dispose())
+      slideTextures.forEach((t) => {
+        if (t && !(t instanceof THREE.WebGLRenderTarget)) {
+          t.dispose()
+        }
+      })
+      animatedSlides.forEach((as) => {
+        as.renderTarget.dispose()
+        as.cube.geometry.dispose()
+        ;(as.cube.material as THREE.Material).dispose()
+      })
       renderer.dispose()
     }
   }, [])
