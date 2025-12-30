@@ -15,19 +15,22 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
     colorStart = 0xff6b6b,
     colorEnd = 0x4ecdc4,
     backgroundColor = 0x1a1a2e,
-    gridWidth = 80,
-    gridLength = 80,
-    pointSize = 0.03,
+    gridWidth = 120,
+    gridLength = 120,
+    pointSize = 0.04,
   } = options
 
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(backgroundColor)
 
-  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
-  camera.position.set(0, 2, 3)
+  // Adjusted camera to show larger area
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100)
+  camera.position.set(0, 3, 4)
   camera.lookAt(0, 0, 0)
 
-  // Create point cloud geometry
+  // Create point cloud geometry - larger spread
+  const spreadX = 8
+  const spreadZ = 8
   const numPoints = gridWidth * gridLength
   const positions = new Float32Array(numPoints * 3)
   const colors = new Float32Array(numPoints * 3)
@@ -41,8 +44,8 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
     for (let j = 0; j < gridLength; j++) {
       const u = i / gridWidth
       const v = j / gridLength
-      const x = (u - 0.5) * 4
-      const z = (v - 0.5) * 4
+      const x = (u - 0.5) * spreadX
+      const z = (v - 0.5) * spreadZ
       const y = 0
 
       positions[3 * k] = x
@@ -180,10 +183,10 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
           const baseZ = basePositions[3 * k + 2]
 
           // Distance from pointer position (mapped to grid space)
-          const gridMouseX = mouseX * 2
-          const gridMouseY = mouseY * 2
-          const dx = (u - 0.5) * 4 - gridMouseX
-          const dz = (v - 0.5) * 4 - gridMouseY
+          const gridMouseX = mouseX * spreadX / 2
+          const gridMouseY = mouseY * spreadZ / 2
+          const dx = (u - 0.5) * spreadX - gridMouseX
+          const dz = (v - 0.5) * spreadZ - gridMouseY
           const distFromMouse = Math.sqrt(dx * dx + dz * dz)
 
           // Wave that follows pointer - ripples outward from cursor

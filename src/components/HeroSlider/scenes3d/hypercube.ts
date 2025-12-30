@@ -179,6 +179,34 @@ export function create(options: HypercubeOptions = {}): Scene3D {
   group.add(connectingGlow.mesh)
   scene.add(group)
 
+  // Create background hypercubes that mimic the main one
+  const bgVertices4D = generateHypercubeVertices(size * 1.8)
+  const bgEdges = generateHypercubeEdges()
+
+  // Background hypercube 1 - left/back, dimmer
+  const bg1InnerLines = createLineSegments(bgEdges.inner, colorInner, dashSize * 1.5, gapSize * 2, 0.15)
+  const bg1OuterLines = createLineSegments(bgEdges.outer, colorOuter, dashSize * 1.5, gapSize * 2, 0.15)
+  const bg1ConnectingLines = createLineSegments(bgEdges.connecting, midColor.getHex(), dashSize * 1.5, gapSize * 2, 0.1)
+
+  const bgGroup1 = new THREE.Group()
+  bgGroup1.add(bg1InnerLines.mesh)
+  bgGroup1.add(bg1OuterLines.mesh)
+  bgGroup1.add(bg1ConnectingLines.mesh)
+  bgGroup1.position.set(-3, -1, -4)
+  scene.add(bgGroup1)
+
+  // Background hypercube 2 - right/back, dimmer
+  const bg2InnerLines = createLineSegments(bgEdges.inner, colorOuter, dashSize * 1.5, gapSize * 2, 0.12)
+  const bg2OuterLines = createLineSegments(bgEdges.outer, colorInner, dashSize * 1.5, gapSize * 2, 0.12)
+  const bg2ConnectingLines = createLineSegments(bgEdges.connecting, midColor.getHex(), dashSize * 1.5, gapSize * 2, 0.08)
+
+  const bgGroup2 = new THREE.Group()
+  bgGroup2.add(bg2InnerLines.mesh)
+  bgGroup2.add(bg2OuterLines.mesh)
+  bgGroup2.add(bg2ConnectingLines.mesh)
+  bgGroup2.position.set(3.5, 1.5, -5)
+  scene.add(bgGroup2)
+
   // Interaction state
   let mouseX = 0
   let mouseY = 0
@@ -252,6 +280,29 @@ export function create(options: HypercubeOptions = {}): Scene3D {
       // 3D rotation influenced by mouse (reduced)
       group.rotation.x = baseRotation + mouseY * Math.PI * 0.1
       group.rotation.y = baseRotation * 0.7 + mouseX * Math.PI * 0.15
+
+      // Update background hypercubes - slightly delayed/offset animation
+      const bgAngle4D = angle4D * 0.8
+      const bgProjected: THREE.Vector3[] = bgVertices4D.map((v) =>
+        project4Dto3D(v, bgAngle4D * mouseInfluence, 4),
+      )
+
+      // Update bg1 positions
+      updateLinePositions(bg1InnerLines.geometry, bgEdges.inner, bgProjected, bg1InnerLines.mesh)
+      updateLinePositions(bg1OuterLines.geometry, bgEdges.outer, bgProjected, bg1OuterLines.mesh)
+      updateLinePositions(bg1ConnectingLines.geometry, bgEdges.connecting, bgProjected, bg1ConnectingLines.mesh)
+
+      // Update bg2 positions
+      updateLinePositions(bg2InnerLines.geometry, bgEdges.inner, bgProjected, bg2InnerLines.mesh)
+      updateLinePositions(bg2OuterLines.geometry, bgEdges.outer, bgProjected, bg2OuterLines.mesh)
+      updateLinePositions(bg2ConnectingLines.geometry, bgEdges.connecting, bgProjected, bg2ConnectingLines.mesh)
+
+      // Background groups follow main rotation but slightly offset
+      bgGroup1.rotation.x = baseRotation * 0.9 + mouseY * Math.PI * 0.08
+      bgGroup1.rotation.y = baseRotation * 0.6 + mouseX * Math.PI * 0.12
+
+      bgGroup2.rotation.x = baseRotation * 0.85 - mouseY * Math.PI * 0.06
+      bgGroup2.rotation.y = baseRotation * 0.55 - mouseX * Math.PI * 0.1
     },
     dispose: () => {
       window.removeEventListener('mousemove', handleMouseMove)
@@ -268,6 +319,18 @@ export function create(options: HypercubeOptions = {}): Scene3D {
       outerGlow.material.dispose()
       connectingGlow.geometry.dispose()
       connectingGlow.material.dispose()
+      bg1InnerLines.geometry.dispose()
+      bg1InnerLines.material.dispose()
+      bg1OuterLines.geometry.dispose()
+      bg1OuterLines.material.dispose()
+      bg1ConnectingLines.geometry.dispose()
+      bg1ConnectingLines.material.dispose()
+      bg2InnerLines.geometry.dispose()
+      bg2InnerLines.material.dispose()
+      bg2OuterLines.geometry.dispose()
+      bg2OuterLines.material.dispose()
+      bg2ConnectingLines.geometry.dispose()
+      bg2ConnectingLines.material.dispose()
     },
   }
 }

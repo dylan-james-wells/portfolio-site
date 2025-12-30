@@ -87,6 +87,9 @@ export const HeroSlider: React.FC = () => {
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setSize(container.clientWidth, container.clientHeight)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.outputColorSpace = THREE.SRGBColorSpace
+    renderer.toneMapping = THREE.ACESFilmicToneMapping
+    renderer.toneMappingExposure = 2.0
     container.appendChild(renderer.domElement)
 
     // Post-processing setup
@@ -281,14 +284,20 @@ export const HeroSlider: React.FC = () => {
 
           uvAttribute.needsUpdate = true
 
-          // Create materials for each face
+          // Create materials for each face - use emissive to boost brightness
+          const materialProps = {
+            map: initialTexture,
+            emissive: 0xffffff,
+            emissiveIntensity: 0.3,
+            emissiveMap: initialTexture,
+          }
           const faceMaterials = [
-            new THREE.MeshStandardMaterial({ map: initialTexture }),
-            new THREE.MeshStandardMaterial({ map: initialTexture }),
-            new THREE.MeshStandardMaterial({ map: initialTexture }),
-            new THREE.MeshStandardMaterial({ map: initialTexture }),
-            new THREE.MeshStandardMaterial({ map: initialTexture }),
-            new THREE.MeshStandardMaterial({ map: initialTexture }),
+            new THREE.MeshStandardMaterial(materialProps),
+            new THREE.MeshStandardMaterial(materialProps),
+            new THREE.MeshStandardMaterial(materialProps),
+            new THREE.MeshStandardMaterial(materialProps),
+            new THREE.MeshStandardMaterial(materialProps),
+            new THREE.MeshStandardMaterial(materialProps),
           ]
           materials.push(...faceMaterials)
 
@@ -325,13 +334,23 @@ export const HeroSlider: React.FC = () => {
       }, 1000)
     })
 
-    // Add lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
+    // Add lighting - increased significantly for brightness
+    const ambientLight = new THREE.AmbientLight(0xffffff, 2.0)
     scene.add(ambientLight)
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6)
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5)
     directionalLight.position.set(5, 5, 10)
     scene.add(directionalLight)
+
+    // Additional fill light from the opposite side
+    const fillLight = new THREE.DirectionalLight(0xffffff, 1.0)
+    fillLight.position.set(-5, -5, 10)
+    scene.add(fillLight)
+
+    // Front light to illuminate the cube faces directly
+    const frontLight = new THREE.DirectionalLight(0xffffff, 1.2)
+    frontLight.position.set(0, 0, 20)
+    scene.add(frontLight)
 
     // Handle resize
     const handleResize = () => {
