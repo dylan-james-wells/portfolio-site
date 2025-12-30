@@ -5,6 +5,8 @@ export interface Scene3D {
   camera: THREE.Camera
   update: (deltaTime: number) => void
   dispose: () => void
+  // Optional custom render function for post-processing effects
+  render?: (renderer: THREE.WebGLRenderer, renderTarget: THREE.WebGLRenderTarget) => void
 }
 
 export interface Scene3DFactory {

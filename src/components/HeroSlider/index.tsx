@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import { EffectComposer, EffectPass, RenderPass, ChromaticAberrationEffect } from 'postprocessing'
 import type { Scene3D } from './scenes3d'
 import { hypercube, waveDots } from './scenes3d'
 
@@ -85,6 +86,25 @@ export const HeroSlider: React.FC = () => {
     renderer.setSize(container.clientWidth, container.clientHeight)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     container.appendChild(renderer.domElement)
+
+    // Post-processing setup
+    const composer = new EffectComposer(renderer)
+    const renderPass = new RenderPass(scene, camera)
+    composer.addPass(renderPass)
+
+    // Chromatic aberration effect on the main scene
+    const chromaticAberrationEffect = new ChromaticAberrationEffect({
+      offset: new THREE.Vector2(0.005, 0.005),
+      radialModulation: false,
+    })
+    const chromaticPass = new EffectPass(camera, chromaticAberrationEffect)
+    composer.addPass(chromaticPass)
+
+    // Track mouse position for chromatic aberration
+    let mouseX = 0
+    let mouseY = 0
+    let targetMouseX = 0
+    let targetMouseY = 0
 
     // Load textures
     const textureLoader = new THREE.TextureLoader()
@@ -336,6 +356,7 @@ export const HeroSlider: React.FC = () => {
       camera.bottom = -newFrustumHeight
       camera.updateProjectionMatrix()
       renderer.setSize(width, height)
+      composer.setSize(width, height)
     }
     window.addEventListener('resize', handleResize)
 
@@ -354,6 +375,11 @@ export const HeroSlider: React.FC = () => {
     }
 
     const handleMouseMove = (event: MouseEvent) => {
+      // Update target mouse position for chromatic aberration
+      const rect = container.getBoundingClientRect()
+      targetMouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1
+      targetMouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
       if (!isDragging || isAutoAnimating) return
       const dragDeltaX = event.clientX - dragStartX
       const newDirection: 'forward' | 'backward' = dragDeltaX < 0 ? 'forward' : 'backward'
@@ -409,6 +435,19 @@ export const HeroSlider: React.FC = () => {
       const deltaTime = currentTime - lastTime
       lastTime = currentTime
 
+      // Smooth mouse following for chromatic aberration
+      mouseX += (targetMouseX - mouseX) * 0.1
+      mouseY += (targetMouseY - mouseY) * 0.1
+
+      // Update chromatic aberration based on mouse position
+      // Offset increases as mouse moves away from center
+      const distFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)
+      const aberrationStrength = 0.003 + distFromCenter * 0.008
+      chromaticAberrationEffect.offset.set(
+        mouseX * aberrationStrength,
+        mouseY * aberrationStrength,
+      )
+
       // ============================================
       // Update and render all animated 3D slides
       // ============================================
@@ -416,13 +455,16 @@ export const HeroSlider: React.FC = () => {
         // Update the scene
         animSlide.scene3d.update(deltaTime)
 
-        // Render to the render target
-        renderer.setRenderTarget(animSlide.renderTarget)
-        renderer.render(animSlide.scene3d.scene, animSlide.scene3d.camera)
+        // Use custom render function if available (for post-processing effects)
+        if (animSlide.scene3d.render) {
+          animSlide.scene3d.render(renderer, animSlide.renderTarget)
+        } else {
+          // Fallback to standard rendering
+          renderer.setRenderTarget(animSlide.renderTarget)
+          renderer.render(animSlide.scene3d.scene, animSlide.scene3d.camera)
+          renderer.setRenderTarget(null)
+        }
       }
-
-      // Reset render target to screen
-      renderer.setRenderTarget(null)
 
       // Auto-animate towards target progress
       if (isAutoAnimating && cubeDataList.length > 0) {
@@ -493,7 +535,7 @@ export const HeroSlider: React.FC = () => {
         }
       }
 
-      renderer.render(scene, camera)
+      composer.render()
     }
     animate()
 
@@ -520,6 +562,7 @@ export const HeroSlider: React.FC = () => {
         as.renderTarget.dispose()
         as.scene3d.dispose()
       })
+      composer.dispose()
       renderer.dispose()
     }
   }, [])
