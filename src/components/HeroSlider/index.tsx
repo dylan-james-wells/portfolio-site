@@ -172,10 +172,10 @@ export const HeroSlider: React.FC = () => {
       marginLeft: 0.05,
       marginTop: 0.08,
       marginBottom: 0.08,
-      textWidthPercent: 0.3, // Smaller base width since layers stack horizontally
+      containerWidthPercent: 0.5, // 50% of viewport width
+      fontSizePercent: 0.025, // 2.5% of container width
       outlineColor: 0x000000,
       outlineWidth: 0.06,
-      layerGap: -0.02, // Slight overlap
     })
 
     // Update code rain camera
