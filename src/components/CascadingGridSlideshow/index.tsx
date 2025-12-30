@@ -379,9 +379,15 @@ export const CascadingGridSlideshow: React.FC = () => {
       // Auto-animate towards target progress
       if (isAutoAnimating && cubeDataList.length > 0) {
         if (animationProgress < targetProgress) {
-          animationProgress = Math.min(animationProgress + deltaTime * ANIMATION_SPEED, targetProgress)
+          animationProgress = Math.min(
+            animationProgress + deltaTime * ANIMATION_SPEED,
+            targetProgress,
+          )
         } else if (animationProgress > targetProgress) {
-          animationProgress = Math.max(animationProgress - deltaTime * ANIMATION_SPEED, targetProgress)
+          animationProgress = Math.max(
+            animationProgress - deltaTime * ANIMATION_SPEED,
+            targetProgress,
+          )
         }
 
         // Check if animation is complete
@@ -414,7 +420,7 @@ export const CascadingGridSlideshow: React.FC = () => {
             diagonalIndex = cubeData.col + flippedRow
           } else {
             // Bottom-right to top-left
-            diagonalIndex = (GRID_SIZE - 1 - cubeData.col) + cubeData.row
+            diagonalIndex = GRID_SIZE - 1 - cubeData.col + cubeData.row
           }
 
           // Normalize diagonal index to 0-1 range
@@ -430,13 +436,17 @@ export const CascadingGridSlideshow: React.FC = () => {
           // Map overall progress to this cube's local progress
           let cubeProgress = 0
           if (animationProgress > cubeStartProgress) {
-            cubeProgress = Math.min(1, (animationProgress - cubeStartProgress) / (cubeEndProgress - cubeStartProgress))
+            cubeProgress = Math.min(
+              1,
+              (animationProgress - cubeStartProgress) / (cubeEndProgress - cubeStartProgress),
+            )
           }
 
           if (cubeProgress > 0) {
             const easedProgress = easeInOutCubic(cubeProgress)
             // Rotate based on direction (full 90 degrees at progress = 1)
-            const rotation = easedProgress * (Math.PI / 2) * (animationDirection === 'forward' ? 1 : -1)
+            const rotation =
+              easedProgress * (Math.PI / 2) * (animationDirection === 'forward' ? 1 : -1)
             cubeData.mesh.rotation.y = rotation
 
             // Z offset for pop-out effect (peaks at middle of animation)
