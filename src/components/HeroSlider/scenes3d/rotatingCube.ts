@@ -37,6 +37,10 @@ export function create(options: RotatingCubeOptions): Scene3D {
   let targetMouseX = 0
   let targetMouseY = 0
 
+  // Natural rotation state
+  let baseRotationX = 0
+  let baseRotationY = 0
+
   const updateTarget = (clientX: number, clientY: number) => {
     targetMouseX = (clientX / window.innerWidth) * 2 - 1
     targetMouseY = -((clientY / window.innerHeight) * 2 - 1)
@@ -58,14 +62,21 @@ export function create(options: RotatingCubeOptions): Scene3D {
   return {
     scene,
     camera,
-    update: () => {
+    update: (deltaTime: number) => {
       // Smooth following
       mouseX += (targetMouseX - mouseX) * 0.05
       mouseY += (targetMouseY - mouseY) * 0.05
 
-      // Map position to rotation
-      cube.rotation.y = mouseX * Math.PI
-      cube.rotation.x = mouseY * Math.PI * 0.5
+      // Natural slow rotation
+      baseRotationX += deltaTime * 0.1
+      baseRotationY += deltaTime * 0.15
+
+      // Mouse influence adds to natural rotation
+      const mouseInfluenceX = mouseY * Math.PI * 0.3
+      const mouseInfluenceY = mouseX * Math.PI * 0.5
+
+      cube.rotation.x = baseRotationX + mouseInfluenceX
+      cube.rotation.y = baseRotationY + mouseInfluenceY
     },
     dispose: () => {
       window.removeEventListener('mousemove', handleMouseMove)
