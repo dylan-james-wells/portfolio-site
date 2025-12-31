@@ -227,7 +227,7 @@ export const HeroSlider: React.FC = () => {
         md: '1rem',
         lg: '1.25rem',
         xl: '1.25rem',
-        '2xl': '1.25rem',
+        '2xl': '1.5rem',
       },
     })
 
