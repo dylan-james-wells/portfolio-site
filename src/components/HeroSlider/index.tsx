@@ -169,13 +169,31 @@ export const HeroSlider: React.FC = () => {
       burstMax: 20,
       pauseMin: 0.01,
       pauseMax: 0.12,
-      marginLeft: 0.05,
+      marginLeft: 0.05, // fallback
       marginTop: 0.08,
       marginBottom: 0.08,
       containerWidthPercent: 0.5, // 50% of viewport width
       fontSizePercent: 0.025, // 2.5% of container width
       outlineColor: 0x000000,
       outlineWidth: 0.06,
+      // Align with Tailwind container padding
+      tailwindContainer: {
+        screens: {
+          sm: '40rem',
+          md: '48rem',
+          lg: '64rem',
+          xl: '80rem',
+          '2xl': '86rem',
+        },
+        padding: {
+          DEFAULT: '1rem',
+          sm: '1rem',
+          md: '2rem',
+          lg: '2rem',
+          xl: '2rem',
+          '2xl': '2rem',
+        },
+      },
     })
 
     // Update code rain camera

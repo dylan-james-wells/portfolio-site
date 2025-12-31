@@ -126,13 +126,18 @@ export interface CodeRainOptions {
   burstMax?: number // maximum chars per burst
   pauseMin?: number // minimum pause between bursts (seconds)
   pauseMax?: number // maximum pause between bursts (seconds)
-  marginLeft?: number // percentage of viewport width (0-1)
+  marginLeft?: number // percentage of viewport width (0-1), used as fallback
   marginTop?: number // percentage of viewport height (0-1)
   marginBottom?: number // percentage of viewport height (0-1)
   containerWidthPercent?: number // width of container as percentage of viewport (0-1)
   fontSizePercent?: number // font size as percentage of container width (0-1)
   outlineColor?: number // outline color for readability
   outlineWidth?: number // outline width as percentage of font size
+  // Tailwind container alignment options
+  tailwindContainer?: {
+    screens: { [key: string]: string } // e.g., { sm: '40rem', md: '48rem', ... }
+    padding: { [key: string]: string } // e.g., { DEFAULT: '1rem', md: '2rem', ... }
+  }
 }
 
 // State for typing animation
@@ -161,6 +166,62 @@ interface ColorState {
   currentGlowColor: THREE.Color
 }
 
+// Helper to convert rem string to pixels
+const remToPx = (remStr: string): number => {
+  const remValue = parseFloat(remStr)
+  // Assume 16px base font size
+  return remValue * 16
+}
+
+// Calculate container left margin based on Tailwind config and viewport width
+const calculateContainerLeftMargin = (
+  viewportWidth: number,
+  tailwindContainer?: CodeRainOptions['tailwindContainer'],
+  fallbackMargin = 0.05,
+): number => {
+  if (!tailwindContainer) {
+    return viewportWidth * fallbackMargin
+  }
+
+  const { screens, padding } = tailwindContainer
+
+  // Convert screen values to pixels and sort descending
+  const breakpoints = Object.entries(screens)
+    .map(([key, value]) => ({ key, width: remToPx(value) }))
+    .sort((a, b) => b.width - a.width)
+
+  // Find the active breakpoint (largest one that fits)
+  let activeBreakpoint = 'DEFAULT'
+  for (const bp of breakpoints) {
+    if (viewportWidth >= bp.width) {
+      activeBreakpoint = bp.key
+      break
+    }
+  }
+
+  // Get padding for active breakpoint (fall back to DEFAULT)
+  const paddingValue = padding[activeBreakpoint] || padding['DEFAULT'] || '1rem'
+  const paddingPx = remToPx(paddingValue)
+
+  // Get max-width for active breakpoint
+  const maxWidthStr = screens[activeBreakpoint]
+  if (!maxWidthStr) {
+    // Below smallest breakpoint, just use padding
+    return paddingPx
+  }
+
+  const maxWidthPx = remToPx(maxWidthStr)
+
+  if (viewportWidth <= maxWidthPx) {
+    // Viewport is smaller than container max-width, just use padding
+    return paddingPx
+  }
+
+  // Viewport is larger than container max-width
+  // Margin = (viewport - maxWidth) / 2 + padding
+  return (viewportWidth - maxWidthPx) / 2 + paddingPx
+}
+
 export function create(options: CodeRainOptions = {}): Scene3D {
   const {
     colorStart = 0xff6b6b,
@@ -179,6 +240,7 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     fontSizePercent = 0.025,
     outlineColor = 0x000000,
     outlineWidth = 0.08,
+    tailwindContainer,
   } = options
 
   console.log('opacity', options.opacity)
@@ -283,6 +345,7 @@ export function create(options: CodeRainOptions = {}): Scene3D {
   }
 
   let currentAspect = 1
+  let currentViewportWidth = 0
 
   // Calculate visible dimensions at z=0
   const getVisibleDimensions = (aspect: number) => {
@@ -303,8 +366,19 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     // Font size as percentage of container width
     const fontSize = containerWidth * fontSizePercent
 
+    // Calculate left margin - either from Tailwind container or fallback percentage
+    let marginLeftWorld: number
+    if (tailwindContainer && currentViewportWidth > 0) {
+      // Calculate margin in pixels, then convert to world units
+      const marginPx = calculateContainerLeftMargin(currentViewportWidth, tailwindContainer, marginLeft)
+      // Convert pixels to world units: marginWorld / visibleWidth = marginPx / viewportWidthPx
+      marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
+    } else {
+      marginLeftWorld = visibleWidth * marginLeft
+    }
+
     // Position at left margin, centered vertically
-    const posX = -visibleWidth / 2 + visibleWidth * marginLeft
+    const posX = -visibleWidth / 2 + marginLeftWorld
     const posY = 0
 
     // Usable height for text
@@ -438,6 +512,7 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     },
     resize: (width: number, height: number, aspect: number) => {
       currentAspect = aspect
+      currentViewportWidth = width
       camera.aspect = aspect
       camera.updateProjectionMatrix()
       updateTextPosition(aspect)
