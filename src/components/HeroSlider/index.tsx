@@ -2,39 +2,30 @@
 
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
-import type { Scene3D } from './scenes3d'
-import { hypercube, waveDots } from './scenes3d'
-import { createGlitchEffect, type Effect } from './effects'
-
-const GRID_SIZE = 30
-const CUBE_SIZE = 1
-const GAP = 0.01
-
-// Drag interaction settings
-const DRAG_THRESHOLD = 150 // pixels to drag before committing to advance
-
-// Slide definitions - can be either an image URL or a 3D scene factory
-type SlideType = { type: 'image'; url: string } | { type: '3d'; createScene: () => Scene3D }
-
-const SLIDES: SlideType[] = [
-  {
-    type: '3d',
-    createScene: () => hypercube.create({ colorInner: 0xff6b6b, colorOuter: 0x4ecdc4 }),
-  },
-  {
-    type: '3d',
-    createScene: () => hypercube.create({ colorInner: 0x4ecdc4, colorOuter: 0xff6b6b }),
-  },
-  { type: '3d', createScene: () => waveDots.create({ colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }) },
-  { type: '3d', createScene: () => waveDots.create({ colorStart: 0x4ecdc4, colorEnd: 0xff6b6b }) },
-]
-
-// Easing function for smooth animation
-const easeInOutCubic = (t: number): number => {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-}
+import {
+  EffectComposer,
+  EffectPass,
+  RenderPass,
+  ChromaticAberrationEffect,
+  TiltShiftEffect,
+} from 'postprocessing'
+import { pixelText, codeRain } from './scenes3d'
+import { SLIDES } from './slides'
+import {
+  GRID_SIZE,
+  CUBE_SIZE,
+  GAP,
+  DRAG_THRESHOLD,
+  ANIMATION_SPEED,
+  RENDER_TARGET_SIZE,
+  BACKGROUND_ZOOM_IN,
+  TEXT_ZOOM_OUT,
+} from './constants'
+import { defaultTiltShift } from './types'
+import type { CubeData, AnimatedSlide, HybridWave } from './types'
+import { GRID_EXTENT, easeInOutCubic, calculateCoverFrustum } from './utils'
+import { textBlurVertexShader, textBlurFragmentShader } from './shaders/textBlur'
+import { createWave, processWaves } from './rippleWave'
 
 export const HeroSlider: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -51,25 +42,6 @@ export const HeroSlider: React.FC = () => {
 
     // Camera setup - use OrthographicCamera with "cover" behavior
     const aspect = container.clientWidth / container.clientHeight
-    const gridExtent = (GRID_SIZE - 1) * (CUBE_SIZE + GAP) + CUBE_SIZE
-
-    // Calculate frustum to achieve "cover" effect (grid fills viewport, may be cropped)
-    const calculateCoverFrustum = (viewportAspect: number) => {
-      const gridAspect = 1
-      let frustumWidth: number
-      let frustumHeight: number
-
-      if (viewportAspect > gridAspect) {
-        frustumWidth = gridExtent / 2
-        frustumHeight = frustumWidth / viewportAspect
-      } else {
-        frustumHeight = gridExtent / 2
-        frustumWidth = frustumHeight * viewportAspect
-      }
-
-      return { frustumWidth, frustumHeight }
-    }
-
     const { frustumWidth, frustumHeight } = calculateCoverFrustum(aspect)
 
     const camera = new THREE.OrthographicCamera(
@@ -87,9 +59,6 @@ export const HeroSlider: React.FC = () => {
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setSize(container.clientWidth, container.clientHeight)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    renderer.outputColorSpace = THREE.SRGBColorSpace
-    renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 2.0
     container.appendChild(renderer.domElement)
 
     // Post-processing setup
@@ -97,16 +66,147 @@ export const HeroSlider: React.FC = () => {
     const renderPass = new RenderPass(scene, camera)
     composer.addPass(renderPass)
 
-    // Effects
-    const effects: Effect[] = []
-    const glitchEffect = createGlitchEffect(composer)
-    effects.push(glitchEffect)
+    // Chromatic aberration effect on the main scene
+    const chromaticAberrationEffect = new ChromaticAberrationEffect({
+      offset: new THREE.Vector2(0.002, 0.002),
+      radialModulation: true,
+      modulationOffset: 0.2,
+    })
+    const chromaticPass = new EffectPass(camera, chromaticAberrationEffect)
+    composer.addPass(chromaticPass)
+
+    // Tilt-shift depth of field effect
+    const tiltShiftEffect = new TiltShiftEffect({
+      offset: 0.0,
+      rotation: 0.0,
+      focusArea: 0.4,
+      feather: 0.3,
+      kernelSize: 3,
+    })
+    // tiltShiftEffect.blur = 0.15
+    const tiltShiftPass = new EffectPass(camera, tiltShiftEffect)
+    composer.addPass(tiltShiftPass)
+
+    // ============================================
+    // Text Overlay Setup
+    // ============================================
+    let triggerGridWave: ((row: number, col: number) => void) | null = null
+
+    // Create render target for text with blur effect
+    const textRenderTarget = new THREE.WebGLRenderTarget(
+      container.clientWidth * Math.min(window.devicePixelRatio, 2),
+      container.clientHeight * Math.min(window.devicePixelRatio, 2),
+      {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+      },
+    )
+
+    // Fullscreen quad for rendering blurred text with chromatic aberration
+    const blurMaterial = new THREE.ShaderMaterial({
+      transparent: true,
+      uniforms: {
+        tDiffuse: { value: textRenderTarget.texture },
+        resolution: {
+          value: new THREE.Vector2(container.clientWidth, container.clientHeight),
+        },
+        blurAmount: { value: 1.5 },
+        aberrationStrength: { value: 0.004 },
+        textZoom: { value: 1.0 },
+      },
+      vertexShader: textBlurVertexShader,
+      fragmentShader: textBlurFragmentShader,
+    })
+
+    const blurQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), blurMaterial)
+    const blurScene = new THREE.Scene()
+    blurScene.add(blurQuad)
+    const blurCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+
+    const textOverlay = pixelText.create({
+      text: 'MAKE\nFUN',
+      colorStart: 0xff6b6b,
+      colorEnd: 0x4ecdc4,
+      fontSize: 0.4,
+      depth: 0.2,
+      depthLayers: 16,
+      onSnapBack: (dirX, dirY) => {
+        const centerRow = Math.floor(GRID_SIZE / 2)
+        const centerCol = Math.floor(GRID_SIZE / 2)
+        const offsetAmount = Math.floor(GRID_SIZE * 0.4)
+        const targetRow = Math.round(centerRow + dirY * offsetAmount)
+        const targetCol = Math.round(centerCol + dirX * offsetAmount)
+        const clampedRow = Math.max(0, Math.min(GRID_SIZE - 1, targetRow))
+        const clampedCol = Math.max(0, Math.min(GRID_SIZE - 1, targetCol))
+
+        if (triggerGridWave) {
+          triggerGridWave(clampedRow, clampedCol)
+        }
+      },
+    })
+
+    // Update text camera aspect ratio and initial sizing
+    const textCamera = textOverlay.camera as THREE.PerspectiveCamera
+    const initialAspect = container.clientWidth / container.clientHeight
+    if (textOverlay.resize) {
+      textOverlay.resize(container.clientWidth, container.clientHeight, initialAspect)
+    } else {
+      textCamera.aspect = initialAspect
+      textCamera.updateProjectionMatrix()
+    }
+
+    // ============================================
+    // Code Rain Background Text Layer
+    // ============================================
+    const codeRainOverlay = codeRain.create({
+      colorStart: 0xff6b6b,
+      colorEnd: 0x4ecdc4,
+      opacity: 0.6,
+      glowOpacity: 0.2,
+      typingSpeed: 300,
+      burstMin: 5,
+      burstMax: 20,
+      pauseMin: 0.01,
+      pauseMax: 0.12,
+      marginLeft: 0.05,
+      marginTop: 0.08,
+      marginBottom: 0.08,
+      containerWidthPercent: 0.5, // 50% of viewport width
+      fontSizePercent: 0.025, // 2.5% of container width
+      outlineColor: 0x000000,
+      outlineWidth: 0.06,
+    })
+
+    // Update code rain camera
+    const codeRainCamera = codeRainOverlay.camera as THREE.PerspectiveCamera
+    if (codeRainOverlay.resize) {
+      codeRainOverlay.resize(container.clientWidth, container.clientHeight, initialAspect)
+    } else {
+      codeRainCamera.aspect = initialAspect
+      codeRainCamera.updateProjectionMatrix()
+    }
+
+    // Track mouse position for chromatic aberration
+    let mouseX = 0
+    let mouseY = 0
+    let targetMouseX = 0
+    let targetMouseY = 0
+
+    // Scroll-based zoom state
+    let scrollProgress = 0
+    let targetScrollProgress = 0
+    const SCROLL_RANGE = window.innerHeight
+
+    // Store base frustum for scroll zoom calculations
+    let baseFrustumWidth = frustumWidth
+    let baseFrustumHeight = frustumHeight
 
     // Load textures
     const textureLoader = new THREE.TextureLoader()
     textureLoader.crossOrigin = 'anonymous'
 
-    // Array to hold textures for each slide (either loaded images or render targets)
+    // Array to hold textures for each slide
     const slideTextures: THREE.Texture[] = []
     const geometries: THREE.BufferGeometry[] = []
     const materials: THREE.Material[] = []
@@ -114,27 +214,17 @@ export const HeroSlider: React.FC = () => {
     // ============================================
     // 3D Scene Setup for animated slides
     // ============================================
-    const RENDER_TARGET_SIZE = 1024
-
-    // Create render targets for 3D slides
-    interface AnimatedSlide {
-      slideIndex: number
-      renderTarget: THREE.WebGLRenderTarget
-      scene3d: Scene3D
-    }
     const animatedSlides: AnimatedSlide[] = []
 
     // Setup 3D scenes for animated slides
     SLIDES.forEach((slide, index) => {
       if (slide.type === '3d') {
-        // Create render target
         const renderTarget = new THREE.WebGLRenderTarget(RENDER_TARGET_SIZE, RENDER_TARGET_SIZE, {
           minFilter: THREE.LinearFilter,
           magFilter: THREE.LinearFilter,
           format: THREE.RGBAFormat,
         })
 
-        // Create the scene using the factory function
         const scene3d = slide.createScene()
 
         animatedSlides.push({
@@ -143,20 +233,25 @@ export const HeroSlider: React.FC = () => {
           scene3d,
         })
 
-        // Use the render target's texture for this slide
         slideTextures[index] = renderTarget.texture
       }
     })
 
     // Store cube data with animation state
-    interface CubeData {
-      mesh: THREE.Mesh
-      row: number
-      col: number
-      baseZ: number
-      faceMaterials: THREE.MeshStandardMaterial[]
-    }
     const cubeDataList: CubeData[] = []
+
+    // Track active hybrid waves
+    const activeHybridWaves: HybridWave[] = []
+
+    // Assign the triggerGridWave function
+    triggerGridWave = (row: number, col: number) => {
+      const now = performance.now() / 1000
+      activeHybridWaves.push(createWave(row, col, now))
+    }
+
+    // Raycaster for click detection
+    const raycaster = new THREE.Raycaster()
+    const clickMouse = new THREE.Vector2()
 
     // Create a group to hold all cubes
     const cubeGroup = new THREE.Group()
@@ -165,8 +260,6 @@ export const HeroSlider: React.FC = () => {
     // Animation state
     let currentSlideIndex = 0
     let animationDirection: 'forward' | 'backward' = 'forward'
-
-    // Unified animation progress (0 = current slide, 1 = next slide fully shown)
     let animationProgress = 0
     let targetProgress = 0
     let isAutoAnimating = false
@@ -201,7 +294,6 @@ export const HeroSlider: React.FC = () => {
       animationProgress = 0
       targetProgress = 0
 
-      // Update all face textures to show the new current slide
       const currentTexture = slideTextures[currentSlideIndex]
       for (const cubeData of cubeDataList) {
         cubeData.mesh.rotation.y = 0
@@ -255,21 +347,17 @@ export const HeroSlider: React.FC = () => {
       // Create the grid of cubes
       for (let row = 0; row < GRID_SIZE; row++) {
         for (let col = 0; col < GRID_SIZE; col++) {
-          // Calculate UV offset for this cube's position in the grid
           const uMin = col / GRID_SIZE
           const uMax = (col + 1) / GRID_SIZE
           const vMin = row / GRID_SIZE
           const vMax = (row + 1) / GRID_SIZE
 
-          // Create geometry with custom UVs for each face
           const geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE)
           geometries.push(geometry)
 
-          // Get the UV attribute
           const uvAttribute = geometry.getAttribute('uv')
           const uvArray = uvAttribute.array as Float32Array
 
-          // All faces get the same UV mapping for this grid position
           for (let face = 0; face < 6; face++) {
             const baseIndex = face * 8
             uvArray[baseIndex + 0] = uMin
@@ -284,45 +372,38 @@ export const HeroSlider: React.FC = () => {
 
           uvAttribute.needsUpdate = true
 
-          // Create materials for each face - use emissive to boost brightness
-          const materialProps = {
-            map: initialTexture,
-            emissive: 0xffffff,
-            emissiveIntensity: 0.3,
-            emissiveMap: initialTexture,
-          }
           const faceMaterials = [
-            new THREE.MeshStandardMaterial(materialProps),
-            new THREE.MeshStandardMaterial(materialProps),
-            new THREE.MeshStandardMaterial(materialProps),
-            new THREE.MeshStandardMaterial(materialProps),
-            new THREE.MeshStandardMaterial(materialProps),
-            new THREE.MeshStandardMaterial(materialProps),
+            new THREE.MeshStandardMaterial({ map: initialTexture }),
+            new THREE.MeshStandardMaterial({ map: initialTexture }),
+            new THREE.MeshStandardMaterial({ map: initialTexture }),
+            new THREE.MeshStandardMaterial({ map: initialTexture }),
+            new THREE.MeshStandardMaterial({ map: initialTexture }),
+            new THREE.MeshStandardMaterial({ map: initialTexture }),
           ]
           materials.push(...faceMaterials)
 
           const cube = new THREE.Mesh(geometry, faceMaterials)
 
-          // Position cube in grid
           const x = col * (CUBE_SIZE + GAP)
           const y = row * (CUBE_SIZE + GAP)
           cube.position.set(x, y, 0)
 
           cubeGroup.add(cube)
 
-          // Store cube data for animation
           cubeDataList.push({
             mesh: cube,
             row,
             col,
             baseZ: 0,
             faceMaterials,
+            rippleColor: null,
+            rippleIntensity: 0,
           })
         }
       }
 
       // Center the group
-      const centerOffset = gridExtent / 2
+      const centerOffset = GRID_EXTENT / 2
       cubeGroup.position.set(-centerOffset + CUBE_SIZE / 2, -centerOffset + CUBE_SIZE / 2, 0)
 
       // Start the first animation after a short delay
@@ -334,23 +415,13 @@ export const HeroSlider: React.FC = () => {
       }, 1000)
     })
 
-    // Add lighting - increased significantly for brightness
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2.0)
+    // Add lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
     scene.add(ambientLight)
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5)
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6)
     directionalLight.position.set(5, 5, 10)
     scene.add(directionalLight)
-
-    // Additional fill light from the opposite side
-    const fillLight = new THREE.DirectionalLight(0xffffff, 1.0)
-    fillLight.position.set(-5, -5, 10)
-    scene.add(fillLight)
-
-    // Front light to illuminate the cube faces directly
-    const frontLight = new THREE.DirectionalLight(0xffffff, 1.2)
-    frontLight.position.set(0, 0, 20)
-    scene.add(frontLight)
 
     // Handle resize
     const handleResize = () => {
@@ -362,13 +433,36 @@ export const HeroSlider: React.FC = () => {
       const { frustumWidth: newFrustumWidth, frustumHeight: newFrustumHeight } =
         calculateCoverFrustum(newAspect)
 
-      camera.left = -newFrustumWidth
-      camera.right = newFrustumWidth
-      camera.top = newFrustumHeight
-      camera.bottom = -newFrustumHeight
+      baseFrustumWidth = newFrustumWidth
+      baseFrustumHeight = newFrustumHeight
+
+      const zoomFactor = 1 - scrollProgress * BACKGROUND_ZOOM_IN
+      camera.left = -newFrustumWidth * zoomFactor
+      camera.right = newFrustumWidth * zoomFactor
+      camera.top = newFrustumHeight * zoomFactor
+      camera.bottom = -newFrustumHeight * zoomFactor
       camera.updateProjectionMatrix()
       renderer.setSize(width, height)
       composer.setSize(width, height)
+
+      if (textOverlay.resize) {
+        textOverlay.resize(width, height, newAspect)
+      } else {
+        textCamera.aspect = newAspect
+        textCamera.updateProjectionMatrix()
+      }
+
+      // Update code rain overlay
+      if (codeRainOverlay.resize) {
+        codeRainOverlay.resize(width, height, newAspect)
+      } else {
+        codeRainCamera.aspect = newAspect
+        codeRainCamera.updateProjectionMatrix()
+      }
+
+      const pixelRatio = Math.min(window.devicePixelRatio, 2)
+      textRenderTarget.setSize(width * pixelRatio, height * pixelRatio)
+      blurMaterial.uniforms.resolution.value.set(width, height)
     }
     window.addEventListener('resize', handleResize)
 
@@ -384,11 +478,13 @@ export const HeroSlider: React.FC = () => {
         clearTimeout(autoPlayTimeoutId)
         autoPlayTimeoutId = null
       }
-      // Trigger glitch effect on drag start
-      glitchEffect.trigger(0.3)
     }
 
     const handleMouseMove = (event: MouseEvent) => {
+      const rect = container.getBoundingClientRect()
+      targetMouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1
+      targetMouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
       if (!isDragging || isAutoAnimating) return
       const dragDeltaX = event.clientX - dragStartX
       const newDirection: 'forward' | 'backward' = dragDeltaX < 0 ? 'forward' : 'backward'
@@ -402,17 +498,11 @@ export const HeroSlider: React.FC = () => {
       const dragProgress = Math.min(Math.abs(dragDeltaX) / DRAG_THRESHOLD, 1) * 0.5
       animationProgress = dragProgress
       targetProgress = dragProgress
-
-      // Increase glitch intensity based on drag progress
-      glitchEffect.trigger(0.3 + dragProgress * 1.2)
     }
 
     const handleMouseUp = () => {
       if (!isDragging) return
       isDragging = false
-
-      // Stop glitch effect
-      glitchEffect.stop()
 
       if (animationProgress >= 0.5) {
         targetProgress = 1
@@ -431,13 +521,55 @@ export const HeroSlider: React.FC = () => {
       }
     }
 
+    // Click handler for ripple effect
+    let clickStartX = 0
+    let clickStartY = 0
+    const handleClickStart = (event: MouseEvent) => {
+      clickStartX = event.clientX
+      clickStartY = event.clientY
+    }
+
+    const handleClick = (event: MouseEvent) => {
+      const dragDistance = Math.sqrt(
+        Math.pow(event.clientX - clickStartX, 2) + Math.pow(event.clientY - clickStartY, 2),
+      )
+      if (dragDistance > 10) return
+
+      const rect = container.getBoundingClientRect()
+      clickMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+      clickMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
+      raycaster.setFromCamera(clickMouse, camera)
+      const intersects = raycaster.intersectObjects(
+        cubeDataList.map((c) => c.mesh),
+        false,
+      )
+
+      if (intersects.length > 0) {
+        const hitMesh = intersects[0].object as THREE.Mesh
+        const hitIndex = cubeDataList.findIndex((c) => c.mesh === hitMesh)
+
+        if (hitIndex !== -1) {
+          const cubeData = cubeDataList[hitIndex]
+          const now = performance.now() / 1000
+          activeHybridWaves.push(createWave(cubeData.row, cubeData.col, now))
+        }
+      }
+    }
+
     container.addEventListener('mousedown', handleMouseDown)
+    container.addEventListener('mousedown', handleClickStart)
     container.addEventListener('mousemove', handleMouseMove)
     container.addEventListener('mouseup', handleMouseUp)
+    container.addEventListener('mouseup', handleClick)
     container.addEventListener('mouseleave', handleMouseLeave)
 
-    // Animation speed for auto-animation
-    const ANIMATION_SPEED = 1.5
+    // Scroll handler for zoom effect
+    const handleScroll = () => {
+      const scrollY = window.scrollY
+      targetScrollProgress = Math.min(1, Math.max(0, scrollY / SCROLL_RANGE))
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
 
     // Animation loop
     let animationId: number
@@ -450,25 +582,57 @@ export const HeroSlider: React.FC = () => {
       const deltaTime = currentTime - lastTime
       lastTime = currentTime
 
-      // ============================================
+      // Smooth mouse following for chromatic aberration
+      mouseX += (targetMouseX - mouseX) * 0.1
+      mouseY += (targetMouseY - mouseY) * 0.1
+
+      // Smooth scroll following for zoom effects
+      scrollProgress += (targetScrollProgress - scrollProgress) * 0.1
+
+      // Apply scroll zoom to background camera
+      const bgZoomFactor = 1 - scrollProgress * BACKGROUND_ZOOM_IN
+      camera.left = -baseFrustumWidth * bgZoomFactor
+      camera.right = baseFrustumWidth * bgZoomFactor
+      camera.top = baseFrustumHeight * bgZoomFactor
+      camera.bottom = -baseFrustumHeight * bgZoomFactor
+      camera.updateProjectionMatrix()
+
+      // Apply scroll zoom to text
+      const textZoomFactor = 1 - scrollProgress * TEXT_ZOOM_OUT
+      blurMaterial.uniforms.textZoom.value = textZoomFactor
+
+      // Update chromatic aberration based on mouse position
+      const distFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)
+      const baseStrength = 0.004
+      const mouseStrength = distFromCenter * 0.006
+      chromaticAberrationEffect.offset.set(
+        baseStrength + mouseStrength,
+        baseStrength + mouseStrength,
+      )
+
+      // Update tilt-shift based on mouse position and current slide settings
+      const currentTiltShift = SLIDES[currentSlideIndex].tiltShift || defaultTiltShift
+      tiltShiftEffect.offset = mouseY * 0.3
+      tiltShiftEffect.rotation = mouseX * 0.5
+      tiltShiftEffect.focusArea = currentTiltShift.focusArea
+      tiltShiftEffect.feather = currentTiltShift.feather
+      // tiltShiftEffect.blur = currentTiltShift.blur
+
       // Update and render all animated 3D slides
-      // ============================================
       for (const animSlide of animatedSlides) {
-        // Update the scene
         animSlide.scene3d.update(deltaTime)
 
-        // Render to the render target
-        renderer.setRenderTarget(animSlide.renderTarget)
-        renderer.render(animSlide.scene3d.scene, animSlide.scene3d.camera)
+        if (animSlide.scene3d.render) {
+          animSlide.scene3d.render(renderer, animSlide.renderTarget)
+        } else {
+          renderer.setRenderTarget(animSlide.renderTarget)
+          renderer.render(animSlide.scene3d.scene, animSlide.scene3d.camera)
+          renderer.setRenderTarget(null)
+        }
       }
 
-      // Reset render target to screen
-      renderer.setRenderTarget(null)
-
-      // Update all effects
-      for (const effect of effects) {
-        effect.update(deltaTime)
-      }
+      // Process hybrid wave-chaos effects
+      processWaves(activeHybridWaves, cubeDataList, currentTime)
 
       // Auto-animate towards target progress
       if (isAutoAnimating && cubeDataList.length > 0) {
@@ -539,17 +703,46 @@ export const HeroSlider: React.FC = () => {
         }
       }
 
-      // Render with post-processing
       composer.render()
+
+      // Update code rain color scheme based on current slide
+      // Slides 0-1 (hypercube) = scheme 0 (pink text), slides 2-3 (waveDots) = scheme 1 (teal text)
+      if (codeRainOverlay.setColorScheme) {
+        const colorScheme = currentSlideIndex >= 2 ? 1 : 0
+        codeRainOverlay.setColorScheme(colorScheme)
+      }
+
+      // Render code rain layer (between background and text)
+      codeRainOverlay.update(deltaTime)
+      renderer.autoClear = false
+      renderer.clearDepth()
+      renderer.render(codeRainOverlay.scene, codeRainOverlay.camera)
+      renderer.autoClear = true
+
+      // Render text overlay on top with blur
+      textOverlay.update(deltaTime)
+
+      renderer.setRenderTarget(textRenderTarget)
+      renderer.setClearColor(0x000000, 0)
+      renderer.clear()
+      renderer.render(textOverlay.scene, textOverlay.camera)
+      renderer.setRenderTarget(null)
+
+      renderer.autoClear = false
+      renderer.render(blurScene, blurCamera)
+      renderer.autoClear = true
     }
     animate()
 
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize)
+      window.removeEventListener('scroll', handleScroll)
       container.removeEventListener('mousedown', handleMouseDown)
+      container.removeEventListener('mousedown', handleClickStart)
       container.removeEventListener('mousemove', handleMouseMove)
       container.removeEventListener('mouseup', handleMouseUp)
+      container.removeEventListener('mouseup', handleClick)
       container.removeEventListener('mouseleave', handleMouseLeave)
       if (autoPlayTimeoutId) {
         clearTimeout(autoPlayTimeoutId)
@@ -567,7 +760,11 @@ export const HeroSlider: React.FC = () => {
         as.renderTarget.dispose()
         as.scene3d.dispose()
       })
-      effects.forEach((effect) => effect.dispose())
+      textOverlay.dispose()
+      codeRainOverlay.dispose()
+      textRenderTarget.dispose()
+      blurMaterial.dispose()
+      blurQuad.geometry.dispose()
       composer.dispose()
       renderer.dispose()
     }
