@@ -92,6 +92,7 @@ class GlitchPass extends Pass {
     writeBuffer: THREE.WebGLRenderTarget,
     readBuffer: THREE.WebGLRenderTarget,
   ) {
+    // @ts-ignore
     this.uniforms.tDiffuse.value = readBuffer.texture
 
     if (this.renderToScreen) {
