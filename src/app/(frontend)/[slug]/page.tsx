@@ -12,7 +12,6 @@ import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import PageClient from './page.client'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
-import { HeroSlider } from '@/components/HeroSlider'
 
 export async function generateStaticParams() {
   const payload = await getPayload({ config: configPromise })
@@ -67,24 +66,18 @@ export default async function Page({ params: paramsPromise }: Args) {
 
   const { hero, layout } = page
 
-  const isHome = slug === 'home'
+  const hasHeroSlider = layout?.[0]?.blockType === 'heroSlider'
 
   return (
-    <article className={isHome ? '' : 'pt-16 pb-24'}>
+    <article className={hasHeroSlider ? '' : 'pt-16 pb-24'}>
       <PageClient />
       {/* Allows redirects for valid pages too */}
       <PayloadRedirects disableNotFound url={url} />
 
       {draft && <LivePreviewListener />}
 
-      {isHome ? (
-        <HeroSlider />
-      ) : (
-        <>
-          <RenderHero {...hero} />
-          <RenderBlocks blocks={layout} />
-        </>
-      )}
+      <RenderHero {...hero} />
+      <RenderBlocks blocks={layout} />
     </article>
   )
 }
