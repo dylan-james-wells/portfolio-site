@@ -14,6 +14,67 @@ export interface PixelTextOptions {
   paddingPercent?: number // Percentage of viewport width to use as padding on each side (0-1)
   // Callback when text snaps back - receives normalized direction (-1 to 1 for x and y)
   onSnapBack?: (directionX: number, directionY: number) => void
+  // Tailwind container alignment options
+  tailwindContainer?: {
+    screens: { [key: string]: string } // e.g., { sm: '40rem', md: '48rem', ... }
+    padding: { [key: string]: string } // e.g., { DEFAULT: '1rem', md: '2rem', ... }
+  }
+}
+
+// Helper to convert rem string to pixels
+const remToPx = (remStr: string): number => {
+  const remValue = parseFloat(remStr)
+  // Assume 16px base font size
+  return remValue * 16
+}
+
+// Calculate container left margin based on Tailwind config and viewport width
+const calculateContainerLeftMargin = (
+  viewportWidth: number,
+  tailwindContainer?: PixelTextOptions['tailwindContainer'],
+  fallbackMargin = 0.05,
+): number => {
+  if (!tailwindContainer) {
+    return viewportWidth * fallbackMargin
+  }
+
+  const { screens, padding } = tailwindContainer
+
+  // Convert screen values to pixels and sort descending
+  const breakpoints = Object.entries(screens)
+    .map(([key, value]) => ({ key, width: remToPx(value) }))
+    .sort((a, b) => b.width - a.width)
+
+  // Find the active breakpoint (largest one that fits)
+  let activeBreakpoint = 'DEFAULT'
+  for (const bp of breakpoints) {
+    if (viewportWidth >= bp.width) {
+      activeBreakpoint = bp.key
+      break
+    }
+  }
+
+  // Get padding for active breakpoint (fall back to DEFAULT)
+  const paddingValue = padding[activeBreakpoint] || padding['DEFAULT'] || '1rem'
+  const paddingPx = remToPx(paddingValue)
+
+  // Get max-width for active breakpoint
+  const maxWidthStr = screens[activeBreakpoint]
+  if (!maxWidthStr) {
+    // Below smallest breakpoint, just use padding
+    return paddingPx
+  }
+
+  const maxWidthPx = remToPx(maxWidthStr)
+
+  if (viewportWidth <= maxWidthPx) {
+    // Viewport is smaller than container max-width, just use padding
+    return paddingPx
+  }
+
+  // Viewport is larger than container max-width
+  // Margin = (viewport - maxWidth) / 2 + padding
+  return (viewportWidth - maxWidthPx) / 2 + paddingPx
 }
 
 export function create(options: PixelTextOptions = {}): Scene3D {
@@ -26,6 +87,7 @@ export function create(options: PixelTextOptions = {}): Scene3D {
     depthLayers = 12,
     paddingPercent = 0.2, // 10% padding on each side
     onSnapBack,
+    tailwindContainer,
   } = options
 
   const scene = new THREE.Scene()
@@ -45,17 +107,19 @@ export function create(options: PixelTextOptions = {}): Scene3D {
 
   // Track state for responsive sizing
   let currentAspect = 1
+  let currentViewportWidth = 0
   let hasSizedText = false
 
-  // Calculate visible width at z=0 based on camera FOV and aspect ratio
-  const getVisibleWidth = (aspect: number): number => {
+  // Calculate visible dimensions at z=0 based on camera FOV and aspect ratio
+  const getVisibleDimensions = (aspect: number): { visibleWidth: number; visibleHeight: number } => {
     const distance = camera.position.z
     const vFov = (camera.fov * Math.PI) / 180
     const visibleHeight = 2 * Math.tan(vFov / 2) * distance
-    return visibleHeight * aspect
+    const visibleWidth = visibleHeight * aspect
+    return { visibleWidth, visibleHeight }
   }
 
-  // Resize text to fit viewport
+  // Resize text to fit viewport and position at left margin
   const resizeTextToFit = (aspect: number) => {
     const frontMesh = textMeshes[0]
     if (!frontMesh || !frontMesh.textRenderInfo) return
@@ -64,12 +128,26 @@ export function create(options: PixelTextOptions = {}): Scene3D {
     const textWidth = bounds[2] - bounds[0]
     if (textWidth <= 0) return
 
-    const visibleWidth = getVisibleWidth(aspect)
+    const { visibleWidth } = getVisibleDimensions(aspect)
     const targetWidth = visibleWidth * (1 - paddingPercent * 2)
     const scale = targetWidth / textWidth
 
     // Apply scale to the group instead of changing font size
     textGroup.scale.setScalar(scale)
+
+    // Calculate left margin position
+    let marginLeftWorld: number
+    if (tailwindContainer && currentViewportWidth > 0) {
+      // Calculate margin in pixels, then convert to world units
+      const marginPx = calculateContainerLeftMargin(currentViewportWidth, tailwindContainer, paddingPercent)
+      marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
+    } else {
+      marginLeftWorld = visibleWidth * paddingPercent
+    }
+
+    // Position group at left margin (text is left-anchored, so this sets the left edge)
+    textGroup.position.x = -visibleWidth / 2 + marginLeftWorld
+
     hasSizedText = true
   }
 
@@ -83,7 +161,7 @@ export function create(options: PixelTextOptions = {}): Scene3D {
     textMesh.font =
       'https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf'
     textMesh.fontSize = initialFontSize
-    textMesh.anchorX = 'center'
+    textMesh.anchorX = 'left'
     textMesh.anchorY = 'middle'
     textMesh.textAlign = 'left'
     textMesh.position.z = layerZ
@@ -490,8 +568,9 @@ export function create(options: PixelTextOptions = {}): Scene3D {
       window.removeEventListener('touchend', handleTouchEnd)
       textMeshes.forEach((mesh) => mesh.dispose())
     },
-    resize: (_width: number, _height: number, aspect: number) => {
+    resize: (width: number, _height: number, aspect: number) => {
       currentAspect = aspect
+      currentViewportWidth = width
       camera.aspect = aspect
       camera.updateProjectionMatrix()
       resizeTextToFit(aspect)

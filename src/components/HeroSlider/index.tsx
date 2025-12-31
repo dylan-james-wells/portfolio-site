@@ -144,6 +144,24 @@ export const HeroSlider: React.FC = () => {
           triggerGridWave(clampedRow, clampedCol)
         }
       },
+      // Align with Tailwind container padding
+      tailwindContainer: {
+        screens: {
+          sm: '40rem',
+          md: '48rem',
+          lg: '64rem',
+          xl: '80rem',
+          '2xl': '86rem',
+        },
+        padding: {
+          DEFAULT: '1rem',
+          sm: '1rem',
+          md: '2rem',
+          lg: '2rem',
+          xl: '2rem',
+          '2xl': '2rem',
+        },
+      },
     })
 
     // Update text camera aspect ratio and initial sizing
