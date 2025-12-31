@@ -19,7 +19,6 @@ import {
   ANIMATION_SPEED,
   RENDER_TARGET_SIZE,
   BACKGROUND_ZOOM_IN,
-  TEXT_ZOOM_OUT,
 } from './constants'
 import { defaultTiltShift } from './types'
 import type { CubeData, AnimatedSlide, HybridWave } from './types'
@@ -162,6 +161,15 @@ export const HeroSlider: React.FC = () => {
           '2xl': '2rem',
         },
       },
+      // Breakpoint-based font sizes
+      fontSizeBreakpoints: {
+        DEFAULT: '5rem',
+        sm: '6rem',
+        md: '8rem',
+        lg: '10rem',
+        xl: '12rem',
+        '2xl': '14rem',
+      },
     })
 
     // Update text camera aspect ratio and initial sizing
@@ -182,16 +190,16 @@ export const HeroSlider: React.FC = () => {
       colorEnd: 0x4ecdc4,
       opacity: 0.6,
       glowOpacity: 0.2,
-      typingSpeed: 300,
+      typingSpeed: 600,
       burstMin: 5,
       burstMax: 20,
       pauseMin: 0.01,
-      pauseMax: 0.12,
+      pauseMax: 0.08,
       marginLeft: 0.05, // fallback
       marginTop: 0.08,
       marginBottom: 0.08,
       containerWidthPercent: 0.5, // 50% of viewport width
-      fontSizePercent: 0.025, // 2.5% of container width
+      fontSizePercent: 0.025, // 2.5% of container width (fallback)
       outlineColor: 0x000000,
       outlineWidth: 0.06,
       // Align with Tailwind container padding
@@ -211,6 +219,15 @@ export const HeroSlider: React.FC = () => {
           xl: '2rem',
           '2xl': '2rem',
         },
+      },
+      // Breakpoint-based font sizes
+      fontSizeBreakpoints: {
+        DEFAULT: '0.75rem',
+        sm: '0.75rem',
+        md: '1rem',
+        lg: '1.25rem',
+        xl: '1.25rem',
+        '2xl': '1.25rem',
       },
     })
 
@@ -633,9 +650,8 @@ export const HeroSlider: React.FC = () => {
       camera.bottom = -baseFrustumHeight * bgZoomFactor
       camera.updateProjectionMatrix()
 
-      // Apply scroll zoom to text
-      const textZoomFactor = 1 - scrollProgress * TEXT_ZOOM_OUT
-      blurMaterial.uniforms.textZoom.value = textZoomFactor
+      // Text zoom disabled - keep at 1.0
+      blurMaterial.uniforms.textZoom.value = 1.0
 
       // Update chromatic aberration based on mouse position
       const distFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)

@@ -130,7 +130,7 @@ export interface CodeRainOptions {
   marginTop?: number // percentage of viewport height (0-1)
   marginBottom?: number // percentage of viewport height (0-1)
   containerWidthPercent?: number // width of container as percentage of viewport (0-1)
-  fontSizePercent?: number // font size as percentage of container width (0-1)
+  fontSizePercent?: number // font size as percentage of container width (0-1), used as fallback
   outlineColor?: number // outline color for readability
   outlineWidth?: number // outline width as percentage of font size
   // Tailwind container alignment options
@@ -138,6 +138,8 @@ export interface CodeRainOptions {
     screens: { [key: string]: string } // e.g., { sm: '40rem', md: '48rem', ... }
     padding: { [key: string]: string } // e.g., { DEFAULT: '1rem', md: '2rem', ... }
   }
+  // Breakpoint-based font size in rem (uses same breakpoints as tailwindContainer)
+  fontSizeBreakpoints?: { [key: string]: string } // e.g., { DEFAULT: '0.75rem', md: '0.875rem', lg: '1rem' }
 }
 
 // State for typing animation
@@ -171,6 +173,45 @@ const remToPx = (remStr: string): number => {
   const remValue = parseFloat(remStr)
   // Assume 16px base font size
   return remValue * 16
+}
+
+// Get the active breakpoint key based on viewport width
+const getActiveBreakpoint = (
+  viewportWidth: number,
+  screens?: { [key: string]: string },
+): string => {
+  if (!screens) return 'DEFAULT'
+
+  // Convert screen values to pixels and sort descending
+  const breakpoints = Object.entries(screens)
+    .map(([key, value]) => ({ key, width: remToPx(value) }))
+    .sort((a, b) => b.width - a.width)
+
+  // Find the active breakpoint (largest one that fits)
+  for (const bp of breakpoints) {
+    if (viewportWidth >= bp.width) {
+      return bp.key
+    }
+  }
+
+  return 'DEFAULT'
+}
+
+// Get font size in pixels for the current breakpoint
+const getFontSizeForBreakpoint = (
+  viewportWidth: number,
+  screens?: { [key: string]: string },
+  fontSizeBreakpoints?: { [key: string]: string },
+  defaultFontSizePx = 14,
+): number => {
+  if (!fontSizeBreakpoints) return defaultFontSizePx
+
+  const activeBreakpoint = getActiveBreakpoint(viewportWidth, screens)
+  const fontSizeStr = fontSizeBreakpoints[activeBreakpoint] || fontSizeBreakpoints['DEFAULT']
+
+  if (!fontSizeStr) return defaultFontSizePx
+
+  return remToPx(fontSizeStr)
 }
 
 // Calculate container left margin based on Tailwind config and viewport width
@@ -241,9 +282,8 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     outlineColor = 0x000000,
     outlineWidth = 0.08,
     tailwindContainer,
+    fontSizeBreakpoints,
   } = options
-
-  console.log('opacity', options.opacity)
 
   const scene = new THREE.Scene()
   scene.background = null // Transparent
@@ -271,7 +311,6 @@ export function create(options: CodeRainOptions = {}): Scene3D {
   textMesh.outlineColor = outlineColor
   textMesh.outlineWidth = `${outlineWidth * 100}%`
   textMesh.outlineOpacity = opacity * 0.8
-  textMesh.maxWidth = 4
 
   scene.add(textMesh)
 
@@ -284,7 +323,6 @@ export function create(options: CodeRainOptions = {}): Scene3D {
   glowMesh.anchorY = 'middle'
   glowMesh.color = colorEnd
   glowMesh.fillOpacity = glowOpacity
-  glowMesh.maxWidth = 4
   glowMesh.position.z = 0.01
   glowMesh.scale.setScalar(1.03)
   glowMesh.depthWrite = false
@@ -363,14 +401,32 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     // Container width as percentage of viewport
     const containerWidth = visibleWidth * containerWidthPercent
 
-    // Font size as percentage of container width
-    const fontSize = containerWidth * fontSizePercent
+    // Calculate font size - either from breakpoints or as percentage of container width
+    let fontSize: number
+    if (fontSizeBreakpoints && tailwindContainer && currentViewportWidth > 0) {
+      // Get font size in pixels for current breakpoint
+      const fontSizePx = getFontSizeForBreakpoint(
+        currentViewportWidth,
+        tailwindContainer.screens,
+        fontSizeBreakpoints,
+        14,
+      )
+      // Convert pixels to world units: fontSizeWorld / visibleWidth = fontSizePx / viewportWidthPx
+      fontSize = (fontSizePx / currentViewportWidth) * visibleWidth
+    } else {
+      // Fall back to percentage-based sizing
+      fontSize = containerWidth * fontSizePercent
+    }
 
     // Calculate left margin - either from Tailwind container or fallback percentage
     let marginLeftWorld: number
     if (tailwindContainer && currentViewportWidth > 0) {
       // Calculate margin in pixels, then convert to world units
-      const marginPx = calculateContainerLeftMargin(currentViewportWidth, tailwindContainer, marginLeft)
+      const marginPx = calculateContainerLeftMargin(
+        currentViewportWidth,
+        tailwindContainer,
+        marginLeft,
+      )
       // Convert pixels to world units: marginWorld / visibleWidth = marginPx / viewportWidthPx
       marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
     } else {
@@ -388,13 +444,11 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     state.textMesh.fontSize = fontSize
     state.textMesh.position.x = posX
     state.textMesh.position.y = posY
-    state.textMesh.maxWidth = containerWidth
 
     // Update glow mesh
     state.glowMesh.fontSize = fontSize
     state.glowMesh.position.x = posX
     state.glowMesh.position.y = posY
-    state.glowMesh.maxWidth = containerWidth
 
     // Sync meshes
     state.textMesh.sync()

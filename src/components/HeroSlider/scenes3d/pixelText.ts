@@ -19,6 +19,8 @@ export interface PixelTextOptions {
     screens: { [key: string]: string } // e.g., { sm: '40rem', md: '48rem', ... }
     padding: { [key: string]: string } // e.g., { DEFAULT: '1rem', md: '2rem', ... }
   }
+  // Breakpoint-based font size in rem (uses same breakpoints as tailwindContainer)
+  fontSizeBreakpoints?: { [key: string]: string } // e.g., { DEFAULT: '2rem', md: '3rem', lg: '4rem' }
 }
 
 // Helper to convert rem string to pixels
@@ -26,6 +28,45 @@ const remToPx = (remStr: string): number => {
   const remValue = parseFloat(remStr)
   // Assume 16px base font size
   return remValue * 16
+}
+
+// Get the active breakpoint key based on viewport width
+const getActiveBreakpoint = (
+  viewportWidth: number,
+  screens?: { [key: string]: string },
+): string => {
+  if (!screens) return 'DEFAULT'
+
+  // Convert screen values to pixels and sort descending
+  const breakpoints = Object.entries(screens)
+    .map(([key, value]) => ({ key, width: remToPx(value) }))
+    .sort((a, b) => b.width - a.width)
+
+  // Find the active breakpoint (largest one that fits)
+  for (const bp of breakpoints) {
+    if (viewportWidth >= bp.width) {
+      return bp.key
+    }
+  }
+
+  return 'DEFAULT'
+}
+
+// Get font size in pixels for the current breakpoint
+const getFontSizeForBreakpoint = (
+  viewportWidth: number,
+  screens?: { [key: string]: string },
+  fontSizeBreakpoints?: { [key: string]: string },
+  defaultFontSizePx = 32,
+): number => {
+  if (!fontSizeBreakpoints) return defaultFontSizePx
+
+  const activeBreakpoint = getActiveBreakpoint(viewportWidth, screens)
+  const fontSizeStr = fontSizeBreakpoints[activeBreakpoint] || fontSizeBreakpoints['DEFAULT']
+
+  if (!fontSizeStr) return defaultFontSizePx
+
+  return remToPx(fontSizeStr)
 }
 
 // Calculate container left margin based on Tailwind config and viewport width
@@ -88,6 +129,7 @@ export function create(options: PixelTextOptions = {}): Scene3D {
     paddingPercent = 0.2, // 10% padding on each side
     onSnapBack,
     tailwindContainer,
+    fontSizeBreakpoints,
   } = options
 
   const scene = new THREE.Scene()
@@ -121,19 +163,44 @@ export function create(options: PixelTextOptions = {}): Scene3D {
 
   // Resize text to fit viewport and position at left margin
   const resizeTextToFit = (aspect: number) => {
-    const frontMesh = textMeshes[0]
-    if (!frontMesh || !frontMesh.textRenderInfo) return
-
-    const bounds = frontMesh.textRenderInfo.blockBounds
-    const textWidth = bounds[2] - bounds[0]
-    if (textWidth <= 0) return
-
     const { visibleWidth } = getVisibleDimensions(aspect)
-    const targetWidth = visibleWidth * (1 - paddingPercent * 2)
-    const scale = targetWidth / textWidth
 
-    // Apply scale to the group instead of changing font size
-    textGroup.scale.setScalar(scale)
+    // Calculate font size based on breakpoints or fall back to scale-based sizing
+    let fontSize: number
+    if (fontSizeBreakpoints && tailwindContainer && currentViewportWidth > 0) {
+      // Get font size in pixels for current breakpoint
+      const fontSizePx = getFontSizeForBreakpoint(
+        currentViewportWidth,
+        tailwindContainer.screens,
+        fontSizeBreakpoints,
+        32,
+      )
+      // Convert pixels to world units: fontSizeWorld / visibleWidth = fontSizePx / viewportWidthPx
+      fontSize = (fontSizePx / currentViewportWidth) * visibleWidth
+
+      // Reset group scale when using breakpoint-based sizing
+      textGroup.scale.setScalar(1)
+
+      // Update font size on all text meshes
+      for (const mesh of textMeshes) {
+        mesh.fontSize = fontSize
+        mesh.sync()
+      }
+    } else {
+      // Fall back to scale-based sizing
+      const frontMesh = textMeshes[0]
+      if (!frontMesh || !frontMesh.textRenderInfo) return
+
+      const bounds = frontMesh.textRenderInfo.blockBounds
+      const textWidth = bounds[2] - bounds[0]
+      if (textWidth <= 0) return
+
+      const targetWidth = visibleWidth * (1 - paddingPercent * 2)
+      const scale = targetWidth / textWidth
+
+      // Apply scale to the group instead of changing font size
+      textGroup.scale.setScalar(scale)
+    }
 
     // Calculate left margin position
     let marginLeftWorld: number
