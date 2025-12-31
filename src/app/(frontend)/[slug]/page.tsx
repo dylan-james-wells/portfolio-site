@@ -66,10 +66,12 @@ export default async function Page({ params: paramsPromise }: Args) {
 
   const { hero, layout } = page
 
-  const hasHeroSlider = layout?.[0]?.blockType === 'heroSlider'
+  const hasHeroSlider = hero?.type === 'heroSlider'
+
+  // className={hasHeroSlider ? '' : 'pt-16 pb-24'}
 
   return (
-    <article className={hasHeroSlider ? '' : 'pt-16 pb-24'}>
+    <article>
       <PageClient />
       {/* Allows redirects for valid pages too */}
       <PayloadRedirects disableNotFound url={url} />
