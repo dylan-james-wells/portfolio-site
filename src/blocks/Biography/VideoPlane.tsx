@@ -12,8 +12,8 @@ interface VideoPlaneProps {
 
 export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, className }) => {
   const containerRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
-  const videoRef = useRef<HTMLVideoElement | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const [isReady, setIsReady] = useState(false)
 
@@ -31,24 +31,13 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
     checkSize()
   }, [])
 
+  // Setup Three.js once video and container are ready
   useEffect(() => {
-    if (!containerRef.current || !isReady) return
+    if (!containerRef.current || !videoRef.current || !isReady) return
 
     const container = containerRef.current
+    const video = videoRef.current
     const size = Math.min(container.clientWidth, container.clientHeight) || 400
-
-    // Create video element
-    const video = document.createElement('video')
-    video.src = videoUrl
-    video.crossOrigin = 'anonymous'
-    video.loop = true
-    video.muted = true
-    video.playsInline = true
-    video.autoplay = true
-    if (posterUrl) {
-      video.poster = posterUrl
-    }
-    videoRef.current = video
 
     // Create scene
     const scene = new THREE.Scene()
@@ -76,19 +65,6 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
     container.appendChild(renderer.domElement)
     rendererRef.current = renderer
 
-    // Attempt to play - muted + playsInline should work on mobile
-    const tryPlay = () => {
-      const playPromise = video.play()
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Silently fail - video will just show first frame
-        })
-      }
-    }
-
-    video.addEventListener('loadeddata', tryPlay, { once: true })
-    video.load()
-
     // Animation loop
     const animate = () => {
       animationFrameRef.current = requestAnimationFrame(animate)
@@ -110,8 +86,6 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current)
       }
-      video.pause()
-      video.src = ''
       videoTexture.dispose()
       geometry.dispose()
       material.dispose()
@@ -120,12 +94,24 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
         container.removeChild(renderer.domElement)
       }
     }
-  }, [videoUrl, posterUrl, isReady])
+  }, [isReady])
 
   return (
     <div
       ref={containerRef}
-      className={cn('aspect-square w-full', className)}
-    />
+      className={cn('aspect-square w-full relative', className)}
+    >
+      {/* Hidden video element - browsers handle this better than dynamically created */}
+      <video
+        ref={videoRef}
+        src={videoUrl}
+        poster={posterUrl}
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+      />
+    </div>
   )
 }
