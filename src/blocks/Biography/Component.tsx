@@ -17,10 +17,12 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
   const posterImage = media?.posterImage
   const videoFile = media?.videoFile
 
-  const hasVideo = videoFile && typeof videoFile === 'object' && videoFile.filename
+  const hasVideo = videoFile && typeof videoFile === 'object' && videoFile.url
+  const videoUrl =
+    hasVideo ? getMediaUrl(videoFile.url, videoFile.updatedAt) : undefined
   const posterUrl =
-    posterImage && typeof posterImage === 'object'
-      ? getMediaUrl(`/media/${posterImage.filename}`)
+    posterImage && typeof posterImage === 'object' && posterImage.url
+      ? getMediaUrl(posterImage.url, posterImage.updatedAt)
       : undefined
 
   return (
@@ -31,9 +33,9 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
         })}
       >
         <div className="w-full md:w-1/2">
-          {hasVideo ? (
+          {hasVideo && videoUrl ? (
             <VideoPlane
-              videoUrl={getMediaUrl(`/media/${videoFile.filename}`)}
+              videoUrl={videoUrl}
               posterUrl={posterUrl}
               className="rounded-lg"
             />

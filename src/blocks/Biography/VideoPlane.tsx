@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { cn } from '@/utilities/ui'
 
@@ -15,17 +15,32 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const animationFrameRef = useRef<number | null>(null)
+  const [isReady, setIsReady] = useState(false)
 
+  // Wait for container to have dimensions
   useEffect(() => {
     if (!containerRef.current) return
 
+    const checkSize = () => {
+      if (containerRef.current && containerRef.current.clientWidth > 0 && containerRef.current.clientHeight > 0) {
+        setIsReady(true)
+      } else {
+        requestAnimationFrame(checkSize)
+      }
+    }
+    checkSize()
+  }, [])
+
+  useEffect(() => {
+    if (!containerRef.current || !isReady) return
+
     const container = containerRef.current
-    const width = container.clientWidth
-    const height = container.clientHeight
+    const size = Math.min(container.clientWidth, container.clientHeight) || 400
 
     // Create video element
     const video = document.createElement('video')
     video.src = videoUrl
+    video.crossOrigin = 'anonymous'
     video.loop = true
     video.muted = true
     video.playsInline = true
@@ -33,7 +48,6 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
     if (posterUrl) {
       video.poster = posterUrl
     }
-    video.play()
     videoRef.current = video
 
     // Create scene
@@ -57,10 +71,18 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
 
     // Create renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    renderer.setSize(width, height)
+    renderer.setSize(size, size)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     container.appendChild(renderer.domElement)
     rendererRef.current = renderer
+
+    // Start video playback after it's ready
+    video.addEventListener('canplay', () => {
+      video.play().catch(() => {
+        // Autoplay may be blocked, that's okay
+      })
+    })
+    video.load()
 
     // Animation loop
     const animate = () => {
@@ -72,9 +94,8 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
     // Handle resize
     const handleResize = () => {
       if (!containerRef.current) return
-      const newWidth = containerRef.current.clientWidth
-      const newHeight = containerRef.current.clientHeight
-      renderer.setSize(newWidth, newHeight)
+      const newSize = Math.min(containerRef.current.clientWidth, containerRef.current.clientHeight) || 400
+      renderer.setSize(newSize, newSize)
     }
     window.addEventListener('resize', handleResize)
 
@@ -94,7 +115,7 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
         container.removeChild(renderer.domElement)
       }
     }
-  }, [videoUrl, posterUrl])
+  }, [videoUrl, posterUrl, isReady])
 
   return (
     <div
