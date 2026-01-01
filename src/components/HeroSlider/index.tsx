@@ -822,5 +822,12 @@ export const HeroSlider: React.FC = () => {
     }
   }, [])
 
-  return <div ref={containerRef} style={{ width: '100vw', height: '100vh' }} />
+  return (
+    <div style={{ paddingTop: '100vh' }}>
+      <div
+        ref={containerRef}
+        style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0 }}
+      />
+    </div>
+  )
 }

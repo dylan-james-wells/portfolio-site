@@ -40,6 +40,7 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
     }
   }, [isAndroid])
 
+
   return (
     <div className={cn('aspect-square w-full relative overflow-hidden', className)}>
       {lowPowerMode ? (

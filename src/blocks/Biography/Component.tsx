@@ -18,8 +18,7 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
   const videoFile = media?.videoFile
 
   const hasVideo = videoFile && typeof videoFile === 'object' && videoFile.url
-  const videoUrl =
-    hasVideo ? getMediaUrl(videoFile.url, videoFile.updatedAt) : undefined
+  const videoUrl = hasVideo ? getMediaUrl(videoFile.url, videoFile.updatedAt) : undefined
   const posterUrl =
     posterImage && typeof posterImage === 'object' && posterImage.url
       ? getMediaUrl(posterImage.url, posterImage.updatedAt)
@@ -27,7 +26,7 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
 
   return (
     <div className={cn('container', className)}>
-      <div className="flex flex-col md:flex-row items-center gap-8">
+      <div className="flex justify-between flex-col md:flex-row items-center gap-8">
         {/* Text - always first on mobile, uses order for desktop positioning */}
         <div
           className={cn('w-full md:w-1/2', {
@@ -40,19 +39,15 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
         </div>
         {/* Media - second on mobile, uses order for desktop positioning */}
         <div
-          className={cn('w-full md:w-1/2', {
+          className={cn('w-full md:w-auto', {
             'md:order-1': isMediaLeft,
             'md:order-2': !isMediaLeft,
           })}
         >
           {hasVideo && videoUrl ? (
-            <VideoPlane
-              videoUrl={videoUrl}
-              posterUrl={posterUrl}
-              className="rounded-lg"
-            />
+            <VideoPlane videoUrl={videoUrl} posterUrl={posterUrl} className="rounded-lg w-full md:w-[300px]" />
           ) : (
-            posterImage && <Media resource={posterImage} imgClassName="rounded-lg w-full" />
+            posterImage && <Media resource={posterImage} imgClassName="rounded-lg w-full md:w-[300px]" />
           )}
         </div>
       </div>
