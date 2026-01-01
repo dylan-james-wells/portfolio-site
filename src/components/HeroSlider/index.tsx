@@ -114,6 +114,8 @@ export const HeroSlider: React.FC = () => {
         aberrationStrength: { value: 0.004 },
         textZoom: { value: 1.0 },
         opacity: { value: 1.0 },
+        pixelation: { value: 0.0 },
+        vibrate: { value: new THREE.Vector2(0, 0) },
       },
       vertexShader: textBlurVertexShader,
       fragmentShader: textBlurFragmentShader,
@@ -654,14 +656,33 @@ export const HeroSlider: React.FC = () => {
       // Text zoom disabled - keep at 1.0
       blurMaterial.uniforms.textZoom.value = 1.0
 
-      // Fade out text overlays when scrolled past threshold (binary on/off with smooth transition)
-      const SCROLL_FADE_THRESHOLD = 0.3 // Fade out when 50% of viewport is scrolled
-      const targetOverlayOpacity = scrollProgress >= SCROLL_FADE_THRESHOLD ? 0 : 1
-      const currentOpacity = blurMaterial.uniforms.opacity.value
-      const newOpacity = currentOpacity + (targetOverlayOpacity - currentOpacity) * 0.15
-      blurMaterial.uniforms.opacity.value = newOpacity
+      // Death animation for pixelText when scrolled past threshold
+      const SCROLL_DEATH_THRESHOLD = 0.3
+      const shouldDie = scrollProgress >= SCROLL_DEATH_THRESHOLD
+
+      // Track death progress (0 = alive, 1 = fully dead)
+      const currentPixelation = blurMaterial.uniforms.pixelation.value
+      const targetPixelation = shouldDie ? 1 : 0
+      const newPixelation = currentPixelation + (targetPixelation - currentPixelation) * 0.06
+
+      blurMaterial.uniforms.pixelation.value = newPixelation
+
+      // Vibration: peaks in first half of death, then reduces
+      // Using sine wave that's strongest when pixelation is around 0.3-0.5
+      const vibratePhase = Math.sin(newPixelation * Math.PI) // peaks at 0.5
+      const vibrateIntensity = vibratePhase * 0.012
+      const vibrateX = Math.sin(currentTime * 45) * vibrateIntensity
+      const vibrateY = Math.cos(currentTime * 55) * vibrateIntensity * 0.8
+      blurMaterial.uniforms.vibrate.value.set(vibrateX, vibrateY)
+
+      // Opacity: stays at 1 until pixelation reaches 0.7, then fades out
+      const fadeStart = 0.7
+      const fadeOpacity = newPixelation < fadeStart ? 1 : 1 - (newPixelation - fadeStart) / (1 - fadeStart)
+      blurMaterial.uniforms.opacity.value = fadeOpacity
+
+      // CodeRain just fades (for now, focusing on pixelText)
       if (codeRainOverlay.setOpacity) {
-        codeRainOverlay.setOpacity(newOpacity)
+        codeRainOverlay.setOpacity(fadeOpacity)
       }
 
       // Update chromatic aberration based on mouse position

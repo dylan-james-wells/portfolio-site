@@ -13,6 +13,8 @@ export const textBlurFragmentShader = `
   uniform float aberrationStrength;
   uniform float textZoom;
   uniform float opacity;
+  uniform float pixelation; // 0 = no pixelation, 1 = max pixelation
+  uniform vec2 vibrate; // vibration offset
   varying vec2 vUv;
 
   void main() {
@@ -20,16 +22,27 @@ export const textBlurFragmentShader = `
     vec2 center = vec2(0.5);
     vec2 zoomedUv = center + (vUv - center) / textZoom;
 
+    // Apply vibration offset
+    zoomedUv += vibrate;
+
     // Early out if outside texture bounds
     if (zoomedUv.x < 0.0 || zoomedUv.x > 1.0 || zoomedUv.y < 0.0 || zoomedUv.y > 1.0) {
       gl_FragColor = vec4(0.0);
       return;
     }
 
+    // Apply pixelation effect
+    vec2 sampleUv = zoomedUv;
+    if (pixelation > 0.0) {
+      float pixelSize = 1.0 + pixelation * 40.0;
+      vec2 pixelatedResolution = resolution / pixelSize;
+      sampleUv = floor(zoomedUv * pixelatedResolution) / pixelatedResolution;
+    }
+
     vec2 texelSize = blurAmount / resolution;
 
     // Chromatic aberration offset based on distance from center
-    vec2 dir = zoomedUv - center;
+    vec2 dir = sampleUv - center;
     float dist = length(dir);
     vec2 aberrationOffset = dir * aberrationStrength * dist;
 
@@ -42,10 +55,10 @@ export const textBlurFragmentShader = `
         vec2 offset = vec2(float(x), float(y)) * texelSize;
 
         // Sample each channel with slight offset for aberration
-        float r = texture2D(tDiffuse, zoomedUv + offset + aberrationOffset).r;
-        float g = texture2D(tDiffuse, zoomedUv + offset).g;
-        float b = texture2D(tDiffuse, zoomedUv + offset - aberrationOffset).b;
-        float a = texture2D(tDiffuse, zoomedUv + offset).a;
+        float r = texture2D(tDiffuse, sampleUv + offset + aberrationOffset).r;
+        float g = texture2D(tDiffuse, sampleUv + offset).g;
+        float b = texture2D(tDiffuse, sampleUv + offset - aberrationOffset).b;
+        float a = texture2D(tDiffuse, sampleUv + offset).a;
 
         color += vec3(r, g, b);
         alpha += a;
