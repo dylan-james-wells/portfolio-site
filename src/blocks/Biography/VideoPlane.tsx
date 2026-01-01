@@ -13,9 +13,19 @@ interface VideoPlaneProps {
 export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, className }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasContainerRef = useRef<HTMLDivElement>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const animationFrameRef = useRef<number | null>(null)
+
   const [isReady, setIsReady] = useState(false)
+  const [lowPowerMode, setLowPowerMode] = useState(false)
+  const [isAndroid, setIsAndroid] = useState<boolean | null>(null)
+  const [useCanvas, setUseCanvas] = useState(false)
+
+  // Detect Android
+  useEffect(() => {
+    setIsAndroid(/(android)/i.test(navigator.userAgent))
+  }, [])
 
   // Wait for container to have dimensions
   useEffect(() => {
@@ -31,11 +41,63 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
     checkSize()
   }, [])
 
-  // Setup Three.js once video and container are ready
+  // Attempt to play video once ready and Android detection is complete
   useEffect(() => {
-    if (!containerRef.current || !videoRef.current || !isReady) return
+    if (!videoRef.current || isAndroid === null || lowPowerMode) return
 
-    const container = containerRef.current
+    const video = videoRef.current
+
+    const attemptPlay = () => {
+      const playPromise = video.play()
+
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            // Video playing successfully, we can use canvas
+            console.log('Video playing, using canvas')
+            setUseCanvas(true)
+          })
+          .catch((error) => {
+            console.log('Video play error:', error.name, error.message)
+            // Any play error on non-Android = try low power mode fallback
+            if (!isAndroid) {
+              setLowPowerMode(true)
+            } else {
+              // Android fallback - show video element directly
+              setUseCanvas(false)
+            }
+          })
+      }
+    }
+
+    // Wait for video to be ready before attempting play
+    if (video.readyState >= 2) {
+      attemptPlay()
+    } else {
+      video.addEventListener('loadeddata', attemptPlay, { once: true })
+    }
+
+    // Additional check: if video is paused after a short delay, assume autoplay blocked
+    const checkPlaying = setTimeout(() => {
+      if (video.paused && !lowPowerMode && !useCanvas) {
+        console.log('Video still paused after timeout, assuming autoplay blocked')
+        if (!isAndroid) {
+          setLowPowerMode(true)
+        }
+      }
+    }, 1000)
+
+    return () => {
+      clearTimeout(checkPlaying)
+      video.removeEventListener('loadeddata', attemptPlay)
+    }
+  }, [isAndroid, lowPowerMode, useCanvas])
+
+  // Setup Three.js canvas when video is playing
+  useEffect(() => {
+    if (!canvasContainerRef.current || !videoRef.current || !isReady || !useCanvas || lowPowerMode) return
+
+    const container = canvasContainerRef.current
     const video = videoRef.current
     const size = Math.min(container.clientWidth, container.clientHeight) || 400
 
@@ -74,8 +136,8 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
 
     // Handle resize
     const handleResize = () => {
-      if (!containerRef.current) return
-      const newSize = Math.min(containerRef.current.clientWidth, containerRef.current.clientHeight) || 400
+      if (!canvasContainerRef.current) return
+      const newSize = Math.min(canvasContainerRef.current.clientWidth, canvasContainerRef.current.clientHeight) || 400
       renderer.setSize(newSize, newSize)
     }
     window.addEventListener('resize', handleResize)
@@ -94,24 +156,47 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
         container.removeChild(renderer.domElement)
       }
     }
-  }, [isReady])
+  }, [isReady, useCanvas, lowPowerMode])
 
   return (
     <div
       ref={containerRef}
-      className={cn('aspect-square w-full relative', className)}
+      className={cn('aspect-square w-full relative overflow-hidden', className)}
     >
-      {/* Hidden video element - browsers handle this better than dynamically created */}
-      <video
-        ref={videoRef}
-        src={videoUrl}
-        poster={posterUrl}
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
-      />
+      {lowPowerMode ? (
+        // iOS low power mode fallback - img tag with mp4 works for short loops
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={videoUrl}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      ) : (
+        <>
+          {/* Video element */}
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            poster={posterUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className={cn(
+              'absolute inset-0 w-full h-full object-cover',
+              useCanvas ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            )}
+          />
+          {/* Three.js canvas container - only visible when useCanvas is true */}
+          <div
+            ref={canvasContainerRef}
+            className={cn(
+              'absolute inset-0 w-full h-full',
+              useCanvas ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            )}
+          />
+        </>
+      )}
     </div>
   )
 }
