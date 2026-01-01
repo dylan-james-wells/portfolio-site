@@ -94,9 +94,9 @@ const config = {
         warning: 'hsl(var(--warning))',
       },
       fontFamily: {
-        mono: ['var(--font-geist-mono)'],
-        pixel: ['var(--font-press-start)'],
-        sans: ['var(--font-geist-sans)'],
+        mono: ['var(--font-jetbrains-mono)'],
+        headline: ['var(--font-press-start)'],
+        sans: ['var(--font-jetbrains-mono)'],
       },
       keyframes: {
         'accordion-down': {

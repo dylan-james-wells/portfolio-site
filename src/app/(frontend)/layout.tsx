@@ -1,10 +1,13 @@
 import type { Metadata } from 'next'
 
 import { cn } from '@/utilities/ui'
-import { GeistMono } from 'geist/font/mono'
-import { GeistSans } from 'geist/font/sans'
-import { Press_Start_2P } from 'next/font/google'
+import { JetBrains_Mono, Press_Start_2P } from 'next/font/google'
 import React from 'react'
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+})
 
 const pressStart2P = Press_Start_2P({
   weight: '400',
@@ -28,7 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html
-      className={cn(GeistSans.variable, GeistMono.variable, pressStart2P.variable)}
+      className={cn(jetbrainsMono.variable, pressStart2P.variable)}
       lang="en"
       suppressHydrationWarning
     >
