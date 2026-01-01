@@ -7,6 +7,8 @@ import { Media } from '@/components/Media'
 import { VideoPlane } from './VideoPlane'
 import { getMediaUrl } from '@/utilities/getMediaUrl'
 
+import { WindowReveal } from '@/components/WindowReveal'
+
 type Props = {
   className?: string
 } & BiographyBlockProps
@@ -44,11 +46,19 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
             'md:order-2': !isMediaLeft,
           })}
         >
-          {hasVideo && videoUrl ? (
-            <VideoPlane videoUrl={videoUrl} posterUrl={posterUrl} className="rounded-lg w-full md:w-[300px]" />
-          ) : (
-            posterImage && <Media resource={posterImage} imgClassName="rounded-lg w-full md:w-[300px]" />
-          )}
+          <WindowReveal>
+            {hasVideo && videoUrl ? (
+              <VideoPlane
+                videoUrl={videoUrl}
+                posterUrl={posterUrl}
+                className="rounded-lg w-full md:w-[300px]"
+              />
+            ) : (
+              posterImage && (
+                <Media resource={posterImage} imgClassName="rounded-lg w-full md:w-[300px]" />
+              )
+            )}
+          </WindowReveal>
         </div>
       </div>
     </div>
