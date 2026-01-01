@@ -26,10 +26,26 @@ export const Biography: Block = {
       required: true,
     },
     {
-      name: 'image',
-      type: 'upload',
-      relationTo: 'media',
-      required: true,
+      type: 'group',
+      name: 'media',
+      fields: [
+        {
+          name: 'posterImage',
+          label: 'Poster Image',
+          type: 'upload',
+          relationTo: 'media',
+          required: true,
+        },
+        {
+          name: 'videoFile',
+          label: 'Video File',
+          type: 'upload',
+          relationTo: 'media',
+          filterOptions: {
+            mimeType: { contains: 'video' },
+          },
+        },
+      ],
     },
     {
       name: 'alignment',

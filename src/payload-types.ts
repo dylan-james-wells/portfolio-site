@@ -458,7 +458,10 @@ export interface BiographyBlock {
     };
     [k: string]: unknown;
   };
-  image: number | Media;
+  media: {
+    posterImage: number | Media;
+    videoFile?: (number | null) | Media;
+  };
   alignment: 'left' | 'right';
   id?: string | null;
   blockName?: string | null;
@@ -1137,7 +1140,12 @@ export interface PagesSelect<T extends boolean = true> {
 export interface BiographyBlockSelect<T extends boolean = true> {
   title?: T;
   body?: T;
-  image?: T;
+  media?:
+    | T
+    | {
+        posterImage?: T;
+        videoFile?: T;
+      };
   alignment?: T;
   id?: T;
   blockName?: T;
