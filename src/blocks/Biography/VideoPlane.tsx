@@ -76,12 +76,17 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
     container.appendChild(renderer.domElement)
     rendererRef.current = renderer
 
-    // Start video playback after it's ready
-    video.addEventListener('canplay', () => {
-      video.play().catch(() => {
-        // Autoplay may be blocked, that's okay
-      })
-    })
+    // Attempt to play - muted + playsInline should work on mobile
+    const tryPlay = () => {
+      const playPromise = video.play()
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Silently fail - video will just show first frame
+        })
+      }
+    }
+
+    video.addEventListener('loadeddata', tryPlay, { once: true })
     video.load()
 
     // Animation loop
