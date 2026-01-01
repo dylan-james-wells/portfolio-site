@@ -54,11 +54,11 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
         playPromise
           .then(() => {
             // Video playing successfully, we can use canvas
-            console.log('Video playing, using canvas')
+            alert(`Video playing! readyState: ${video.readyState}, paused: ${video.paused}`)
             setUseCanvas(true)
           })
           .catch((error) => {
-            console.log('Video play error:', error.name, error.message)
+            alert(`Video play error: ${error.name} - ${error.message}`)
             // Any play error on non-Android = try low power mode fallback
             if (!isAndroid) {
               setLowPowerMode(true)
@@ -71,6 +71,7 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
     }
 
     // Wait for video to be ready before attempting play
+    alert(`Video readyState: ${video.readyState}, isAndroid: ${isAndroid}`)
     if (video.readyState >= 2) {
       attemptPlay()
     } else {
@@ -80,7 +81,7 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
     // Additional check: if video is paused after a short delay, assume autoplay blocked
     const checkPlaying = setTimeout(() => {
       if (video.paused && !lowPowerMode && !useCanvas) {
-        console.log('Video still paused after timeout, assuming autoplay blocked')
+        alert(`Timeout check - paused: ${video.paused}, readyState: ${video.readyState}`)
         if (!isAndroid) {
           setLowPowerMode(true)
         }
