@@ -27,12 +27,24 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
 
   return (
     <div className={cn('container', className)}>
-      <div
-        className={cn('flex flex-col md:flex-row items-center gap-8', {
-          'md:flex-row-reverse': !isMediaLeft,
-        })}
-      >
-        <div className="w-full md:w-1/2">
+      <div className="flex flex-col md:flex-row items-center gap-8">
+        {/* Text - always first on mobile, uses order for desktop positioning */}
+        <div
+          className={cn('w-full md:w-1/2', {
+            'md:order-2': isMediaLeft,
+            'md:order-1': !isMediaLeft,
+          })}
+        >
+          <h2 className="text-3xl font-bold mb-4">{title}</h2>
+          <RichText data={body} enableGutter={false} />
+        </div>
+        {/* Media - second on mobile, uses order for desktop positioning */}
+        <div
+          className={cn('w-full md:w-1/2', {
+            'md:order-1': isMediaLeft,
+            'md:order-2': !isMediaLeft,
+          })}
+        >
           {hasVideo && videoUrl ? (
             <VideoPlane
               videoUrl={videoUrl}
@@ -42,10 +54,6 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
           ) : (
             posterImage && <Media resource={posterImage} imgClassName="rounded-lg w-full" />
           )}
-        </div>
-        <div className="w-full md:w-1/2">
-          <h2 className="text-3xl font-bold mb-4">{title}</h2>
-          <RichText data={body} enableGutter={false} />
         </div>
       </div>
     </div>
