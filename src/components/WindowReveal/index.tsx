@@ -16,7 +16,29 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className 
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState<Dimensions>({ width: 0, height: 0 })
+  const [isInViewport, setIsInViewport] = useState(false)
 
+  // Track viewport intersection
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInViewport(true)
+        }
+      },
+      { threshold: 0 },
+    )
+
+    observer.observe(containerRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
+  // Track dimensions
   useEffect(() => {
     if (!contentRef.current) return
 
