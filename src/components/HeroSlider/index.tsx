@@ -113,6 +113,7 @@ export const HeroSlider: React.FC = () => {
         blurAmount: { value: 1.5 },
         aberrationStrength: { value: 0.004 },
         textZoom: { value: 1.0 },
+        opacity: { value: 1.0 },
       },
       vertexShader: textBlurVertexShader,
       fragmentShader: textBlurFragmentShader,
@@ -652,6 +653,16 @@ export const HeroSlider: React.FC = () => {
 
       // Text zoom disabled - keep at 1.0
       blurMaterial.uniforms.textZoom.value = 1.0
+
+      // Fade out text overlays when scrolled past threshold (binary on/off with smooth transition)
+      const SCROLL_FADE_THRESHOLD = 0.3 // Fade out when 50% of viewport is scrolled
+      const targetOverlayOpacity = scrollProgress >= SCROLL_FADE_THRESHOLD ? 0 : 1
+      const currentOpacity = blurMaterial.uniforms.opacity.value
+      const newOpacity = currentOpacity + (targetOverlayOpacity - currentOpacity) * 0.15
+      blurMaterial.uniforms.opacity.value = newOpacity
+      if (codeRainOverlay.setOpacity) {
+        codeRainOverlay.setOpacity(newOpacity)
+      }
 
       // Update chromatic aberration based on mouse position
       const distFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)

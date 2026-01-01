@@ -12,6 +12,7 @@ export const textBlurFragmentShader = `
   uniform float blurAmount;
   uniform float aberrationStrength;
   uniform float textZoom;
+  uniform float opacity;
   varying vec2 vUv;
 
   void main() {
@@ -53,6 +54,6 @@ export const textBlurFragmentShader = `
     color /= 9.0;
     alpha /= 9.0;
 
-    gl_FragColor = vec4(color, alpha);
+    gl_FragColor = vec4(color, alpha * opacity);
   }
 `

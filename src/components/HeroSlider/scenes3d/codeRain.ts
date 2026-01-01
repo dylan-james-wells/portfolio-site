@@ -359,6 +359,11 @@ export function create(options: CodeRainOptions = {}): Scene3D {
   // Speed of color transition (1 = instant, lower = slower)
   const COLOR_LERP_SPEED = 3
 
+  // Track base opacity values and current multiplier
+  const baseOpacity = opacity
+  const baseGlowOpacity = glowOpacity
+  let opacityMultiplier = 1
+
   // Update colors based on scheme (0 = pink text/teal glow, 1 = teal text/pink glow)
   const updateColors = (deltaTime: number) => {
     // Smoothly interpolate current scheme towards target
@@ -380,6 +385,11 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     // Apply colors to meshes
     state.textMesh.color = colorState.currentTextColor.getHex()
     state.glowMesh.color = colorState.currentGlowColor.getHex()
+
+    // Apply opacity multiplier
+    state.textMesh.fillOpacity = baseOpacity * opacityMultiplier
+    state.textMesh.outlineOpacity = baseOpacity * 0.8 * opacityMultiplier
+    state.glowMesh.fillOpacity = baseGlowOpacity * opacityMultiplier
   }
 
   let currentAspect = 1
@@ -573,6 +583,9 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     },
     setColorScheme: (scheme: number) => {
       colorState.targetScheme = Math.max(0, Math.min(1, scheme))
+    },
+    setOpacity: (value: number) => {
+      opacityMultiplier = Math.max(0, Math.min(1, value))
     },
   }
 }
