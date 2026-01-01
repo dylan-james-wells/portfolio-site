@@ -58,12 +58,14 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
             setUseCanvas(true)
           })
           .catch((error) => {
-            alert(`Video play error: ${error.name} - ${error.message}`)
+            alert(`Video play error: ${error.name} - ${error.message}, isAndroid: ${isAndroid}`)
             // Any play error on non-Android = try low power mode fallback
             if (!isAndroid) {
+              alert('Setting lowPowerMode to true')
               setLowPowerMode(true)
             } else {
               // Android fallback - show video element directly
+              alert('Android detected, not using canvas')
               setUseCanvas(false)
             }
           })
@@ -158,6 +160,11 @@ export const VideoPlane: React.FC<VideoPlaneProps> = ({ videoUrl, posterUrl, cla
       }
     }
   }, [isReady, useCanvas, lowPowerMode])
+
+  // Debug current state
+  useEffect(() => {
+    alert(`Render state - lowPowerMode: ${lowPowerMode}, useCanvas: ${useCanvas}, isAndroid: ${isAndroid}`)
+  }, [lowPowerMode, useCanvas, isAndroid])
 
   return (
     <div
