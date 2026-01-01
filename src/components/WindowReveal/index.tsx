@@ -64,15 +64,11 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className 
   }, [])
 
   return (
-    <div
-      ref={containerRef}
-      className={className}
-      style={{
-        visibility: 'hidden',
-        position: 'relative',
-      }}
-    >
-      <div ref={contentRef}>{children}</div>
+    <div ref={containerRef} className={className}>
+      <div className="window"></div>
+      <div ref={contentRef} style={{ opacity: 0 }}>
+        {children}
+      </div>
     </div>
   )
 }
