@@ -40,20 +40,32 @@ export const seed = async ({
   payload.logger.info(`— Clearing collections and globals...`)
 
   // clear the database
-  await Promise.all(
-    globals.map((global) =>
-      payload.updateGlobal({
-        slug: global,
-        data: {
-          navItems: [],
-        },
-        depth: 0,
-        context: {
-          disableRevalidate: true,
-        },
-      }),
-    ),
-  )
+  await Promise.all([
+    payload.updateGlobal({
+      slug: 'header',
+      data: {
+        navItems: [],
+      },
+      depth: 0,
+      context: {
+        disableRevalidate: true,
+      },
+    }),
+    payload.updateGlobal({
+      slug: 'footer',
+      data: {
+        resumeLinkText: null,
+        resumeFile: null,
+        contactEmail: null,
+        linkedinUrl: null,
+        githubUrl: null,
+      },
+      depth: 0,
+      context: {
+        disableRevalidate: true,
+      },
+    }),
+  ])
 
   await Promise.all(
     collections.map((collection) => payload.db.deleteMany({ collection, req, where: {} })),
@@ -187,31 +199,10 @@ export const seed = async ({
     payload.updateGlobal({
       slug: 'footer',
       data: {
-        navItems: [
-          {
-            link: {
-              type: 'custom',
-              label: 'Admin',
-              url: '/admin',
-            },
-          },
-          {
-            link: {
-              type: 'custom',
-              label: 'Source Code',
-              newTab: true,
-              url: 'https://github.com/payloadcms/payload/tree/main/templates/website',
-            },
-          },
-          {
-            link: {
-              type: 'custom',
-              label: 'Payload',
-              newTab: true,
-              url: 'https://payloadcms.com/',
-            },
-          },
-        ],
+        resumeLinkText: 'Download Resume',
+        contactEmail: 'hello@example.com',
+        linkedinUrl: 'https://linkedin.com',
+        githubUrl: 'https://github.com',
       },
     }),
   ])
