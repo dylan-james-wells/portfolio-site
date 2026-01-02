@@ -1,6 +1,5 @@
 import type { GlobalConfig } from 'payload'
 
-import { link } from '@/fields/link'
 import { revalidateFooter } from './hooks/revalidateFooter'
 
 export const Footer: GlobalConfig = {
@@ -10,20 +9,31 @@ export const Footer: GlobalConfig = {
   },
   fields: [
     {
-      name: 'navItems',
-      type: 'array',
-      fields: [
-        link({
-          appearances: false,
-        }),
-      ],
-      maxRows: 6,
-      admin: {
-        initCollapsed: true,
-        components: {
-          RowLabel: '@/Footer/RowLabel#RowLabel',
-        },
-      },
+      name: 'resumeLinkText',
+      type: 'text',
+      label: 'Resume Link Text',
+      defaultValue: 'Download Resume',
+    },
+    {
+      name: 'resumeFile',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Resume File',
+    },
+    {
+      name: 'contactEmail',
+      type: 'email',
+      label: 'Contact Email',
+    },
+    {
+      name: 'linkedinUrl',
+      type: 'text',
+      label: 'LinkedIn Profile URL',
+    },
+    {
+      name: 'githubUrl',
+      type: 'text',
+      label: 'GitHub Profile URL',
     },
   ],
   hooks: {

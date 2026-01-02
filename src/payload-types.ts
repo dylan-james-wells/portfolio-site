@@ -1747,26 +1747,11 @@ export interface Header {
  */
 export interface Footer {
   id: number;
-  navItems?:
-    | {
-        link: {
-          type?: ('reference' | 'custom') | null;
-          newTab?: boolean | null;
-          reference?:
-            | ({
-                relationTo: 'pages';
-                value: number | Page;
-              } | null)
-            | ({
-                relationTo: 'projects';
-                value: number | Project;
-              } | null);
-          url?: string | null;
-          label: string;
-        };
-        id?: string | null;
-      }[]
-    | null;
+  resumeLinkText?: string | null;
+  resumeFile?: (number | null) | Media;
+  contactEmail?: string | null;
+  linkedinUrl?: string | null;
+  githubUrl?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1798,20 +1783,11 @@ export interface HeaderSelect<T extends boolean = true> {
  * via the `definition` "footer_select".
  */
 export interface FooterSelect<T extends boolean = true> {
-  navItems?:
-    | T
-    | {
-        link?:
-          | T
-          | {
-              type?: T;
-              newTab?: T;
-              reference?: T;
-              url?: T;
-              label?: T;
-            };
-        id?: T;
-      };
+  resumeLinkText?: T;
+  resumeFile?: T;
+  contactEmail?: T;
+  linkedinUrl?: T;
+  githubUrl?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
