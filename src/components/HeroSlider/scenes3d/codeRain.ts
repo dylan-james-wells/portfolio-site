@@ -584,6 +584,7 @@ export function create(options: CodeRainOptions = {}): Scene3D {
     setColorScheme: (scheme: number) => {
       colorState.targetScheme = Math.max(0, Math.min(1, scheme))
     },
+    // @ts-ignore
     setOpacity: (value: number) => {
       opacityMultiplier = Math.max(0, Math.min(1, value))
     },
