@@ -5,6 +5,7 @@ import React, { useRef, useState, useEffect, ReactNode } from 'react'
 interface WindowRevealProps {
   children: ReactNode
   className?: string
+  threshold?: number // 0-1, how far into viewport before activation (default 0)
 }
 
 interface Dimensions {
@@ -17,7 +18,7 @@ function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3)
 }
 
-export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className }) => {
+export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className, threshold = 0 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const windowRef = useRef<HTMLDivElement>(null)
@@ -36,7 +37,7 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className 
           setIsInViewport(true)
         }
       },
-      { threshold: 0 },
+      { threshold },
     )
 
     observer.observe(containerRef.current)
@@ -44,7 +45,7 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className 
     return () => {
       observer.disconnect()
     }
-  }, [])
+  }, [threshold])
 
   // Track dimensions
   useEffect(() => {

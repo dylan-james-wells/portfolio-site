@@ -46,7 +46,7 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
             'md:order-2': !isMediaLeft,
           })}
         >
-          <WindowReveal>
+          <WindowReveal threshold={1}>
             {hasVideo && videoUrl ? (
               <VideoPlane
                 videoUrl={videoUrl}
