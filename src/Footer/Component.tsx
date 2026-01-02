@@ -1,40 +1,40 @@
 import { getCachedGlobal } from '@/utilities/getGlobals'
-import Link from 'next/link'
 import React from 'react'
+import { FileText, Mail, Linkedin, Github } from 'lucide-react'
 
 import type { Footer, Media } from '@/payload-types'
-
-import { Logo } from '@/components/Logo/Logo'
 
 export async function Footer() {
   const footerData: Footer = await getCachedGlobal('footer', 1)()
 
   const { resumeLinkText, resumeFile, contactEmail, linkedinUrl, githubUrl } = footerData || {}
 
-  const resumeUrl =
-    resumeFile && typeof resumeFile !== 'string' ? (resumeFile as Media).url : null
+  const resumeUrl = resumeFile && typeof resumeFile !== 'string' ? (resumeFile as Media).url : null
 
+  console.log(footerData)
   return (
-    <footer className="mt-auto border-t border-border bg-black text-white z-10">
-      <div className="container py-8 gap-8 flex flex-col md:flex-row md:justify-between">
-        <Link className="flex items-center" href="/">
-          <Logo />
-        </Link>
+    <footer className="mt-auto border-t border-border bg-background text-foreground z-10">
+      <div className="container py-8 flex flex-row justify-between items-center">
+        {resumeUrl && (
+          <a
+            href={resumeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+          >
+            <FileText className="w-5 h-5" />
+            <span>{resumeLinkText || 'Download Resume'}</span>
+          </a>
+        )}
 
-        <div className="flex flex-col md:flex-row gap-4 md:items-center">
-          {resumeUrl && (
-            <a
-              href={resumeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-white hover:underline"
-            >
-              {resumeLinkText || 'Download Resume'}
-            </a>
-          )}
+        <div className="flex flex-row gap-4 items-center">
           {contactEmail && (
-            <a href={`mailto:${contactEmail}`} className="text-white hover:underline">
-              {contactEmail}
+            <a
+              href={`mailto:${contactEmail}`}
+              className="hover:opacity-70 transition-opacity"
+              aria-label="Email"
+            >
+              <Mail className="w-5 h-5" />
             </a>
           )}
           {linkedinUrl && (
@@ -42,9 +42,10 @@ export async function Footer() {
               href={linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white hover:underline"
+              className="hover:opacity-70 transition-opacity"
+              aria-label="LinkedIn"
             >
-              LinkedIn
+              <Linkedin className="w-5 h-5" />
             </a>
           )}
           {githubUrl && (
@@ -52,9 +53,10 @@ export async function Footer() {
               href={githubUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white hover:underline"
+              className="hover:opacity-70 transition-opacity"
+              aria-label="GitHub"
             >
-              GitHub
+              <Github className="w-5 h-5" />
             </a>
           )}
         </div>
