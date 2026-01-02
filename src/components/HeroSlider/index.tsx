@@ -127,6 +127,15 @@ export const HeroSlider: React.FC = () => {
     blurScene.add(blurQuad)
     const blurCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
 
+    // Check initial scroll position - if scrolled past threshold, start fully faded out
+    const INITIAL_SCROLL_DEATH_THRESHOLD = 0.4
+    const initialScroll = window.scrollY / window.innerHeight
+    if (initialScroll >= INITIAL_SCROLL_DEATH_THRESHOLD) {
+      // Start in fully dead/faded state
+      blurMaterial.uniforms.pixelation.value = 1.0
+      blurMaterial.uniforms.opacity.value = 0.0
+    }
+
     const textOverlay = pixelText.create({
       text: 'MAKE\nFUN',
       colorStart: 0xff6b6b,
@@ -184,6 +193,15 @@ export const HeroSlider: React.FC = () => {
     } else {
       textCamera.aspect = initialAspect
       textCamera.updateProjectionMatrix()
+    }
+
+    // Apply initial scroll offset based on current scroll position
+    const earlyScrollY = window.scrollY
+    const earlyScrollProgress = Math.min(1, Math.max(0, earlyScrollY / window.innerHeight))
+    // @ts-ignore
+    if (textOverlay.setScrollOffset) {
+      // @ts-ignore
+      textOverlay.setScrollOffset(earlyScrollProgress)
     }
 
     // ============================================
@@ -258,12 +276,18 @@ export const HeroSlider: React.FC = () => {
     let targetMouseY = 0
 
     // Scroll-based zoom state
-    let scrollProgress = 0
-    let targetScrollProgress = 0
     const SCROLL_RANGE = window.innerHeight
+    // Initialize scroll progress from current scroll position immediately
+    const initialScrollY = window.scrollY
+    const initialScrollProgress = Math.min(1, Math.max(0, initialScrollY / SCROLL_RANGE))
+    let scrollProgress = initialScrollProgress
+    let targetScrollProgress = initialScrollProgress
 
     // Materialization state - starts dissipated, materializes on load
-    let materializeProgress = 0 // 0 = dissipated, 1 = fully materialized
+    // If already scrolled past death threshold, skip materialization entirely
+    const SCROLL_DEATH_THRESHOLD = 0.4
+    const shouldSkipMaterialization = initialScrollProgress >= SCROLL_DEATH_THRESHOLD
+    let materializeProgress = shouldSkipMaterialization ? 1 : 0 // 0 = dissipated, 1 = fully materialized
     let isMaterializing = false
     const MATERIALIZE_DELAY = 500 // ms before starting materialization
     const materializeStartTime = performance.now() + MATERIALIZE_DELAY
@@ -689,7 +713,6 @@ export const HeroSlider: React.FC = () => {
 
       // Death animation for pixelText when scrolled past threshold
       // Only apply scroll-based death after materialization is complete
-      const SCROLL_DEATH_THRESHOLD = 0.4
       const shouldDie = materializeProgress >= 1 && scrollProgress >= SCROLL_DEATH_THRESHOLD
 
       // Calculate effective pixelation based on materialization and death states

@@ -653,7 +653,7 @@ export function create(options: PixelTextOptions = {}): Scene3D {
     setScrollOffset: (offset: number) => {
       // offset is 0-1, convert to world units (positive offset moves up)
       const { visibleHeight } = getVisibleDimensions(currentAspect)
-      baseYOffset = offset * visibleHeight * 0.75 // Move up to 50% of visible height
+      baseYOffset = offset * visibleHeight * 0.8 // Move up to 50% of visible height
     },
   }
 }
