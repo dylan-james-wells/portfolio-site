@@ -1,22 +1,15 @@
 import type { CollectionConfig } from 'payload'
 
-import {
-  BlocksFeature,
-  FixedToolbarFeature,
-  HeadingFeature,
-  HorizontalRuleFeature,
-  InlineToolbarFeature,
-  lexicalEditor,
-} from '@payloadcms/richtext-lexical'
-
 import { authenticated } from '../../access/authenticated'
 import { authenticatedOrPublished } from '../../access/authenticatedOrPublished'
-import { Banner } from '../../blocks/Banner/config'
-import { Code } from '../../blocks/Code/config'
+import { Archive } from '../../blocks/ArchiveBlock/config'
+import { Biography } from '../../blocks/Biography/config'
+import { CallToAction } from '../../blocks/CallToAction/config'
+import { Content } from '../../blocks/Content/config'
+import { FormBlock } from '../../blocks/Form/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
 import { generatePreviewPath } from '../../utilities/generatePreviewPath'
-import { populateAuthors } from './hooks/populateAuthors'
-import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
+import { revalidateDelete, revalidateProject } from './hooks/revalidateProject'
 
 import {
   MetaDescriptionField,
@@ -27,17 +20,14 @@ import {
 } from '@payloadcms/plugin-seo/fields'
 import { slugField } from 'payload'
 
-export const Posts: CollectionConfig<'posts'> = {
-  slug: 'posts',
+export const Projects: CollectionConfig<'projects'> = {
+  slug: 'projects',
   access: {
     create: authenticated,
     delete: authenticated,
     read: authenticatedOrPublished,
     update: authenticated,
   },
-  // This config controls what's populated by default when a post is referenced
-  // https://payloadcms.com/docs/queries/select#defaultpopulate-collection-config-property
-  // Type safe if the collection slug generic is passed to `CollectionConfig` - `CollectionConfig<'posts'>
   defaultPopulate: {
     title: true,
     slug: true,
@@ -53,14 +43,14 @@ export const Posts: CollectionConfig<'posts'> = {
       url: ({ data, req }) =>
         generatePreviewPath({
           slug: data?.slug,
-          collection: 'posts',
+          collection: 'projects',
           req,
         }),
     },
     preview: (data, { req }) =>
       generatePreviewPath({
         slug: data?.slug as string,
-        collection: 'posts',
+        collection: 'projects',
         req,
       }),
     useAsTitle: 'title',
@@ -82,22 +72,13 @@ export const Posts: CollectionConfig<'posts'> = {
               relationTo: 'media',
             },
             {
-              name: 'content',
-              type: 'richText',
-              editor: lexicalEditor({
-                features: ({ rootFeatures }) => {
-                  return [
-                    ...rootFeatures,
-                    HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4'] }),
-                    BlocksFeature({ blocks: [Banner, Code, MediaBlock] }),
-                    FixedToolbarFeature(),
-                    InlineToolbarFeature(),
-                    HorizontalRuleFeature(),
-                  ]
-                },
-              }),
-              label: false,
+              name: 'layout',
+              type: 'blocks',
+              blocks: [Biography, CallToAction, Content, MediaBlock, Archive, FormBlock],
               required: true,
+              admin: {
+                initCollapsed: true,
+              },
             },
           ],
           label: 'Content',
@@ -105,7 +86,7 @@ export const Posts: CollectionConfig<'posts'> = {
         {
           fields: [
             {
-              name: 'relatedPosts',
+              name: 'relatedProjects',
               type: 'relationship',
               admin: {
                 position: 'sidebar',
@@ -118,7 +99,7 @@ export const Posts: CollectionConfig<'posts'> = {
                 }
               },
               hasMany: true,
-              relationTo: 'posts',
+              relationTo: 'projects',
             },
             {
               name: 'categories',
@@ -150,10 +131,7 @@ export const Posts: CollectionConfig<'posts'> = {
 
             MetaDescriptionField({}),
             PreviewField({
-              // if the `generateUrl` function is configured
               hasGenerateFn: true,
-
-              // field paths to match the target field for data
               titlePath: 'meta.title',
               descriptionPath: 'meta.description',
             }),
@@ -181,50 +159,16 @@ export const Posts: CollectionConfig<'posts'> = {
         ],
       },
     },
-    {
-      name: 'authors',
-      type: 'relationship',
-      admin: {
-        position: 'sidebar',
-      },
-      hasMany: true,
-      relationTo: 'users',
-    },
-    // This field is only used to populate the user data via the `populateAuthors` hook
-    // This is because the `user` collection has access control locked to protect user privacy
-    // GraphQL will also not return mutated user data that differs from the underlying schema
-    {
-      name: 'populatedAuthors',
-      type: 'array',
-      access: {
-        update: () => false,
-      },
-      admin: {
-        disabled: true,
-        readOnly: true,
-      },
-      fields: [
-        {
-          name: 'id',
-          type: 'text',
-        },
-        {
-          name: 'name',
-          type: 'text',
-        },
-      ],
-    },
     slugField(),
   ],
   hooks: {
-    afterChange: [revalidatePost],
-    afterRead: [populateAuthors],
+    afterChange: [revalidateProject],
     afterDelete: [revalidateDelete],
   },
   versions: {
     drafts: {
       autosave: {
-        interval: 100, // We set this interval for optimal live preview
+        interval: 100,
       },
       schedulePublish: true,
     },

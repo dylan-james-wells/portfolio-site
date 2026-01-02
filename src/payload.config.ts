@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url'
 import { Categories } from './collections/Categories'
 import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
-import { Posts } from './collections/Posts'
+import { Projects } from './collections/Projects'
 import { Users } from './collections/Users'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
@@ -66,7 +66,7 @@ export default buildConfig({
     // @ts-ignore
     prodMigrations: migrations,
   }),
-  collections: [Pages, Posts, Media, Categories, Users],
+  collections: [Pages, Projects, Media, Categories, Users],
   cors: [getServerSideURL()].filter(Boolean),
   plugins: [
     ...plugins,
