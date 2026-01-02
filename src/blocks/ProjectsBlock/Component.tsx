@@ -33,7 +33,7 @@ export const ProjectsBlock: React.FC<
         {(title || description) && (
           <div className="mb-12">
             {title && <h2 className="text-3xl font-bold mb-4">{title}</h2>}
-            {description && <p className="text-lg text-muted-foreground">{description}</p>}
+            {description && <p>{description}</p>}
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -68,9 +68,7 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
       </div>
       <div className="p-4">
         {title && <h3 className="text-xl font-semibold mb-2">{title}</h3>}
-        {description && (
-          <p className="text-muted-foreground line-clamp-2">{description}</p>
-        )}
+        {description && <p className="text-muted-foreground line-clamp-2">{description}</p>}
       </div>
     </Link>
   )
