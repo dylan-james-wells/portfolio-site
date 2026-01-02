@@ -245,7 +245,9 @@ export const HeroSlider: React.FC = () => {
     }
 
     // Start codeRain hidden for materialization effect
+    // @ts-ignore
     if (codeRainOverlay.setOpacity) {
+      // @ts-ignore
       codeRainOverlay.setOpacity(0)
     }
 
@@ -709,11 +711,14 @@ export const HeroSlider: React.FC = () => {
 
       // Opacity: stays at 1 until pixelation reaches 0.7, then fades out
       const fadeStart = 0.7
-      const fadeOpacity = newPixelation < fadeStart ? 1 : 1 - (newPixelation - fadeStart) / (1 - fadeStart)
+      const fadeOpacity =
+        newPixelation < fadeStart ? 1 : 1 - (newPixelation - fadeStart) / (1 - fadeStart)
       blurMaterial.uniforms.opacity.value = fadeOpacity
 
       // CodeRain just fades (for now, focusing on pixelText)
+      // @ts-ignore
       if (codeRainOverlay.setOpacity) {
+        // @ts-ignore
         codeRainOverlay.setOpacity(fadeOpacity)
       }
 
