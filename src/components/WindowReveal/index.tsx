@@ -125,13 +125,11 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className,
       className={className}
       style={{
         position: 'relative',
-        width: dimensions.width || 'auto',
-        height: dimensions.height || 'auto',
       }}
     >
       <div
         ref={windowRef}
-        className="z-10"
+        className="z-10 pointer-events-none"
         style={{
           position: 'absolute',
           top: '50%',
