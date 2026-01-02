@@ -35,7 +35,7 @@ export const ProjectsBlock: React.FC<
             )}
           </div>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex flex-col gap-6">
           {projects.map((project) => (
             <ProjectCard key={project.id} project={project} />
           ))}
@@ -49,11 +49,8 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
   const { slug, title, thumbnail, description } = project
 
   return (
-    <Link
-      href={`/projects/${slug}`}
-      className="group block border border-border rounded-lg overflow-hidden bg-card hover:border-primary transition-colors"
-    >
-      <div className="relative aspect-video w-full overflow-hidden">
+    <Link href={`/projects/${slug}`} className="flex">
+      <div className="aspect-square relative overflow-hidden rounded-lg w-full md:w-[400px]">
         {thumbnail && typeof thumbnail !== 'string' ? (
           <Media
             resource={thumbnail}
@@ -65,9 +62,9 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
           </div>
         )}
       </div>
-      <div className="p-4">
+      <div className="flex flex-col justify-center py-4 pr-4">
         {title && <h3 className="text-xl font-semibold mb-2">{title}</h3>}
-        {description && <p className="text-muted-foreground line-clamp-2">{description}</p>}
+        {description && <p className="text-muted-foreground line-clamp-3">{description}</p>}
       </div>
     </Link>
   )
