@@ -49,8 +49,8 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
   const { slug, title, thumbnail, description } = project
 
   return (
-    <Link href={`/projects/${slug}`} className="flex">
-      <div className="aspect-square relative overflow-hidden rounded-lg w-full md:w-[400px]">
+    <Link href={`/projects/${slug}`} className="flex gap-6">
+      <div className="aspect-square relative overflow-hidden rounded-lg w-full md:w-[200px]">
         {thumbnail && typeof thumbnail !== 'string' ? (
           <Media
             resource={thumbnail}
@@ -58,13 +58,21 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
           />
         ) : (
           <div className="w-full h-full bg-muted flex items-center justify-center">
-            <span className="text-muted-foreground">No image</span>
+            <GlitchTextReveal>No image</GlitchTextReveal>
           </div>
         )}
       </div>
       <div className="flex flex-col justify-center py-4 pr-4">
-        {title && <h3 className="text-xl font-semibold mb-2">{title}</h3>}
-        {description && <p className="text-muted-foreground line-clamp-3">{description}</p>}
+        {title && (
+          <h3 className="text-xl font-semibold mb-2">
+            <GlitchTextReveal>{title}</GlitchTextReveal>
+          </h3>
+        )}
+        {description && (
+          <p className="text-muted-foreground line-clamp-3">
+            <GlitchTextReveal>{description}</GlitchTextReveal>
+          </p>
+        )}
       </div>
     </Link>
   )
