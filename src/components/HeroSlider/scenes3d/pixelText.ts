@@ -151,9 +151,12 @@ export function create(options: PixelTextOptions = {}): Scene3D {
   let currentAspect = 1
   let currentViewportWidth = 0
   let hasSizedText = false
+  let baseYOffset = 0 // Scroll-based Y offset
 
   // Calculate visible dimensions at z=0 based on camera FOV and aspect ratio
-  const getVisibleDimensions = (aspect: number): { visibleWidth: number; visibleHeight: number } => {
+  const getVisibleDimensions = (
+    aspect: number,
+  ): { visibleWidth: number; visibleHeight: number } => {
     const distance = camera.position.z
     const vFov = (camera.fov * Math.PI) / 180
     const visibleHeight = 2 * Math.tan(vFov / 2) * distance
@@ -206,7 +209,11 @@ export function create(options: PixelTextOptions = {}): Scene3D {
     let marginLeftWorld: number
     if (tailwindContainer && currentViewportWidth > 0) {
       // Calculate margin in pixels, then convert to world units
-      const marginPx = calculateContainerLeftMargin(currentViewportWidth, tailwindContainer, paddingPercent)
+      const marginPx = calculateContainerLeftMargin(
+        currentViewportWidth,
+        tailwindContainer,
+        paddingPercent,
+      )
       marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
     } else {
       marginLeftWorld = visibleWidth * paddingPercent
@@ -623,8 +630,8 @@ export function create(options: PixelTextOptions = {}): Scene3D {
         mesh.position.y = stretchY * (1 - layerDepth * 0.5)
       }
 
-      // Subtle floating animation
-      textGroup.position.y = Math.sin(elapsedTime * 0.5) * 0.1
+      // Subtle floating animation (scrollOffset is added externally)
+      textGroup.position.y = baseYOffset + Math.sin(elapsedTime * 0.5) * 0.1
     },
     dispose: () => {
       window.removeEventListener('mousemove', handleMouseMove)
@@ -641,6 +648,12 @@ export function create(options: PixelTextOptions = {}): Scene3D {
       camera.aspect = aspect
       camera.updateProjectionMatrix()
       resizeTextToFit(aspect)
+    },
+    // @ts-ignore
+    setScrollOffset: (offset: number) => {
+      // offset is 0-1, convert to world units (positive offset moves up)
+      const { visibleHeight } = getVisibleDimensions(currentAspect)
+      baseYOffset = offset * visibleHeight * 0.75 // Move up to 50% of visible height
     },
   }
 }

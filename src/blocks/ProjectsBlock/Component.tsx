@@ -69,7 +69,7 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
           </h3>
         )}
         {description && (
-          <p className="text-muted-foreground line-clamp-3">
+          <p className="line-clamp-3">
             <GlitchTextReveal>{description}</GlitchTextReveal>
           </p>
         )}

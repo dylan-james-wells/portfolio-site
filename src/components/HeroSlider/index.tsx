@@ -659,6 +659,13 @@ export const HeroSlider: React.FC = () => {
       // Smooth scroll following for zoom effects
       scrollProgress += (targetScrollProgress - scrollProgress) * 0.1
 
+      // Move pixelText up as we scroll down
+      // @ts-ignore
+      if (textOverlay.setScrollOffset) {
+        // @ts-ignore
+        textOverlay.setScrollOffset(scrollProgress)
+      }
+
       // Apply scroll zoom to background camera
       const bgZoomFactor = 1 - scrollProgress * BACKGROUND_ZOOM_IN
       camera.left = -baseFrustumWidth * bgZoomFactor
@@ -682,7 +689,7 @@ export const HeroSlider: React.FC = () => {
 
       // Death animation for pixelText when scrolled past threshold
       // Only apply scroll-based death after materialization is complete
-      const SCROLL_DEATH_THRESHOLD = 0.3
+      const SCROLL_DEATH_THRESHOLD = 0.4
       const shouldDie = materializeProgress >= 1 && scrollProgress >= SCROLL_DEATH_THRESHOLD
 
       // Calculate effective pixelation based on materialization and death states
