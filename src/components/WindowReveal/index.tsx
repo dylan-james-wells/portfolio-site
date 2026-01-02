@@ -97,6 +97,7 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate)
       } else {
+        setAnimationComplete(true)
       }
     }
 
