@@ -118,6 +118,9 @@ const config = {
                 fontWeight: 'normal',
                 marginBottom: '0.25em',
               },
+              strong: {
+                fontWeight: 800,
+              },
             },
           ],
         },
