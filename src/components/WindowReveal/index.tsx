@@ -76,6 +76,9 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className,
   useEffect(() => {
     if (!isInViewport || !windowRef.current || dimensions.width === 0) return
 
+    // Hide content when dimensions change (resize) and animation needs to replay
+    setAnimationComplete(false)
+
     const WIDTH_DURATION = 400 // ms
     const HEIGHT_DURATION = 300 // ms
     const BORDER_WIDTH = 2
@@ -83,7 +86,6 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className,
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime
-      const totalDuration = WIDTH_DURATION + HEIGHT_DURATION
 
       if (windowRef.current) {
         // Phase 1: Expand width
