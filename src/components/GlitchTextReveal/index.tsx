@@ -52,7 +52,7 @@ export const GlitchTextReveal: React.FC<GlitchTextRevealProps> = ({
   useEffect(() => {
     if (!isInViewport || !containerRef.current) return
 
-    const ANIMATION_DURATION = 2000 // ms
+    const ANIMATION_DURATION = 3000 // ms
     const startTime = performance.now()
 
     const animate = (currentTime: number) => {
