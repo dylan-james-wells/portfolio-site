@@ -103,6 +103,7 @@ export const HeroSlider: React.FC = () => {
     )
 
     // Fullscreen quad for rendering blurred text with chromatic aberration
+    // Start in dissipated state (pixelation = 1, opacity = 0) for materialization effect
     const blurMaterial = new THREE.ShaderMaterial({
       transparent: true,
       uniforms: {
@@ -113,8 +114,8 @@ export const HeroSlider: React.FC = () => {
         blurAmount: { value: 1.5 },
         aberrationStrength: { value: 0.004 },
         textZoom: { value: 1.0 },
-        opacity: { value: 1.0 },
-        pixelation: { value: 0.0 },
+        opacity: { value: 0.0 },
+        pixelation: { value: 1.0 },
         vibrate: { value: new THREE.Vector2(0, 0) },
       },
       vertexShader: textBlurVertexShader,
@@ -243,6 +244,11 @@ export const HeroSlider: React.FC = () => {
       codeRainCamera.updateProjectionMatrix()
     }
 
+    // Start codeRain hidden for materialization effect
+    if (codeRainOverlay.setOpacity) {
+      codeRainOverlay.setOpacity(0)
+    }
+
     // Track mouse position for chromatic aberration
     let mouseX = 0
     let mouseY = 0
@@ -253,6 +259,12 @@ export const HeroSlider: React.FC = () => {
     let scrollProgress = 0
     let targetScrollProgress = 0
     const SCROLL_RANGE = window.innerHeight
+
+    // Materialization state - starts dissipated, materializes on load
+    let materializeProgress = 0 // 0 = dissipated, 1 = fully materialized
+    let isMaterializing = false
+    const MATERIALIZE_DELAY = 500 // ms before starting materialization
+    const materializeStartTime = performance.now() + MATERIALIZE_DELAY
 
     // Store base frustum for scroll zoom calculations
     let baseFrustumWidth = frustumWidth
@@ -656,18 +668,38 @@ export const HeroSlider: React.FC = () => {
       // Text zoom disabled - keep at 1.0
       blurMaterial.uniforms.textZoom.value = 1.0
 
+      // Materialization on load - starts dissipated, then materializes
+      const now = performance.now()
+      if (materializeProgress < 1) {
+        if (now >= materializeStartTime) {
+          isMaterializing = true
+          // Smooth materialization over time
+          materializeProgress = Math.min(1, materializeProgress + deltaTime * 1.2)
+        }
+      }
+
       // Death animation for pixelText when scrolled past threshold
+      // Only apply scroll-based death after materialization is complete
       const SCROLL_DEATH_THRESHOLD = 0.3
-      const shouldDie = scrollProgress >= SCROLL_DEATH_THRESHOLD
+      const shouldDie = materializeProgress >= 1 && scrollProgress >= SCROLL_DEATH_THRESHOLD
+
+      // Calculate effective pixelation based on materialization and death states
+      let targetPixelation: number
+      if (materializeProgress < 1) {
+        // During materialization: go from 1 (dissipated) to 0 (solid)
+        targetPixelation = 1 - materializeProgress
+      } else {
+        // After materialization: normal scroll-based death
+        targetPixelation = shouldDie ? 1 : 0
+      }
 
       // Track death progress (0 = alive, 1 = fully dead)
       const currentPixelation = blurMaterial.uniforms.pixelation.value
-      const targetPixelation = shouldDie ? 1 : 0
       const newPixelation = currentPixelation + (targetPixelation - currentPixelation) * 0.06
 
       blurMaterial.uniforms.pixelation.value = newPixelation
 
-      // Vibration: peaks in first half of death, then reduces
+      // Vibration: peaks in first half of death/materialization
       // Using sine wave that's strongest when pixelation is around 0.3-0.5
       const vibratePhase = Math.sin(newPixelation * Math.PI) // peaks at 0.5
       const vibrateIntensity = vibratePhase * 0.012
