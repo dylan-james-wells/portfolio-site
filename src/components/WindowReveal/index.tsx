@@ -18,7 +18,11 @@ function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3)
 }
 
-export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className, threshold = 0 }) => {
+export const WindowReveal: React.FC<WindowRevealProps> = ({
+  children,
+  className,
+  threshold = 0,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const windowRef = useRef<HTMLDivElement>(null)
@@ -26,6 +30,7 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className,
   const [isInViewport, setIsInViewport] = useState(false)
   const [animationComplete, setAnimationComplete] = useState(false)
   const animationRef = useRef<number | null>(null)
+  const gradientAnimationRef = useRef<number | null>(null)
 
   // Track viewport intersection
   useEffect(() => {
@@ -79,8 +84,8 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className,
     // Hide content when dimensions change (resize) and animation needs to replay
     setAnimationComplete(false)
 
-    const WIDTH_DURATION = 400 // ms
-    const HEIGHT_DURATION = 300 // ms
+    const WIDTH_DURATION = 500 // ms
+    const HEIGHT_DURATION = 400 // ms
     const BORDER_WIDTH = 2
     const startTime = performance.now()
 
@@ -104,8 +109,8 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className,
         windowRef.current.style.borderWidth = `${BORDER_WIDTH}px`
       }
 
-      const totalProgress = elapsed / (WIDTH_DURATION + HEIGHT_DURATION)
-      if (totalProgress < 1) {
+      const boxAnimationDuration = WIDTH_DURATION + HEIGHT_DURATION
+      if (elapsed < boxAnimationDuration) {
         animationRef.current = requestAnimationFrame(animate)
       } else {
         setAnimationComplete(true)
@@ -120,6 +125,36 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className,
       }
     }
   }, [isInViewport, dimensions])
+
+  // Continuous gradient rotation animation
+  useEffect(() => {
+    if (!isInViewport || !windowRef.current) return
+
+    const GRADIENT_LOOP_DURATION = 10000 // ms for one full rotation
+    const GRADIENT_START_ANGLE = 135
+    const GRADIENT_END_ANGLE = 495 // 135 + 360
+
+    const animateGradient = (currentTime: number) => {
+      if (windowRef.current) {
+        // Use modulo to create continuous loop
+        const progress = (currentTime % GRADIENT_LOOP_DURATION) / GRADIENT_LOOP_DURATION
+        const currentAngle =
+          GRADIENT_START_ANGLE + progress * (GRADIENT_END_ANGLE - GRADIENT_START_ANGLE)
+
+        windowRef.current.style.background = `linear-gradient(${currentAngle}deg, rgba(255, 107, 107,0.55), rgba(78, 205, 196,0.5))`
+      }
+
+      gradientAnimationRef.current = requestAnimationFrame(animateGradient)
+    }
+
+    gradientAnimationRef.current = requestAnimationFrame(animateGradient)
+
+    return () => {
+      if (gradientAnimationRef.current) {
+        cancelAnimationFrame(gradientAnimationRef.current)
+      }
+    }
+  }, [isInViewport])
 
   return (
     <div
@@ -143,6 +178,7 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className,
           borderColor: 'currentColor',
           borderWidth: 0,
           boxSizing: 'border-box',
+          mixBlendMode: 'hard-light',
         }}
       />
       <div
