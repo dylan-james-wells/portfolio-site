@@ -8,6 +8,7 @@ import { VideoPlane } from './VideoPlane'
 import { getMediaUrl } from '@/utilities/getMediaUrl'
 
 import { WindowReveal } from '@/components/WindowReveal'
+import { GlitchTextReveal } from '@/components/GlitchTextReveal'
 
 type Props = {
   className?: string
@@ -36,8 +37,12 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
             'md:order-1': !isMediaLeft,
           })}
         >
-          <h2 className="text-3xl font-bold mb-4">{title}</h2>
-          <RichText data={body} enableGutter={false} />
+          <h2 className="text-3xl font-bold mb-4">
+            <GlitchTextReveal>{title}</GlitchTextReveal>
+          </h2>
+          <GlitchTextReveal>
+            <RichText data={body} enableGutter={false} />
+          </GlitchTextReveal>
         </div>
         {/* Media - second on mobile, uses order for desktop positioning */}
         <div
