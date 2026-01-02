@@ -75,26 +75,34 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className 
   useEffect(() => {
     if (!isInViewport || !windowRef.current || dimensions.width === 0) return
 
-    const ANIMATION_DURATION = 600 // ms
+    const WIDTH_DURATION = 400 // ms
+    const HEIGHT_DURATION = 300 // ms
     const BORDER_WIDTH = 2
     const startTime = performance.now()
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime
-      const progress = Math.min(elapsed / ANIMATION_DURATION, 1)
-      const easedProgress = easeOutCubic(progress)
+      const totalDuration = WIDTH_DURATION + HEIGHT_DURATION
 
       if (windowRef.current) {
-        // Animate from center point to full size
-        const currentWidth = easedProgress * dimensions.width
-        const currentHeight = easedProgress * dimensions.height
+        // Phase 1: Expand width
+        const widthProgress = Math.min(elapsed / WIDTH_DURATION, 1)
+        const easedWidthProgress = easeOutCubic(widthProgress)
+        const currentWidth = easedWidthProgress * dimensions.width
+
+        // Phase 2: Expand height (starts after width is done)
+        const heightElapsed = Math.max(0, elapsed - WIDTH_DURATION)
+        const heightProgress = Math.min(heightElapsed / HEIGHT_DURATION, 1)
+        const easedHeightProgress = easeOutCubic(heightProgress)
+        const currentHeight = easedHeightProgress * dimensions.height
 
         windowRef.current.style.width = `${currentWidth}px`
         windowRef.current.style.height = `${currentHeight}px`
         windowRef.current.style.borderWidth = `${BORDER_WIDTH}px`
       }
 
-      if (progress < 1) {
+      const totalProgress = elapsed / (WIDTH_DURATION + HEIGHT_DURATION)
+      if (totalProgress < 1) {
         animationRef.current = requestAnimationFrame(animate)
       } else {
         setAnimationComplete(true)
@@ -122,7 +130,7 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({ children, className 
     >
       <div
         ref={windowRef}
-        className="window"
+        className="z-10"
         style={{
           position: 'absolute',
           top: '50%',
