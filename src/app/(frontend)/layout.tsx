@@ -18,8 +18,7 @@ const pressStart2P = Press_Start_2P({
 import { AdminBar } from '@/components/AdminBar'
 import { Footer } from '@/Footer/Component'
 import { Header } from '@/Header/Component'
-import { Providers } from '@/providers'
-import { InitTheme } from '@/providers/Theme/InitTheme'
+import { HeaderThemeProvider } from '@/providers/HeaderTheme'
 import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
 import { draftMode } from 'next/headers'
 
@@ -30,20 +29,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const { isEnabled } = await draftMode()
 
   return (
-    <html
-      className={cn(jetbrainsMono.variable, pressStart2P.variable)}
-      lang="en"
-      suppressHydrationWarning
-    >
+    <html className={cn(jetbrainsMono.variable, pressStart2P.variable)} lang="en">
       <head>
-        <InitTheme />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#100F17"></meta>
         <link href="/favicon.ico" rel="icon" sizes="32x32" />
         <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
       </head>
       <body>
-        <Providers>
+        <HeaderThemeProvider>
           <AdminBar
             adminBarProps={{
               preview: isEnabled,
@@ -53,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Header />
           {children}
           <Footer />
-        </Providers>
+        </HeaderThemeProvider>
       </body>
     </html>
   )
