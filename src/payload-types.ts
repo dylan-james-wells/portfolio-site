@@ -795,9 +795,9 @@ export interface ProjectsBlockType {
   title?: string | null;
   description?: string | null;
   /**
-   * Maximum number of projects to display
+   * Select the projects to display
    */
-  limit?: number | null;
+  projects?: (number | Project)[] | null;
   id?: string | null;
   blockName?: string | null;
   blockType: 'projectsBlock';
@@ -1260,7 +1260,7 @@ export interface FormBlockSelect<T extends boolean = true> {
 export interface ProjectsBlockTypeSelect<T extends boolean = true> {
   title?: T;
   description?: T;
-  limit?: T;
+  projects?: T;
   id?: T;
   blockName?: T;
 }

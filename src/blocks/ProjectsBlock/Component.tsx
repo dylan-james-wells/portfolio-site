@@ -1,7 +1,5 @@
 import type { Project, ProjectsBlockType } from '@/payload-types'
 
-import configPromise from '@payload-config'
-import { getPayload } from 'payload'
 import React from 'react'
 import Link from 'next/link'
 
@@ -11,21 +9,13 @@ export const ProjectsBlock: React.FC<
   ProjectsBlockType & {
     id?: string
   }
-> = async (props) => {
-  const { id, title, description, limit: limitFromProps } = props
+> = (props) => {
+  const { id, title, description, projects: selectedProjects } = props
 
-  const limit = limitFromProps || 6
-
-  const payload = await getPayload({ config: configPromise })
-
-  const fetchedProjects = await payload.find({
-    collection: 'projects',
-    depth: 1,
-    limit,
-    sort: '-publishedAt',
-  })
-
-  const projects = fetchedProjects.docs
+  // Filter out any non-object entries (in case they're just IDs)
+  const projects = (selectedProjects || []).filter(
+    (project): project is Project => typeof project === 'object' && project !== null,
+  )
 
   return (
     <div className="my-16" id={`block-${id}`}>
