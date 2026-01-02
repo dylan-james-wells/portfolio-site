@@ -8,6 +8,7 @@ import { CallToAction } from '../../blocks/CallToAction/config'
 import { Content } from '../../blocks/Content/config'
 import { FormBlock } from '../../blocks/Form/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
+import { ProjectsBlock } from '../../blocks/ProjectsBlock/config'
 import { generatePreviewPath } from '../../utilities/generatePreviewPath'
 import { revalidateDelete, revalidateProject } from './hooks/revalidateProject'
 
@@ -32,6 +33,8 @@ export const Projects: CollectionConfig<'projects'> = {
     title: true,
     slug: true,
     categories: true,
+    thumbnail: true,
+    description: true,
     meta: {
       image: true,
       description: true,
@@ -62,6 +65,21 @@ export const Projects: CollectionConfig<'projects'> = {
       required: true,
     },
     {
+      name: 'thumbnail',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description: 'Thumbnail image used in project listings',
+      },
+    },
+    {
+      name: 'description',
+      type: 'textarea',
+      admin: {
+        description: 'Short description used in project listings',
+      },
+    },
+    {
       type: 'tabs',
       tabs: [
         {
@@ -74,7 +92,7 @@ export const Projects: CollectionConfig<'projects'> = {
             {
               name: 'layout',
               type: 'blocks',
-              blocks: [Biography, CallToAction, Content, MediaBlock, Archive, FormBlock],
+              blocks: [Biography, CallToAction, Content, MediaBlock, Archive, FormBlock, ProjectsBlock],
               required: true,
               admin: {
                 initCollapsed: true,

@@ -200,7 +200,15 @@ export interface Page {
       | null;
     media?: (number | null) | Media;
   };
-  layout: (BiographyBlock | CallToActionBlock | ContentBlock | MediaBlock | ArchiveBlock | FormBlock)[];
+  layout: (
+    | BiographyBlock
+    | CallToActionBlock
+    | ContentBlock
+    | MediaBlock
+    | ArchiveBlock
+    | FormBlock
+    | ProjectsBlockType
+  )[];
   meta?: {
     title?: string | null;
     /**
@@ -226,8 +234,24 @@ export interface Page {
 export interface Project {
   id: number;
   title: string;
+  /**
+   * Thumbnail image used in project listings
+   */
+  thumbnail?: (number | null) | Media;
+  /**
+   * Short description used in project listings
+   */
+  description?: string | null;
   heroImage?: (number | null) | Media;
-  layout: (BiographyBlock | CallToActionBlock | ContentBlock | MediaBlock | ArchiveBlock | FormBlock)[];
+  layout: (
+    | BiographyBlock
+    | CallToActionBlock
+    | ContentBlock
+    | MediaBlock
+    | ArchiveBlock
+    | FormBlock
+    | ProjectsBlockType
+  )[];
   relatedProjects?: (number | Project)[] | null;
   categories?: (number | Category)[] | null;
   meta?: {
@@ -765,6 +789,21 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProjectsBlockType".
+ */
+export interface ProjectsBlockType {
+  title?: string | null;
+  description?: string | null;
+  /**
+   * Maximum number of projects to display
+   */
+  limit?: number | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'projectsBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
@@ -1097,6 +1136,7 @@ export interface PagesSelect<T extends boolean = true> {
         mediaBlock?: T | MediaBlockSelect<T>;
         archive?: T | ArchiveBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
+        projectsBlock?: T | ProjectsBlockTypeSelect<T>;
       };
   meta?:
     | T
@@ -1215,10 +1255,23 @@ export interface FormBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProjectsBlockType_select".
+ */
+export interface ProjectsBlockTypeSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  limit?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "projects_select".
  */
 export interface ProjectsSelect<T extends boolean = true> {
   title?: T;
+  thumbnail?: T;
+  description?: T;
   heroImage?: T;
   layout?:
     | T
@@ -1229,6 +1282,7 @@ export interface ProjectsSelect<T extends boolean = true> {
         mediaBlock?: T | MediaBlockSelect<T>;
         archive?: T | ArchiveBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
+        projectsBlock?: T | ProjectsBlockTypeSelect<T>;
       };
   relatedProjects?: T;
   categories?: T;
