@@ -56,11 +56,11 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
               <VideoPlane
                 videoUrl={videoUrl}
                 posterUrl={posterUrl}
-                className="rounded-lg w-full md:w-[300px]"
+                className="rounded-lg w-full md:w-[400px]"
               />
             ) : (
               posterImage && (
-                <Media resource={posterImage} imgClassName="rounded-lg w-full md:w-[300px]" />
+                <Media resource={posterImage} imgClassName="rounded-lg w-full md:w-[400px]" />
               )
             )}
           </WindowReveal>

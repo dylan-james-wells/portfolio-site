@@ -172,7 +172,7 @@ export const HeroSlider: React.FC = () => {
         md: '8rem',
         lg: '10rem',
         xl: '12rem',
-        '2xl': '14rem',
+        '2xl': '12rem',
       },
     })
 
@@ -892,7 +892,7 @@ export const HeroSlider: React.FC = () => {
   }, [])
 
   return (
-    <div style={{ paddingTop: '90vh' }}>
+    <div style={{ paddingTop: '100vh' }}>
       <div
         ref={containerRef}
         style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0 }}
