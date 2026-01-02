@@ -4,6 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 
 import { Media } from '@/components/Media'
+import { GlitchTextReveal } from '@/components/GlitchTextReveal'
 
 export const ProjectsBlock: React.FC<
   ProjectsBlockType & {
@@ -22,8 +23,16 @@ export const ProjectsBlock: React.FC<
       <div className="container">
         {(title || description) && (
           <div className="mb-12">
-            {title && <h2 className="text-3xl font-bold mb-4">{title}</h2>}
-            {description && <p>{description}</p>}
+            {title && (
+              <h2 className="text-3xl font-bold mb-4">
+                <GlitchTextReveal>{title}</GlitchTextReveal>
+              </h2>
+            )}
+            {description && (
+              <p>
+                <GlitchTextReveal>{description}</GlitchTextReveal>
+              </p>
+            )}
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
