@@ -9,6 +9,7 @@ import { Content } from '../../blocks/Content/config'
 import { FormBlock } from '../../blocks/Form/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
 import { ProjectsBlock } from '../../blocks/ProjectsBlock/config'
+import { RichTextBlock } from '../../blocks/RichTextBlock/config'
 import { generatePreviewPath } from '../../utilities/generatePreviewPath'
 import { revalidateDelete, revalidateProject } from './hooks/revalidateProject'
 
@@ -92,7 +93,7 @@ export const Projects: CollectionConfig<'projects'> = {
             {
               name: 'layout',
               type: 'blocks',
-              blocks: [Biography, CallToAction, Content, MediaBlock, Archive, FormBlock, ProjectsBlock],
+              blocks: [Biography, CallToAction, Content, MediaBlock, Archive, FormBlock, ProjectsBlock, RichTextBlock],
               required: true,
               admin: {
                 initCollapsed: true,

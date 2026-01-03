@@ -9,6 +9,7 @@ import { ContentBlock } from '@/blocks/Content/Component'
 import { FormBlock } from '@/blocks/Form/Component'
 import { MediaBlock } from '@/blocks/MediaBlock/Component'
 import { ProjectsBlock } from '@/blocks/ProjectsBlock/Component'
+import { RichTextBlockComponent } from '@/blocks/RichTextBlock/Component'
 import { WorksBlock } from '@/blocks/WorksBlock/Component'
 
 const blockComponents = {
@@ -19,6 +20,7 @@ const blockComponents = {
   formBlock: FormBlock,
   mediaBlock: MediaBlock,
   projectsBlock: ProjectsBlock,
+  richTextBlock: RichTextBlockComponent,
   worksBlock: WorksBlock,
 }
 

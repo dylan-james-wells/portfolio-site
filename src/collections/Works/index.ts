@@ -8,6 +8,7 @@ import { CallToAction } from '../../blocks/CallToAction/config'
 import { Content } from '../../blocks/Content/config'
 import { FormBlock } from '../../blocks/Form/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
+import { RichTextBlock } from '../../blocks/RichTextBlock/config'
 import { WorksBlock } from '../../blocks/WorksBlock/config'
 import { generatePreviewPath } from '../../utilities/generatePreviewPath'
 import { revalidateDelete, revalidateWork } from './hooks/revalidateWork'
@@ -92,7 +93,7 @@ export const Works: CollectionConfig<'works'> = {
             {
               name: 'layout',
               type: 'blocks',
-              blocks: [Biography, CallToAction, Content, MediaBlock, Archive, FormBlock, WorksBlock],
+              blocks: [Biography, CallToAction, Content, MediaBlock, Archive, FormBlock, WorksBlock, RichTextBlock],
               required: true,
               admin: {
                 initCollapsed: true,

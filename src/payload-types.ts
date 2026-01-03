@@ -210,6 +210,7 @@ export interface Page {
     | ArchiveBlock
     | FormBlock
     | ProjectsBlockType
+    | RichTextBlockType
   )[];
   meta?: {
     title?: string | null;
@@ -253,6 +254,7 @@ export interface Project {
     | ArchiveBlock
     | FormBlock
     | ProjectsBlockType
+    | RichTextBlockType
   )[];
   relatedProjects?: (number | Project)[] | null;
   categories?: (number | Category)[] | null;
@@ -806,6 +808,30 @@ export interface ProjectsBlockType {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "RichTextBlockType".
+ */
+export interface RichTextBlockType {
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'richTextBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "works".
  */
 export interface Work {
@@ -828,6 +854,7 @@ export interface Work {
     | ArchiveBlock
     | FormBlock
     | WorksBlockType
+    | RichTextBlockType
   )[];
   relatedWorks?: (number | Work)[] | null;
   categories?: (number | Category)[] | null;
@@ -1203,6 +1230,7 @@ export interface PagesSelect<T extends boolean = true> {
         archive?: T | ArchiveBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
         projectsBlock?: T | ProjectsBlockTypeSelect<T>;
+        richTextBlock?: T | RichTextBlockTypeSelect<T>;
       };
   meta?:
     | T
@@ -1332,6 +1360,15 @@ export interface ProjectsBlockTypeSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "RichTextBlockType_select".
+ */
+export interface RichTextBlockTypeSelect<T extends boolean = true> {
+  content?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "projects_select".
  */
 export interface ProjectsSelect<T extends boolean = true> {
@@ -1349,6 +1386,7 @@ export interface ProjectsSelect<T extends boolean = true> {
         archive?: T | ArchiveBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
         projectsBlock?: T | ProjectsBlockTypeSelect<T>;
+        richTextBlock?: T | RichTextBlockTypeSelect<T>;
       };
   relatedProjects?: T;
   categories?: T;
@@ -1385,6 +1423,7 @@ export interface WorksSelect<T extends boolean = true> {
         archive?: T | ArchiveBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
         worksBlock?: T | WorksBlockTypeSelect<T>;
+        richTextBlock?: T | RichTextBlockTypeSelect<T>;
       };
   relatedWorks?: T;
   categories?: T;
