@@ -5,6 +5,8 @@ import {
   HeadingFeature,
   InlineToolbarFeature,
   lexicalEditor,
+  BlocksFeature,
+  HorizontalRuleFeature,
 } from '@payloadcms/richtext-lexical'
 
 import { link } from '@/fields/link'
@@ -43,6 +45,8 @@ const columnFields: Field[] = [
           HeadingFeature({ enabledHeadingSizes: ['h2', 'h3', 'h4'] }),
           FixedToolbarFeature(),
           InlineToolbarFeature(),
+          HorizontalRuleFeature(),
+          // BlocksFeature({ blocks: [Banner, Code, MediaBlock] }),
         ]
       },
     }),
