@@ -7,6 +7,7 @@ import { Biography } from '../../blocks/Biography/config'
 import { CallToAction } from '../../blocks/CallToAction/config'
 import { Content } from '../../blocks/Content/config'
 import { FormBlock } from '../../blocks/Form/config'
+import { ImageGallery } from '../../blocks/ImageGallery/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
 import { RichTextBlock } from '../../blocks/RichTextBlock/config'
 import { WorksBlock } from '../../blocks/WorksBlock/config'
@@ -93,7 +94,7 @@ export const Works: CollectionConfig<'works'> = {
             {
               name: 'layout',
               type: 'blocks',
-              blocks: [Biography, CallToAction, Content, MediaBlock, Archive, FormBlock, WorksBlock, RichTextBlock],
+              blocks: [Biography, CallToAction, Content, ImageGallery, MediaBlock, Archive, FormBlock, WorksBlock, RichTextBlock],
               required: true,
               admin: {
                 initCollapsed: true,
