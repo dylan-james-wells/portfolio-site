@@ -1,9 +1,6 @@
 import type { Block } from 'payload'
 
-import {
-  defaultEditorFeatures,
-  lexicalEditor,
-} from '@payloadcms/richtext-lexical'
+import { defaultEditorFeatures, lexicalEditor, HeadingFeature } from '@payloadcms/richtext-lexical'
 
 export const RichTextBlock: Block = {
   slug: 'richTextBlock',
@@ -18,7 +15,7 @@ export const RichTextBlock: Block = {
       type: 'richText',
       required: true,
       editor: lexicalEditor({
-        features: [...defaultEditorFeatures],
+        features: [...defaultEditorFeatures, HeadingFeature()],
       }),
     },
   ],
