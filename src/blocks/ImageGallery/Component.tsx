@@ -72,7 +72,10 @@ export const ImageGalleryBlock: React.FC<Props> = (props) => {
     if (smallLayout === 'row') {
       classes.push('flex', 'flex-row', 'gap-4', 'pb-4')
     } else if (smallLayout === 'grid') {
-      classes.push('grid', 'grid-cols-2', 'gap-4')
+      classes.push('grid', 'gap-4')
+      if (gridColumns === '2') classes.push('grid-cols-2')
+      else if (gridColumns === '3') classes.push('grid-cols-3')
+      else if (gridColumns === '4') classes.push('grid-cols-4')
     } else {
       classes.push('flex', 'flex-col', 'gap-4')
     }
@@ -82,7 +85,10 @@ export const ImageGalleryBlock: React.FC<Props> = (props) => {
       classes.push('md:!flex', 'md:flex-row', 'md:gap-6')
       if (smallLayout === 'row') classes.push('md:pb-0')
     } else if (mediumLayout === 'grid') {
-      classes.push('md:!grid', 'md:gap-6', 'md:!grid-cols-3')
+      classes.push('md:!grid', 'md:gap-6')
+      if (gridColumns === '2') classes.push('md:!grid-cols-2')
+      else if (gridColumns === '3') classes.push('md:!grid-cols-3')
+      else if (gridColumns === '4') classes.push('md:!grid-cols-4')
       if (smallLayout === 'row') classes.push('md:pb-0')
     } else {
       // List layout
