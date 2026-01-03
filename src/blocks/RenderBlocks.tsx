@@ -7,6 +7,7 @@ import { BiographyBlock } from '@/blocks/Biography/Component'
 import { CallToActionBlock } from '@/blocks/CallToAction/Component'
 import { ContentBlock } from '@/blocks/Content/Component'
 import { FormBlock } from '@/blocks/Form/Component'
+import { ImageGalleryBlock } from '@/blocks/ImageGallery/Component'
 import { MediaBlock } from '@/blocks/MediaBlock/Component'
 import { ProjectsBlock } from '@/blocks/ProjectsBlock/Component'
 import { RichTextBlockComponent } from '@/blocks/RichTextBlock/Component'
@@ -18,6 +19,7 @@ const blockComponents = {
   content: ContentBlock,
   cta: CallToActionBlock,
   formBlock: FormBlock,
+  imageGallery: ImageGalleryBlock,
   mediaBlock: MediaBlock,
   projectsBlock: ProjectsBlock,
   richTextBlock: RichTextBlockComponent,

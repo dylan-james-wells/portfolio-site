@@ -206,6 +206,7 @@ export interface Page {
     | BiographyBlock
     | CallToActionBlock
     | ContentBlock
+    | ImageGalleryBlock
     | MediaBlock
     | ArchiveBlock
     | FormBlock
@@ -832,6 +833,26 @@ export interface RichTextBlockType {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ImageGalleryBlock".
+ */
+export interface ImageGalleryBlock {
+  images: {
+    image: number | Media;
+    caption?: string | null;
+    id?: string | null;
+  }[];
+  layout?: {
+    small?: ('row' | 'grid' | 'list') | null;
+    medium?: ('row' | 'grid' | 'list') | null;
+    large?: ('row' | 'grid' | 'list') | null;
+    gridColumns?: ('2' | '3' | '4') | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'imageGallery';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "works".
  */
 export interface Work {
@@ -1226,6 +1247,7 @@ export interface PagesSelect<T extends boolean = true> {
         biography?: T | BiographyBlockSelect<T>;
         cta?: T | CallToActionBlockSelect<T>;
         content?: T | ContentBlockSelect<T>;
+        imageGallery?: T | ImageGalleryBlockSelect<T>;
         mediaBlock?: T | MediaBlockSelect<T>;
         archive?: T | ArchiveBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
@@ -1309,6 +1331,29 @@ export interface ContentBlockSelect<T extends boolean = true> {
               appearance?: T;
             };
         id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ImageGalleryBlock_select".
+ */
+export interface ImageGalleryBlockSelect<T extends boolean = true> {
+  images?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        id?: T;
+      };
+  layout?:
+    | T
+    | {
+        small?: T;
+        medium?: T;
+        large?: T;
+        gridColumns?: T;
       };
   id?: T;
   blockName?: T;
