@@ -15,7 +15,10 @@ export const RichTextBlock: Block = {
       type: 'richText',
       required: true,
       editor: lexicalEditor({
-        features: [...defaultEditorFeatures, HeadingFeature()],
+        features: [
+          ...defaultEditorFeatures,
+          HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }),
+        ],
       }),
     },
   ],
