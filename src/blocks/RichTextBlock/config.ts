@@ -6,6 +6,8 @@ import {
   HeadingFeature,
   lexicalEditor,
   LinkFeature,
+  OrderedListFeature,
+  UnorderedListFeature,
 } from '@payloadcms/richtext-lexical'
 
 export const RichTextBlock: Block = {
@@ -28,6 +30,8 @@ export const RichTextBlock: Block = {
             enabledCollections: ['pages', 'projects', 'works'],
           }),
           FixedToolbarFeature(),
+          OrderedListFeature(),
+          UnorderedListFeature(),
         ],
       }),
     },
