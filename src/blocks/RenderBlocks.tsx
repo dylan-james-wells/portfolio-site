@@ -40,9 +40,10 @@ export const RenderBlocks: React.FC<{
           if (blockType && blockType in blockComponents) {
             const Block = blockComponents[blockType]
 
+            //  py-16
             if (Block) {
               return (
-                <div className="relative z-1 py-16" key={index}>
+                <div className="relative z-1" key={index}>
                   {/* @ts-expect-error there may be some mismatch between the expected types here */}
                   <Block {...block} disableInnerContainer />
                 </div>
