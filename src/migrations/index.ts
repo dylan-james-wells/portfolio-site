@@ -2,6 +2,7 @@ import * as migration_20251219_215102_initial from './20251219_215102_initial';
 import * as migration_20260101_205510 from './20260101_205510';
 import * as migration_20260102_add_works from './20260102_add_works';
 import * as migration_20260103_220000_add_works_to_locked_docs from './20260103_220000_add_works_to_locked_docs';
+import * as migration_20260103_230000_add_image_gallery from './20260103_230000_add_image_gallery';
 
 export const migrations = [
   {
@@ -23,5 +24,10 @@ export const migrations = [
     up: migration_20260103_220000_add_works_to_locked_docs.up,
     down: migration_20260103_220000_add_works_to_locked_docs.down,
     name: '20260103_220000_add_works_to_locked_docs'
+  },
+  {
+    up: migration_20260103_230000_add_image_gallery.up,
+    down: migration_20260103_230000_add_image_gallery.down,
+    name: '20260103_230000_add_image_gallery'
   },
 ];
