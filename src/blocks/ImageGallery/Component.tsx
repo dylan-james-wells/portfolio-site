@@ -70,7 +70,7 @@ export const ImageGalleryBlock: React.FC<Props> = (props) => {
 
     // Small screen classes (default/mobile)
     if (smallLayout === 'row') {
-      classes.push('flex', 'flex-row', 'gap-4', 'overflow-x-auto', 'pb-4')
+      classes.push('flex', 'flex-row', 'gap-4', 'pb-4')
     } else if (smallLayout === 'grid') {
       classes.push('grid', 'grid-cols-2', 'gap-4')
     } else {
@@ -79,7 +79,7 @@ export const ImageGalleryBlock: React.FC<Props> = (props) => {
 
     // Medium screen classes
     if (mediumLayout === 'row') {
-      classes.push('md:flex', 'md:flex-row', 'md:gap-6', 'md:overflow-x-auto')
+      classes.push('md:flex', 'md:flex-row', 'md:gap-6')
       if (smallLayout === 'grid') classes.push('md:grid-cols-none')
       if (smallLayout === 'list') classes.push('md:flex-row')
     } else if (mediumLayout === 'grid') {
@@ -108,18 +108,6 @@ export const ImageGalleryBlock: React.FC<Props> = (props) => {
     return classes.join(' ')
   }
 
-  const getItemClasses = (layoutType: LayoutType, breakpoint: 'sm' | 'md' | 'lg') => {
-    const prefix = breakpoint === 'sm' ? '' : `${breakpoint}:`
-
-    if (layoutType === 'row') {
-      return `${prefix}flex-shrink-0 ${prefix}w-64 ${breakpoint === 'lg' ? 'lg:w-80' : ''}`
-    }
-    if (layoutType === 'grid') {
-      return `${prefix}aspect-square`
-    }
-    return `${prefix}w-full`
-  }
-
   const activeImage = images[activeIndex]
   const activeMedia = activeImage?.image as Media | undefined
 
@@ -131,46 +119,74 @@ export const ImageGalleryBlock: React.FC<Props> = (props) => {
           const media = item.image as Media | undefined
           if (!media?.url) return null
 
-          const isGrid =
-            (smallLayout === 'grid') ||
-            (mediumLayout === 'grid') ||
-            (largeLayout === 'grid')
-
           return (
             <button
               key={item.id || index}
               onClick={() => openModal(index)}
               className={cn(
-                'relative overflow-hidden rounded-lg cursor-pointer group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500',
+                'relative rounded-lg cursor-pointer group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500',
                 // Small screen layout
-                smallLayout === 'row' && 'flex-shrink-0 w-64 aspect-[4/3]',
-                smallLayout === 'grid' && 'aspect-square',
-                smallLayout === 'list' && 'w-full aspect-video',
-                // Medium screen layout
-                mediumLayout === 'row' && 'md:w-72 md:aspect-[4/3]',
-                mediumLayout === 'grid' && 'md:aspect-square',
-                mediumLayout === 'list' && 'md:w-full md:aspect-video',
-                // Large screen layout
-                largeLayout === 'row' && 'lg:w-80 lg:aspect-[4/3]',
-                largeLayout === 'grid' && 'lg:aspect-square',
-                largeLayout === 'list' && 'lg:w-full lg:aspect-[21/9]',
+                smallLayout === 'grid' && 'aspect-square overflow-hidden',
+                smallLayout === 'list' && 'w-full overflow-hidden',
+                // Medium screen layout - reset aspect if switching to/from row
+                mediumLayout === 'row' && 'md:aspect-auto md:overflow-visible',
+                mediumLayout === 'grid' && 'md:aspect-square md:overflow-hidden',
+                mediumLayout === 'list' && 'md:aspect-auto md:w-full md:overflow-hidden',
+                // Large screen layout - reset aspect if switching to/from row
+                largeLayout === 'row' && 'lg:aspect-auto lg:overflow-visible',
+                largeLayout === 'grid' && 'lg:aspect-square lg:overflow-hidden',
+                largeLayout === 'list' && 'lg:aspect-auto lg:w-full lg:overflow-hidden',
               )}
             >
               <NextImage
                 src={getMediaUrl(media.url, media.updatedAt)}
                 alt={item.caption || media.alt || ''}
-                fill
+                width={media.width || 800}
+                height={media.height || 600}
                 className={cn(
-                  'object-cover transition-transform duration-300 group-hover:scale-105',
-                  isGrid && 'object-center',
+                  'rounded-lg transition-transform duration-300 group-hover:scale-105',
+                  // Row layout: show image at natural size
+                  smallLayout === 'row' && 'w-auto h-auto max-h-[50vh]',
+                  // Grid layout: cover the square container
+                  smallLayout === 'grid' && 'w-full h-full object-cover',
+                  // List layout: full width, natural height
+                  smallLayout === 'list' && 'w-full h-auto',
+                  // Medium breakpoint overrides
+                  mediumLayout === 'row' && 'md:w-auto md:h-auto md:max-h-[60vh] md:object-contain',
+                  mediumLayout === 'grid' && 'md:w-full md:h-full md:object-cover',
+                  mediumLayout === 'list' && 'md:w-full md:h-auto md:object-contain',
+                  // Large breakpoint overrides
+                  largeLayout === 'row' && 'lg:w-auto lg:h-auto lg:max-h-[70vh] lg:object-contain',
+                  largeLayout === 'grid' && 'lg:w-full lg:h-full lg:object-cover',
+                  largeLayout === 'list' && 'lg:w-full lg:h-auto lg:object-contain',
                 )}
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
-              {/* Caption overlay */}
+              {/* Hover overlay - only for grid layout */}
+              <div
+                className={cn(
+                  'absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 rounded-lg pointer-events-none',
+                  smallLayout !== 'grid' && 'hidden',
+                  smallLayout === 'grid' && 'block',
+                  mediumLayout !== 'grid' && 'md:hidden',
+                  mediumLayout === 'grid' && 'md:block',
+                  largeLayout !== 'grid' && 'lg:hidden',
+                  largeLayout === 'grid' && 'lg:block',
+                )}
+              />
+              {/* Caption overlay - only for grid layout */}
               {item.caption && (
-                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div
+                  className={cn(
+                    'absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg pointer-events-none',
+                    smallLayout !== 'grid' && 'hidden',
+                    smallLayout === 'grid' && 'block',
+                    mediumLayout !== 'grid' && 'md:hidden',
+                    mediumLayout === 'grid' && 'md:block',
+                    largeLayout !== 'grid' && 'lg:hidden',
+                    largeLayout === 'grid' && 'lg:block',
+                  )}
+                >
                   <p className="text-white text-sm">{item.caption}</p>
                 </div>
               )}
@@ -188,10 +204,7 @@ export const ImageGalleryBlock: React.FC<Props> = (props) => {
           aria-label="Image viewer"
         >
           {/* Dark overlay */}
-          <div
-            className="absolute inset-0 bg-black/90 backdrop-blur-sm"
-            onClick={closeModal}
-          />
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={closeModal} />
 
           {/* Close button */}
           <button
