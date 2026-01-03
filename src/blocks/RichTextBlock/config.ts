@@ -1,22 +1,11 @@
 import type { Block } from 'payload'
 
 import {
-  BlockquoteFeature,
-  BoldFeature,
-  ChecklistFeature,
+  defaultEditorFeatures,
   FixedToolbarFeature,
   HeadingFeature,
-  HorizontalRuleFeature,
-  IndentFeature,
-  InlineToolbarFeature,
-  ItalicFeature,
-  LinkFeature,
-  OrderedListFeature,
-  ParagraphFeature,
-  StrikethroughFeature,
-  UnderlineFeature,
-  UnorderedListFeature,
   lexicalEditor,
+  LinkFeature,
 } from '@payloadcms/richtext-lexical'
 
 export const RichTextBlock: Block = {
@@ -33,23 +22,12 @@ export const RichTextBlock: Block = {
       required: true,
       editor: lexicalEditor({
         features: [
-          ParagraphFeature(),
+          ...defaultEditorFeatures,
           HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }),
-          BoldFeature(),
-          ItalicFeature(),
-          UnderlineFeature(),
-          StrikethroughFeature(),
-          UnorderedListFeature(),
-          OrderedListFeature(),
-          ChecklistFeature(),
-          IndentFeature(),
-          BlockquoteFeature(),
-          HorizontalRuleFeature(),
           LinkFeature({
             enabledCollections: ['pages', 'projects', 'works'],
           }),
           FixedToolbarFeature(),
-          InlineToolbarFeature(),
         ],
       }),
     },
