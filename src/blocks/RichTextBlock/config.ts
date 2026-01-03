@@ -1,6 +1,26 @@
 import type { Block } from 'payload'
 
-import { defaultEditorFeatures, lexicalEditor, HeadingFeature } from '@payloadcms/richtext-lexical'
+import {
+  lexicalEditor,
+  BoldFeature,
+  ItalicFeature,
+  UnderlineFeature,
+  StrikethroughFeature,
+  SubscriptFeature,
+  SuperscriptFeature,
+  InlineCodeFeature,
+  ParagraphFeature,
+  HeadingFeature,
+  AlignFeature,
+  IndentFeature,
+  UnorderedListFeature,
+  OrderedListFeature,
+  ChecklistFeature,
+  LinkFeature,
+  BlockquoteFeature,
+  HorizontalRuleFeature,
+  FixedToolbarFeature,
+} from '@payloadcms/richtext-lexical'
 
 export const RichTextBlock: Block = {
   slug: 'richTextBlock',
@@ -16,8 +36,24 @@ export const RichTextBlock: Block = {
       required: true,
       editor: lexicalEditor({
         features: [
-          ...defaultEditorFeatures,
+          BoldFeature(),
+          ItalicFeature(),
+          UnderlineFeature(),
+          StrikethroughFeature(),
+          SubscriptFeature(),
+          SuperscriptFeature(),
+          InlineCodeFeature(),
+          ParagraphFeature(),
           HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }),
+          AlignFeature(),
+          IndentFeature(),
+          UnorderedListFeature(),
+          OrderedListFeature(),
+          ChecklistFeature(),
+          LinkFeature(),
+          BlockquoteFeature(),
+          HorizontalRuleFeature(),
+          FixedToolbarFeature(),
         ],
       }),
     },
