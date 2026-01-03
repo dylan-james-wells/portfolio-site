@@ -1,8 +1,7 @@
 import * as migration_20251219_215102_initial from './20251219_215102_initial';
 import * as migration_20260101_205510 from './20260101_205510';
 import * as migration_20260102_add_works from './20260102_add_works';
-import * as migration_20260103_fix_locked_docs_works from './20260103_fix_locked_docs_works';
-import * as migration_20260103_180000_fix_locked_docs_works_v2 from './20260103_180000_fix_locked_docs_works_v2';
+import * as migration_20260103_220000_add_works_to_locked_docs from './20260103_220000_add_works_to_locked_docs';
 
 export const migrations = [
   {
@@ -21,13 +20,8 @@ export const migrations = [
     name: '20260102_add_works'
   },
   {
-    up: migration_20260103_fix_locked_docs_works.up,
-    down: migration_20260103_fix_locked_docs_works.down,
-    name: '20260103_fix_locked_docs_works'
-  },
-  {
-    up: migration_20260103_180000_fix_locked_docs_works_v2.up,
-    down: migration_20260103_180000_fix_locked_docs_works_v2.down,
-    name: '20260103_180000_fix_locked_docs_works_v2'
+    up: migration_20260103_220000_add_works_to_locked_docs.up,
+    down: migration_20260103_220000_add_works_to_locked_docs.down,
+    name: '20260103_220000_add_works_to_locked_docs'
   },
 ];
