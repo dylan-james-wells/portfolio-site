@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react'
 
-import type { Page } from '@/payload-types'
+import type { Page, Work } from '@/payload-types'
 
 import { ArchiveBlock } from '@/blocks/ArchiveBlock/Component'
 import { BiographyBlock } from '@/blocks/Biography/Component'
@@ -9,6 +9,7 @@ import { ContentBlock } from '@/blocks/Content/Component'
 import { FormBlock } from '@/blocks/Form/Component'
 import { MediaBlock } from '@/blocks/MediaBlock/Component'
 import { ProjectsBlock } from '@/blocks/ProjectsBlock/Component'
+import { WorksBlock } from '@/blocks/WorksBlock/Component'
 
 const blockComponents = {
   archive: ArchiveBlock,
@@ -18,10 +19,11 @@ const blockComponents = {
   formBlock: FormBlock,
   mediaBlock: MediaBlock,
   projectsBlock: ProjectsBlock,
+  worksBlock: WorksBlock,
 }
 
 export const RenderBlocks: React.FC<{
-  blocks: Page['layout'][0][]
+  blocks: Page['layout'][0][] | Work['layout'][0][]
 }> = (props) => {
   const { blocks } = props
 

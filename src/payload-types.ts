@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     pages: Page;
     projects: Project;
+    works: Work;
     media: Media;
     categories: Category;
     users: User;
@@ -91,6 +92,7 @@ export interface Config {
   collectionsSelect: {
     pages: PagesSelect<false> | PagesSelect<true>;
     projects: ProjectsSelect<false> | ProjectsSelect<true>;
+    works: WorksSelect<false> | WorksSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -804,6 +806,66 @@ export interface ProjectsBlockType {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "works".
+ */
+export interface Work {
+  id: number;
+  title: string;
+  /**
+   * Thumbnail image used in work listings
+   */
+  thumbnail?: (number | null) | Media;
+  /**
+   * Short description used in work listings
+   */
+  description?: string | null;
+  heroImage?: (number | null) | Media;
+  layout: (
+    | BiographyBlock
+    | CallToActionBlock
+    | ContentBlock
+    | MediaBlock
+    | ArchiveBlock
+    | FormBlock
+    | WorksBlockType
+  )[];
+  relatedWorks?: (number | Work)[] | null;
+  categories?: (number | Category)[] | null;
+  meta?: {
+    title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+    description?: string | null;
+  };
+  publishedAt?: string | null;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "WorksBlockType".
+ */
+export interface WorksBlockType {
+  title?: string | null;
+  description?: string | null;
+  /**
+   * Select the works to display
+   */
+  works?: (number | Work)[] | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'worksBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
@@ -1024,6 +1086,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'projects';
         value: number | Project;
+      } | null)
+    | ({
+        relationTo: 'works';
+        value: number | Work;
       } | null)
     | ({
         relationTo: 'media';
@@ -1299,6 +1365,53 @@ export interface ProjectsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "works_select".
+ */
+export interface WorksSelect<T extends boolean = true> {
+  title?: T;
+  thumbnail?: T;
+  description?: T;
+  heroImage?: T;
+  layout?:
+    | T
+    | {
+        biography?: T | BiographyBlockSelect<T>;
+        cta?: T | CallToActionBlockSelect<T>;
+        content?: T | ContentBlockSelect<T>;
+        mediaBlock?: T | MediaBlockSelect<T>;
+        archive?: T | ArchiveBlockSelect<T>;
+        formBlock?: T | FormBlockSelect<T>;
+        worksBlock?: T | WorksBlockTypeSelect<T>;
+      };
+  relatedWorks?: T;
+  categories?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        image?: T;
+        description?: T;
+      };
+  publishedAt?: T;
+  generateSlug?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "WorksBlockType_select".
+ */
+export interface WorksBlockTypeSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  works?: T;
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1808,6 +1921,10 @@ export interface TaskSchedulePublish {
       | ({
           relationTo: 'projects';
           value: number | Project;
+        } | null)
+      | ({
+          relationTo: 'works';
+          value: number | Work;
         } | null);
     global?: string | null;
     user?: (number | null) | User;

@@ -8,6 +8,7 @@ import { Categories } from './collections/Categories'
 import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Projects } from './collections/Projects'
+import { Works } from './collections/Works'
 import { Users } from './collections/Users'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
@@ -66,7 +67,7 @@ export default buildConfig({
     // @ts-ignore
     prodMigrations: migrations,
   }),
-  collections: [Pages, Projects, Media, Categories, Users],
+  collections: [Pages, Projects, Works, Media, Categories, Users],
   cors: [getServerSideURL()].filter(Boolean),
   plugins: [
     ...plugins,
