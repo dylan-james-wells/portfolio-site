@@ -16,23 +16,28 @@ import { LivePreviewListener } from '@/components/LivePreviewListener'
 import { RenderBlocks } from '@/blocks/RenderBlocks'
 
 export async function generateStaticParams() {
-  const payload = await getPayload({ config: configPromise })
-  const works = await payload.find({
-    collection: 'works',
-    draft: false,
-    limit: 1000,
-    overrideAccess: false,
-    pagination: false,
-    select: {
-      slug: true,
-    },
-  })
+  try {
+    const payload = await getPayload({ config: configPromise })
+    const works = await payload.find({
+      collection: 'works',
+      draft: false,
+      limit: 1000,
+      overrideAccess: false,
+      pagination: false,
+      select: {
+        slug: true,
+      },
+    })
 
-  const params = works.docs.map(({ slug }) => {
-    return { slug }
-  })
+    const params = works.docs.map(({ slug }) => {
+      return { slug }
+    })
 
-  return params
+    return params
+  } catch {
+    // Return empty array if works table doesn't exist yet (during initial migration)
+    return []
+  }
 }
 
 type Args = {
