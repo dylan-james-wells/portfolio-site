@@ -475,11 +475,21 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
     CREATE INDEX "_works_v_rels_path_idx" ON "_works_v_rels" USING btree ("path");
     CREATE INDEX "_works_v_rels_works_id_idx" ON "_works_v_rels" USING btree ("works_id");
     CREATE INDEX "_works_v_rels_categories_id_idx" ON "_works_v_rels" USING btree ("categories_id");
+
+    -- Add works_id column to payload_locked_documents_rels table
+    ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "works_id" integer;
+    ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_works_fk" FOREIGN KEY ("works_id") REFERENCES "public"."works"("id") ON DELETE cascade ON UPDATE no action;
+    CREATE INDEX "payload_locked_documents_rels_works_id_idx" ON "payload_locked_documents_rels" USING btree ("works_id");
   `)
 }
 
 export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
+    -- Drop works_id from payload_locked_documents_rels
+    DROP INDEX IF EXISTS "payload_locked_documents_rels_works_id_idx";
+    ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_works_fk";
+    ALTER TABLE "payload_locked_documents_rels" DROP COLUMN IF EXISTS "works_id";
+
     -- Drop indexes
     DROP INDEX IF EXISTS "_works_v_rels_categories_id_idx";
     DROP INDEX IF EXISTS "_works_v_rels_works_id_idx";
