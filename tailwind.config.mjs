@@ -112,11 +112,9 @@ const config = {
           to: { height: '0' },
         },
         'image-pan': {
-          '0%': { transform: 'translate3d(-50%, 0, 0)' },
-          '25%': { transform: 'translate3d(-30%, 0, 0)' },
-          '50%': { transform: 'translate3d(-50%, 0, 0)' },
-          '75%': { transform: 'translate3d(-70%, 0, 0)' },
-          '100%': { transform: 'translate3d(-50%, 0, 0)' },
+          '0%': { transform: 'translate3d(-30%, 0, 0)' },
+          '50%': { transform: 'translate3d(-70%, 0, 0)' },
+          '100%': { transform: 'translate3d(-30%, 0, 0)' },
         },
         'glitch-pan': {
           '0%': { backgroundPosition: '0 0', filter: 'hue-rotate(0deg)' },

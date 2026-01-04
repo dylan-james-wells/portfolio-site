@@ -43,7 +43,7 @@ export const ImageGlitchPan: React.FC<ImageGlitchPanProps> = ({
         className={cn(
           'absolute left-1/2 top-0 h-full w-[1152px] max-w-none',
           'animate-image-pan bg-cover',
-          'blur-[3px] transition-[filter] duration-400 ease-out',
+          'blur-[3px] transition-[filter] duration-400',
           'group-hover:blur-0',
           imageClassName,
         )}

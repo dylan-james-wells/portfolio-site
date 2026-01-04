@@ -37,8 +37,8 @@ export const WorksGridBlock: React.FC<
           </div>
         )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {works.map((work) => (
-            <WorkCard key={work.id} work={work} />
+          {works.map((work, i) => (
+            <WorkCard key={work.id} work={work} index={i} />
           ))}
         </div>
       </div>
@@ -46,7 +46,7 @@ export const WorksGridBlock: React.FC<
   )
 }
 
-const WorkCard: React.FC<{ work: Work }> = ({ work }) => {
+const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
   const { slug, title, thumbnail, heroImage, description } = work
 
   return (
@@ -57,16 +57,11 @@ const WorkCard: React.FC<{ work: Work }> = ({ work }) => {
       <div className="aspect-square sm:aspect-square md:aspect-video relative overflow-hidden w-1/3 sm:w-1/3 md:w-full shrink-0">
         {/* Hero image as background */}
         {heroImage && typeof heroImage !== 'string' && (
-          // <Media
-          //   resource={heroImage}
-          //   className="absolute inset-0 w-full h-full object-cover opacity-50"
-          //   imgClassName="h-full object-cover"
-          // />
           <ImageGlitchPan
             resource={heroImage}
             alt="Project screenshot"
             className="h-full"
-            animationDelay={200}
+            animationDelay={200 * index}
           />
         )}
         {/* Thumbnail image on top */}
