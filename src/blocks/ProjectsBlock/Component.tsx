@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Media } from '@/components/Media'
 import { GlitchTextReveal } from '@/components/GlitchTextReveal'
 import { WindowReveal } from '@/components/WindowReveal'
+import { TextOutline } from '@/components/TextOutline'
 
 export const ProjectsBlock: React.FC<
   ProjectsBlockType & {
@@ -21,20 +22,22 @@ export const ProjectsBlock: React.FC<
 
   return (
     <div className="my-16" id={`block-${id}`}>
-      <div className="container py-8">
+      <div className="container">
         {(title || description) && (
-          <div className="mb-12">
-            {title && (
-              <h2 className="text-3xl font-bold mb-4">
-                <GlitchTextReveal>{title}</GlitchTextReveal>
-              </h2>
-            )}
-            {description && (
-              <p>
-                <GlitchTextReveal>{description}</GlitchTextReveal>
-              </p>
-            )}
-          </div>
+          <TextOutline className="inline-block">
+            <div className="mb-12 p-4">
+              {title && (
+                <h2 className="text-3xl font-bold mb-4">
+                  <GlitchTextReveal>{title}</GlitchTextReveal>
+                </h2>
+              )}
+              {description && (
+                <p>
+                  <GlitchTextReveal>{description}</GlitchTextReveal>
+                </p>
+              )}
+            </div>
+          </TextOutline>
         )}
         <div className="flex flex-col gap-6">
           {projects.map((project) => (
@@ -66,18 +69,20 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
         </div>
       </WindowReveal>
 
-      <div className="flex flex-col justify-center py-4 pr-4">
-        {title && (
-          <h3 className="text-xl font-semibold mb-2">
-            <GlitchTextReveal>{title}</GlitchTextReveal>
-          </h3>
-        )}
-        {description && (
-          <p className="line-clamp-3">
-            <GlitchTextReveal>{description}</GlitchTextReveal>
-          </p>
-        )}
-      </div>
+      <TextOutline className="p-4">
+        <div className="flex flex-col justify-center">
+          {title && (
+            <h3 className="text-xl font-semibold">
+              <GlitchTextReveal>{title}</GlitchTextReveal>
+            </h3>
+          )}
+          {description && (
+            <p className="line-clamp-3">
+              <GlitchTextReveal>{description}</GlitchTextReveal>
+            </p>
+          )}
+        </div>
+      </TextOutline>
     </Link>
   )
 }

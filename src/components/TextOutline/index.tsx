@@ -143,10 +143,17 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
         const nextLine = mergedLines[i + 1]
 
         if (nextLine) {
-          // Step down to bottom of current line
-          points.push({ x: line.right + leftPadding, y: line.bottom })
-          // Step horizontally to next line's right edge + padding
-          points.push({ x: nextLine.right + leftPadding, y: line.bottom })
+          if (nextLine.right > line.right) {
+            // Next line is wider - step outward, so step happens above the next line (with padding)
+            const stepY = nextLine.top - topPadding
+            points.push({ x: line.right + leftPadding, y: stepY })
+            points.push({ x: nextLine.right + leftPadding, y: stepY })
+          } else {
+            // Next line is narrower - step inward, so step happens below current line (with padding)
+            const stepY = line.bottom + topPadding
+            points.push({ x: line.right + leftPadding, y: stepY })
+            points.push({ x: nextLine.right + leftPadding, y: stepY })
+          }
         } else {
           // Last line - extend down with padding
           points.push({ x: line.right + leftPadding, y: line.bottom + topPadding })
