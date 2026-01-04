@@ -7,6 +7,7 @@ import { Media } from '@/components/Media'
 import { GlitchTextReveal } from '@/components/GlitchTextReveal'
 import { ImageGlitchPan } from '@/components/ImageGlitchPan'
 import { WindowReveal } from '@/components/WindowReveal'
+import { TextOutline } from '@/components/TextOutline'
 
 export const WorksGridBlock: React.FC<
   WorksGridBlockType & {
@@ -24,18 +25,20 @@ export const WorksGridBlock: React.FC<
     <div className="my-16" id={`block-${id}`}>
       <div className="container py-8">
         {(title || description) && (
-          <div className="mb-12">
-            {title && (
-              <h2 className="text-3xl font-bold mb-4">
-                <GlitchTextReveal>{title}</GlitchTextReveal>
-              </h2>
-            )}
-            {description && (
-              <p>
-                <GlitchTextReveal>{description}</GlitchTextReveal>
-              </p>
-            )}
-          </div>
+          <TextOutline className="inline-block">
+            <div className="mb-12 p-4">
+              {title && (
+                <h2 className="text-3xl font-bold mb-4">
+                  <GlitchTextReveal>{title}</GlitchTextReveal>
+                </h2>
+              )}
+              {description && (
+                <p>
+                  <GlitchTextReveal>{description}</GlitchTextReveal>
+                </p>
+              )}
+            </div>
+          </TextOutline>
         )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {works.map((work, i) => (
@@ -71,7 +74,7 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
             <Media
               resource={thumbnail}
               className="absolute top-0 left-0 z-10 w-full h-full group-hover:scale-105 transition-transform duration-300"
-              imgClassName="w-full h-full object-contain p-4"
+              imgClassName="w-full h-full object-contain p-6"
             />
           ) : (
             <div className="relative z-10 w-full h-full bg-muted flex items-center justify-center">

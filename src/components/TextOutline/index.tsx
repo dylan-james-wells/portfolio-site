@@ -46,6 +46,15 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
       // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
+      // Resolve CSS custom properties for canvas
+      const computedStyle = getComputedStyle(container)
+      const resolvedBackgroundColor = backgroundColor.includes('var(')
+        ? `hsl(${computedStyle.getPropertyValue(backgroundColor.match(/var\((--[^)]+)\)/)?.[1] || '')})`
+        : backgroundColor
+      const resolvedBorderColor = borderColor.includes('var(')
+        ? `hsl(${computedStyle.getPropertyValue(borderColor.match(/var\((--[^)]+)\)/)?.[1] || '')})`
+        : borderColor
+
       // Automatically find all text nodes in the container
       const allRects: LineRect[] = []
 
@@ -181,11 +190,11 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
       ctx.closePath()
 
       // Fill with background color
-      ctx.fillStyle = backgroundColor
+      ctx.fillStyle = resolvedBackgroundColor
       ctx.fill()
 
       // Draw border
-      ctx.strokeStyle = borderColor
+      ctx.strokeStyle = resolvedBorderColor
       ctx.lineWidth = borderWidth
       ctx.lineJoin = 'miter'
       ctx.lineCap = 'square'

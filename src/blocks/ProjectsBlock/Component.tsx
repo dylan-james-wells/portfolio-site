@@ -69,20 +69,20 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
         </div>
       </WindowReveal>
 
-      <TextOutline className="p-4">
-        <div className="flex flex-col justify-center">
+      <div className="p-4">
+        <TextOutline className="flex flex-col justify-center pb-1">
           {title && (
-            <h3 className="text-xl font-semibold">
+            <h3 className="text-xl font-semibold p-4 pb-0">
               <GlitchTextReveal>{title}</GlitchTextReveal>
             </h3>
           )}
           {description && (
-            <p className="line-clamp-3">
+            <p className="line-clamp-3 p-4">
               <GlitchTextReveal>{description}</GlitchTextReveal>
             </p>
           )}
-        </div>
-      </TextOutline>
+        </TextOutline>
+      </div>
     </Link>
   )
 }
