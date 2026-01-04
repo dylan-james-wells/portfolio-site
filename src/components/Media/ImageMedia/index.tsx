@@ -59,8 +59,8 @@ export const ImageMedia: React.FC<MediaProps> = (props) => {
   return (
     <picture className={cn(pictureClassName)}>
       <NextImage
+        className={imgClassName}
         alt={alt || ''}
-        className={cn(imgClassName)}
         fill={fill}
         height={!fill ? height : undefined}
         placeholder="blur"

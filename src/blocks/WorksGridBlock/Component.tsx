@@ -35,7 +35,7 @@ export const WorksGridBlock: React.FC<
             )}
           </div>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {works.map((work) => (
             <WorkCard key={work.id} work={work} />
           ))}
@@ -46,26 +46,36 @@ export const WorksGridBlock: React.FC<
 }
 
 const WorkCard: React.FC<{ work: Work }> = ({ work }) => {
-  const { slug, title, thumbnail, description } = work
+  const { slug, title, thumbnail, heroImage, description } = work
 
   return (
     <Link
       href={`/works/${slug}`}
-      className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-colors hover:bg-accent"
+      className="group flex flex-row sm:flex-row md:flex-col overflow-hidden rounded-lg border border-border bg-card transition-colors hover:bg-accent"
     >
-      <div className="aspect-video relative overflow-hidden">
+      <div className="aspect-square sm:aspect-square md:aspect-video relative overflow-hidden w-1/3 sm:w-1/3 md:w-full shrink-0">
+        {/* Hero image as background */}
+        {heroImage && typeof heroImage !== 'string' && (
+          <Media
+            resource={heroImage}
+            className="absolute inset-0 w-full h-full object-cover opacity-50"
+            imgClassName="w-full h-full object-cover"
+          />
+        )}
+        {/* Thumbnail image on top */}
         {thumbnail && typeof thumbnail !== 'string' ? (
           <Media
             resource={thumbnail}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="relative z-10 w-full h-full group-hover:scale-105 transition-transform duration-300"
+            imgClassName="w-full h-full object-contain p-4"
           />
         ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center">
+          <div className="relative z-10 w-full h-full bg-muted flex items-center justify-center">
             <GlitchTextReveal>No image</GlitchTextReveal>
           </div>
         )}
       </div>
-      <div className="flex flex-col p-4">
+      <div className="flex flex-col justify-center p-4">
         {title && (
           <h3 className="text-lg font-semibold mb-2">
             <GlitchTextReveal>{title}</GlitchTextReveal>

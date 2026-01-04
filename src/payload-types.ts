@@ -212,6 +212,7 @@ export interface Page {
     | FormBlock
     | ProjectsBlockType
     | RichTextBlockType
+    | WorksBlockType
     | WorksGridBlockType
   )[];
   meta?: {
@@ -855,18 +856,18 @@ export interface RichTextBlockType {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "WorksGridBlockType".
+ * via the `definition` "WorksBlockType".
  */
-export interface WorksGridBlockType {
+export interface WorksBlockType {
   title?: string | null;
   description?: string | null;
   /**
-   * Select the works to display in a 3-column grid
+   * Select the works to display
    */
   works?: (number | Work)[] | null;
   id?: string | null;
   blockName?: string | null;
-  blockType: 'worksGridBlock';
+  blockType: 'worksBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -917,18 +918,18 @@ export interface Work {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "WorksBlockType".
+ * via the `definition` "WorksGridBlockType".
  */
-export interface WorksBlockType {
+export interface WorksGridBlockType {
   title?: string | null;
   description?: string | null;
   /**
-   * Select the works to display
+   * Select the works to display in a 3-column grid
    */
   works?: (number | Work)[] | null;
   id?: string | null;
   blockName?: string | null;
-  blockType: 'worksBlock';
+  blockType: 'worksGridBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1271,6 +1272,7 @@ export interface PagesSelect<T extends boolean = true> {
         formBlock?: T | FormBlockSelect<T>;
         projectsBlock?: T | ProjectsBlockTypeSelect<T>;
         richTextBlock?: T | RichTextBlockTypeSelect<T>;
+        worksBlock?: T | WorksBlockTypeSelect<T>;
         worksGridBlock?: T | WorksGridBlockTypeSelect<T>;
       };
   meta?:
@@ -1433,6 +1435,17 @@ export interface RichTextBlockTypeSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "WorksBlockType_select".
+ */
+export interface WorksBlockTypeSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  works?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "WorksGridBlockType_select".
  */
 export interface WorksGridBlockTypeSelect<T extends boolean = true> {
@@ -1517,17 +1530,6 @@ export interface WorksSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "WorksBlockType_select".
- */
-export interface WorksBlockTypeSelect<T extends boolean = true> {
-  title?: T;
-  description?: T;
-  works?: T;
-  id?: T;
-  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
