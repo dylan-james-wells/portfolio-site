@@ -7,6 +7,8 @@ import { Media } from '@/components/Media'
 import { GlitchTextReveal } from '@/components/GlitchTextReveal'
 import { ImageGlitchPan } from '@/components/ImageGlitchPan'
 
+import { WindowReveal } from '@/components/WindowReveal'
+
 export const WorksGridBlock: React.FC<
   WorksGridBlockType & {
     id?: string
@@ -52,43 +54,45 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
   return (
     <Link
       href={`/works/${slug}`}
-      className="group flex flex-row sm:flex-row md:flex-col overflow-hidden rounded-lg border border-border bg-card transition-colors hover:bg-accent"
+      className="group flex flex-row sm:flex-row md:flex-col overflow-hidden rounded-lg transition-colors hover:bg-accent"
     >
-      <div className="aspect-square sm:aspect-square md:aspect-video relative overflow-hidden w-1/3 sm:w-1/3 md:w-full shrink-0">
-        {/* Hero image as background */}
-        {heroImage && typeof heroImage !== 'string' && (
-          <ImageGlitchPan
-            resource={heroImage}
-            alt="Project screenshot"
-            className="h-full"
-            animationDelay={200 * index}
-          />
-        )}
-        {/* Thumbnail image on top */}
-        {thumbnail && typeof thumbnail !== 'string' ? (
-          <Media
-            resource={thumbnail}
-            className="absolute top-0 left-0 z-10 w-full h-full group-hover:scale-105 transition-transform duration-300"
-            imgClassName="w-full h-full object-contain p-4"
-          />
-        ) : (
-          <div className="relative z-10 w-full h-full bg-muted flex items-center justify-center">
-            <GlitchTextReveal>No image</GlitchTextReveal>
-          </div>
-        )}
-      </div>
-      <div className="flex flex-col justify-center p-4">
-        {title && (
-          <h3 className="text-md font-semibold mb-2">
-            <GlitchTextReveal>{title}</GlitchTextReveal>
-          </h3>
-        )}
-        {description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            <GlitchTextReveal>{description}</GlitchTextReveal>
-          </p>
-        )}
-      </div>
+      <WindowReveal>
+        <div className="aspect-square sm:aspect-square md:aspect-video relative overflow-hidden w-1/3 sm:w-1/3 md:w-full shrink-0">
+          {/* Hero image as background */}
+          {heroImage && typeof heroImage !== 'string' && (
+            <ImageGlitchPan
+              resource={heroImage}
+              alt="Project screenshot"
+              className="h-full"
+              animationDelay={200 * index}
+            />
+          )}
+          {/* Thumbnail image on top */}
+          {thumbnail && typeof thumbnail !== 'string' ? (
+            <Media
+              resource={thumbnail}
+              className="absolute top-0 left-0 z-10 w-full h-full group-hover:scale-105 transition-transform duration-300"
+              imgClassName="w-full h-full object-contain p-4"
+            />
+          ) : (
+            <div className="relative z-10 w-full h-full bg-muted flex items-center justify-center">
+              <GlitchTextReveal>No image</GlitchTextReveal>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col justify-center p-4 bg-card">
+          {title && (
+            <h3 className="text-md font-semibold mb-2">
+              <GlitchTextReveal>{title}</GlitchTextReveal>
+            </h3>
+          )}
+          {description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              <GlitchTextReveal>{description}</GlitchTextReveal>
+            </p>
+          )}
+        </div>
+      </WindowReveal>
     </Link>
   )
 }
