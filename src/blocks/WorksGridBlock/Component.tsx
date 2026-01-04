@@ -1,6 +1,8 @@
+'use client'
+
 import type { Work, WorksGridBlockType } from '@/payload-types'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 
 import { Media } from '@/components/Media'
@@ -52,11 +54,14 @@ export const WorksGridBlock: React.FC<
 
 const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
   const { slug, title, thumbnail, heroImage, description } = work
+  const [isHovered, setIsHovered] = useState(false)
 
   return (
     <Link
       href={`/works/${slug}`}
       className="group flex flex-col overflow-hidden rounded-lg transition-colors hover:bg-accent"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <WindowReveal threshold={1} className="w-full">
         <div className="aspect-video relative overflow-hidden w-full">
@@ -74,7 +79,7 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
             <Media
               resource={thumbnail}
               className="absolute top-0 left-0 z-10 w-full h-full group-hover:scale-105 group-hover:blur-sm transition-all duration-300"
-              imgClassName="w-full h-full object-contain p-6"
+              imgClassName="w-full h-full object-contain p-[10%]"
             />
           ) : (
             <div className="relative z-10 w-full h-full bg-muted flex items-center justify-center">
@@ -88,7 +93,7 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
         >
           {title && (
             <h3 className="text-md font-semibold text-center">
-              <GlitchTextReveal>{title}</GlitchTextReveal>
+              <GlitchTextReveal active={isHovered}>{title}</GlitchTextReveal>
             </h3>
           )}
         </div>

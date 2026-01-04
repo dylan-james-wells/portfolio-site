@@ -6,6 +6,7 @@ interface GlitchTextRevealProps {
   children: ReactNode
   className?: string
   threshold?: number // 0-1, how far into viewport before activation (default 0)
+  active?: boolean // When true, continuously plays the glitch animation
 }
 
 // Easing function for smooth animation
@@ -22,6 +23,7 @@ export const GlitchTextReveal: React.FC<GlitchTextRevealProps> = ({
   children,
   className,
   threshold = 0,
+  active = false,
 }) => {
   const containerRef = useRef<HTMLSpanElement>(null)
   const [isInViewport, setIsInViewport] = useState(false)
@@ -134,6 +136,74 @@ export const GlitchTextReveal: React.FC<GlitchTextRevealProps> = ({
       }
     }
   }, [isInViewport])
+
+  // Active mode: continuous glitch animation
+  useEffect(() => {
+    if (!active || !containerRef.current) {
+      // Clean up when active becomes false
+      if (containerRef.current && animationComplete) {
+        containerRef.current.style.textShadow = 'none'
+      }
+      return
+    }
+
+    const ACTIVE_INTENSITY = 0.2 // Lower intensity for active mode
+    const scale = 2.0
+
+    const animateActive = (currentTime: number) => {
+      if (!containerRef.current) return
+
+      const time = currentTime * 0.015
+      const jitter = Math.sin(time * 3) * ACTIVE_INTENSITY
+      const shadows: string[] = []
+
+      // Red channel offset
+      const redX = (Math.sin(time * 7) * 8 + jitter * 4) * ACTIVE_INTENSITY * scale
+      const redY = Math.cos(time * 5) * 4 * ACTIVE_INTENSITY * scale
+      shadows.push(`${hslColor(0, 100, 55)} ${redX}px ${redY}px ${12 * ACTIVE_INTENSITY}px`)
+
+      // Yellow/orange offset
+      const yellowX = (Math.sin(time * 11 + 1) * 6 - jitter * 2) * ACTIVE_INTENSITY * scale
+      const yellowY = Math.cos(time * 8 + 2) * 5 * ACTIVE_INTENSITY * scale
+      shadows.push(`${hslColor(45, 100, 50)} ${yellowX}px ${yellowY}px ${14 * ACTIVE_INTENSITY}px`)
+
+      // Green offset
+      const greenX = Math.cos(time * 9 + 2) * -6 * ACTIVE_INTENSITY * scale
+      const greenY = (Math.sin(time * 6 + 1) * -4 + jitter * 2) * ACTIVE_INTENSITY * scale
+      shadows.push(`${hslColor(120, 90, 45)} ${greenX}px ${greenY}px ${10 * ACTIVE_INTENSITY}px`)
+
+      // Cyan offset
+      const cyanX = Math.sin(time * 13 + 3) * 5 * ACTIVE_INTENSITY * scale
+      const cyanY = (Math.cos(time * 10) * -6 - jitter * 3) * ACTIVE_INTENSITY * scale
+      shadows.push(`${hslColor(180, 100, 50)} ${cyanX}px ${cyanY}px ${12 * ACTIVE_INTENSITY}px`)
+
+      // Blue offset
+      const blueX = (Math.cos(time * 8 + 4) * -8 + jitter * 2) * ACTIVE_INTENSITY * scale
+      const blueY = Math.sin(time * 12 + 3) * 4 * ACTIVE_INTENSITY * scale
+      shadows.push(`${hslColor(220, 100, 55)} ${blueX}px ${blueY}px ${16 * ACTIVE_INTENSITY}px`)
+
+      // Magenta offset
+      const magentaX = Math.sin(time * 6 + 5) * 6 * ACTIVE_INTENSITY * scale
+      const magentaY = (Math.cos(time * 9 + 4) * 5 + jitter) * ACTIVE_INTENSITY * scale
+      shadows.push(
+        `${hslColor(300, 100, 50)} ${magentaX}px ${magentaY}px ${11 * ACTIVE_INTENSITY}px`,
+      )
+
+      containerRef.current.style.textShadow = shadows.join(', ')
+      animationRef.current = requestAnimationFrame(animateActive)
+    }
+
+    animationRef.current = requestAnimationFrame(animateActive)
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+      }
+      if (containerRef.current) {
+        containerRef.current.style.textShadow = 'none'
+      }
+    }
+  }, [active, animationComplete])
 
   return (
     <span

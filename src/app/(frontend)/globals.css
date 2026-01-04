@@ -72,3 +72,28 @@
     @apply font-headline;
   }
 }
+
+@keyframes textShadowCycle {
+  0% {
+    text-shadow: #d92626 0 1px 6px;
+  }
+  20% {
+    text-shadow: #d9bb26 2px 3px 8px;
+  }
+  40% {
+    text-shadow: #62d926 -3px -3px 4px;
+  }
+  60% {
+    text-shadow: #26d980 0 1px 6px;
+  }
+  80% {
+    text-shadow: #269dd9 1px -2px 9px;
+  }
+  100% {
+    text-shadow: #269dd9 3px 0 9px;
+  }
+}
+
+.animate-text-shadow-cycle {
+  animation: textShadowCycle 1s ease-in-out infinite;
+}
