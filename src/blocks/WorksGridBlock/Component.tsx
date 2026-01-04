@@ -73,7 +73,7 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
           {thumbnail && typeof thumbnail !== 'string' ? (
             <Media
               resource={thumbnail}
-              className="absolute top-0 left-0 z-10 w-full h-full group-hover:scale-105 transition-transform duration-300"
+              className="absolute top-0 left-0 z-10 w-full h-full group-hover:scale-105 group-hover:blur-sm transition-all duration-300"
               imgClassName="w-full h-full object-contain p-6"
             />
           ) : (
