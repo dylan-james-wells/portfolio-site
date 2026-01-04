@@ -12,6 +12,7 @@ import { MediaBlock } from '@/blocks/MediaBlock/Component'
 import { ProjectsBlock } from '@/blocks/ProjectsBlock/Component'
 import { RichTextBlockComponent } from '@/blocks/RichTextBlock/Component'
 import { WorksBlock } from '@/blocks/WorksBlock/Component'
+import { WorksGridBlock } from '@/blocks/WorksGridBlock/Component'
 
 const blockComponents = {
   archive: ArchiveBlock,
@@ -24,6 +25,7 @@ const blockComponents = {
   projectsBlock: ProjectsBlock,
   richTextBlock: RichTextBlockComponent,
   worksBlock: WorksBlock,
+  worksGridBlock: WorksGridBlock,
 }
 
 export const RenderBlocks: React.FC<{

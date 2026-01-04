@@ -11,6 +11,8 @@ import { ImageGallery } from '../../blocks/ImageGallery/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
 import { ProjectsBlock } from '../../blocks/ProjectsBlock/config'
 import { RichTextBlock } from '../../blocks/RichTextBlock/config'
+import { WorksBlock } from '@/blocks/WorksBlock/config'
+import { WorksGridBlock } from '../../blocks/WorksGridBlock/config'
 import { hero } from '@/heros/config'
 import { slugField } from 'payload'
 import { populatePublishedAt } from '../../hooks/populatePublishedAt'
@@ -76,7 +78,19 @@ export const Pages: CollectionConfig<'pages'> = {
             {
               name: 'layout',
               type: 'blocks',
-              blocks: [Biography, CallToAction, Content, ImageGallery, MediaBlock, Archive, FormBlock, ProjectsBlock, RichTextBlock],
+              blocks: [
+                Biography,
+                CallToAction,
+                Content,
+                ImageGallery,
+                MediaBlock,
+                Archive,
+                FormBlock,
+                ProjectsBlock,
+                RichTextBlock,
+                WorksBlock,
+                WorksGridBlock,
+              ],
               required: true,
               admin: {
                 initCollapsed: true,
