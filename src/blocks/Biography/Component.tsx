@@ -29,7 +29,7 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
       : undefined
 
   return (
-    <div className={cn('container', className)}>
+    <div className={cn('container select-none', className)}>
       <div className="flex justify-between flex-col md:flex-row items-center gap-8 py-16">
         {/* Text - always first on mobile, uses order for desktop positioning */}
         <div

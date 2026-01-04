@@ -24,7 +24,7 @@ export const ProjectsBlock: React.FC<
   )
 
   return (
-    <div className="my-16" id={`block-${id}`}>
+    <div className="my-16 select-none" id={`block-${id}`}>
       <div className="container">
         {(title || description) && (
           <TextOutline className="inline-block">
@@ -85,7 +85,7 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
       </WindowReveal>
 
       <div className="p-4">
-        <TextOutline className="flex flex-col top-[-8px] md:top-0 justify-center pb-1">
+        <TextOutline className="flex flex-col top-[8px] md:top-0 justify-center pb-1">
           {title && (
             <h3 className="text-xl font-semibold p-4 pb-0">
               <GlitchTextReveal active={isHovered}>{title}</GlitchTextReveal>

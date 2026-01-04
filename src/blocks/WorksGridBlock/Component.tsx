@@ -24,7 +24,7 @@ export const WorksGridBlock: React.FC<
   )
 
   return (
-    <div className="my-16" id={`block-${id}`}>
+    <div className="my-16 select-none" id={`block-${id}`}>
       <div className="container py-8">
         {(title || description) && (
           <TextOutline className="inline-block">
