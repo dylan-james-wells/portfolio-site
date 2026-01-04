@@ -1,6 +1,8 @@
+'use client'
+
 import type { Project, ProjectsBlockType } from '@/payload-types'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 
 import { Media } from '@/components/Media'
@@ -51,9 +53,15 @@ export const ProjectsBlock: React.FC<
 
 const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
   const { slug, title, thumbnail, description } = project
+  const [isHovered, setIsHovered] = useState(false)
 
   return (
-    <Link href={`/projects/${slug}`} className="flex items-center gap-6">
+    <Link
+      href={`/projects/${slug}`}
+      className="flex items-center gap-6"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <WindowReveal>
         <div className="aspect-square relative overflow-hidden rounded-lg w-full md:w-[200px]">
           {thumbnail && typeof thumbnail !== 'string' ? (
@@ -73,7 +81,7 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
         <TextOutline className="flex flex-col justify-center pb-1">
           {title && (
             <h3 className="text-xl font-semibold p-4 pb-0">
-              <GlitchTextReveal>{title}</GlitchTextReveal>
+              <GlitchTextReveal active={isHovered}>{title}</GlitchTextReveal>
             </h3>
           )}
           {description && (
