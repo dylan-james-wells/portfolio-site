@@ -745,11 +745,11 @@ export const HeroSlider: React.FC = () => {
         newPixelation < fadeStart ? 1 : 1 - (newPixelation - fadeStart) / (1 - fadeStart)
       blurMaterial.uniforms.opacity.value = fadeOpacity
 
-      // CodeRain just fades (for now, focusing on pixelText)
+      // CodeRain: fade in during materialization, then stay visible (no scroll fade)
       // @ts-ignore
       if (codeRainOverlay.setOpacity) {
         // @ts-ignore
-        codeRainOverlay.setOpacity(fadeOpacity)
+        codeRainOverlay.setOpacity(materializeProgress)
       }
 
       // Update chromatic aberration based on mouse position
