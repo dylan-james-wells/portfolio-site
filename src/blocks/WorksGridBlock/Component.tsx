@@ -59,7 +59,7 @@ const WorkCard: React.FC<{ work: Work }> = ({ work }) => {
           <Media
             resource={heroImage}
             className="absolute inset-0 w-full h-full object-cover opacity-50"
-            imgClassName="w-full h-full object-cover"
+            imgClassName="h-full object-cover"
           />
         )}
         {/* Thumbnail image on top */}
