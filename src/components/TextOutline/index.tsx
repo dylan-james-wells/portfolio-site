@@ -120,59 +120,41 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
 
       if (mergedLines.length === 0) return
 
-      // Build the outline path as a series of points going clockwise
+      // Build the outline path - container edges for left/top/bottom, jagged right edge
       const points: { x: number; y: number }[] = []
 
-      // Start at top-left of first line, go right along top edges
+      // Container bounds for left, top, bottom edges
+      const leftEdge = 0
+      const topEdge = 0
+      const bottomEdge = containerRect.height
+
+      // Start at top-left corner, go clockwise
+      points.push({ x: leftEdge, y: topEdge })
+
+      // Go right along top to first line's right edge
+      points.push({ x: mergedLines[0].right, y: topEdge })
+
+      // Trace down the jagged right edge
       for (let i = 0; i < mergedLines.length; i++) {
         const line = mergedLines[i]
+        const nextLine = mergedLines[i + 1]
 
-        if (i === 0) {
-          // First line: start at top-left
-          points.push({ x: line.left, y: line.top })
-          points.push({ x: line.right, y: line.top })
+        if (nextLine) {
+          // Step down to bottom of current line
+          points.push({ x: line.right, y: line.bottom })
+          // Step horizontally to next line's right edge
+          points.push({ x: nextLine.right, y: line.bottom })
         } else {
-          const prevLine = mergedLines[i - 1]
-          // Step down from previous line's right edge to current line's top
-          // If current line extends further right, go right on previous bottom first
-          if (line.right > prevLine.right) {
-            points.push({ x: prevLine.right, y: line.top })
-            points.push({ x: line.right, y: line.top })
-          } else {
-            // Current line is narrower, step down on the right side
-            points.push({ x: prevLine.right, y: line.top })
-            points.push({ x: line.right, y: line.top })
-          }
+          // Last line - extend down to container bottom
+          points.push({ x: line.right, y: bottomEdge })
         }
       }
 
-      // Now at top-right of last line, go down the right edge
-      const lastLine = mergedLines[mergedLines.length - 1]
-      points.push({ x: lastLine.right, y: lastLine.bottom })
+      // Go left along bottom
+      points.push({ x: leftEdge, y: bottomEdge })
 
-      // Go left along bottom edges (in reverse)
-      for (let i = mergedLines.length - 1; i >= 0; i--) {
-        const line = mergedLines[i]
-
-        if (i === mergedLines.length - 1) {
-          // Last line: we're already at bottom-right, add bottom-left
-          points.push({ x: line.left, y: line.bottom })
-        } else {
-          const nextLine = mergedLines[i + 1] // "next" in original order, below current
-          // Step up from next line's left edge to current line's bottom
-          if (line.left < nextLine.left) {
-            points.push({ x: nextLine.left, y: line.bottom })
-            points.push({ x: line.left, y: line.bottom })
-          } else {
-            points.push({ x: nextLine.left, y: line.bottom })
-            points.push({ x: line.left, y: line.bottom })
-          }
-        }
-      }
-
-      // Close back to start (top-left of first line)
-      const firstLine = mergedLines[0]
-      points.push({ x: firstLine.left, y: firstLine.top })
+      // Close path back to start
+      points.push({ x: leftEdge, y: topEdge })
 
       // Draw the path
       if (points.length < 3) return
