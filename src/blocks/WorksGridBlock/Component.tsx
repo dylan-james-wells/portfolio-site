@@ -56,10 +56,10 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
   return (
     <Link
       href={`/works/${slug}`}
-      className="group flex flex-row sm:flex-row md:flex-col overflow-hidden rounded-lg transition-colors hover:bg-accent"
+      className="group flex flex-col overflow-hidden rounded-lg transition-colors hover:bg-accent"
     >
       <WindowReveal threshold={1} className="w-full">
-        <div className="aspect-square sm:aspect-square md:aspect-video relative overflow-hidden w-1/3 sm:w-1/3 md:w-full shrink-0">
+        <div className="aspect-video relative overflow-hidden w-full">
           {/* Hero image as background */}
           {heroImage && typeof heroImage !== 'string' && (
             <ImageGlitchPan
