@@ -79,7 +79,7 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
       </div>
       <div className="flex flex-col justify-center p-4">
         {title && (
-          <h3 className="text-lg font-semibold mb-2">
+          <h3 className="text-md font-semibold mb-2">
             <GlitchTextReveal>{title}</GlitchTextReveal>
           </h3>
         )}
