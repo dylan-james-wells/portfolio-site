@@ -29,7 +29,7 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
 
   return (
     <div className={cn('container', className)}>
-      <div className="flex justify-between flex-col md:flex-row items-center gap-8">
+      <div className="flex justify-between flex-col md:flex-row items-center gap-8 py-16">
         {/* Text - always first on mobile, uses order for desktop positioning */}
         <div
           className={cn('w-full md:w-1/2', {
@@ -37,10 +37,10 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
             'md:order-1': !isMediaLeft,
           })}
         >
-          <h2 className="text-3xl font-bold mb-4">
-            <GlitchTextReveal>{title}</GlitchTextReveal>
+          <h2 className="text-3xl font-bold">
+            <GlitchTextReveal className="relative p-4 pb-0 inline-block">{title}</GlitchTextReveal>
           </h2>
-          <GlitchTextReveal>
+          <GlitchTextReveal className="p-4 inline-block">
             <RichText data={body} enableGutter={false} />
           </GlitchTextReveal>
         </div>

@@ -20,7 +20,7 @@ export const WorksBlock: React.FC<
 
   return (
     <div className="my-16" id={`block-${id}`}>
-      <div className="container">
+      <div className="container py-8">
         {(title || description) && (
           <div className="mb-12">
             {title && (

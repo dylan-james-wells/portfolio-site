@@ -5,6 +5,7 @@ import Link from 'next/link'
 
 import { Media } from '@/components/Media'
 import { GlitchTextReveal } from '@/components/GlitchTextReveal'
+import { WindowReveal } from '@/components/WindowReveal'
 
 export const ProjectsBlock: React.FC<
   ProjectsBlockType & {
@@ -20,7 +21,7 @@ export const ProjectsBlock: React.FC<
 
   return (
     <div className="my-16" id={`block-${id}`}>
-      <div className="container">
+      <div className="container py-8">
         {(title || description) && (
           <div className="mb-12">
             {title && (
@@ -50,18 +51,21 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
 
   return (
     <Link href={`/projects/${slug}`} className="flex gap-6">
-      <div className="aspect-square relative overflow-hidden rounded-lg w-full md:w-[200px]">
-        {thumbnail && typeof thumbnail !== 'string' ? (
-          <Media
-            resource={thumbnail}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center">
-            <GlitchTextReveal>No image</GlitchTextReveal>
-          </div>
-        )}
-      </div>
+      <WindowReveal>
+        <div className="aspect-square relative overflow-hidden rounded-lg w-full md:w-[200px]">
+          {thumbnail && typeof thumbnail !== 'string' ? (
+            <Media
+              resource={thumbnail}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="w-full h-full bg-muted flex items-center justify-center">
+              <GlitchTextReveal>No image</GlitchTextReveal>
+            </div>
+          )}
+        </div>
+      </WindowReveal>
+
       <div className="flex flex-col justify-center py-4 pr-4">
         {title && (
           <h3 className="text-xl font-semibold mb-2">

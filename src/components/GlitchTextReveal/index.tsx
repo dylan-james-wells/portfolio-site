@@ -141,7 +141,6 @@ export const GlitchTextReveal: React.FC<GlitchTextRevealProps> = ({
       className={className}
       style={{
         opacity: animationComplete ? 1 : 0,
-        display: 'inline',
         color: 'inherit',
         WebkitTextFillColor: 'inherit',
       }}
