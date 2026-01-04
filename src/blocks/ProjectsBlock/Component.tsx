@@ -53,7 +53,7 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
   const { slug, title, thumbnail, description } = project
 
   return (
-    <Link href={`/projects/${slug}`} className="flex gap-6">
+    <Link href={`/projects/${slug}`} className="flex items-center gap-6">
       <WindowReveal>
         <div className="aspect-square relative overflow-hidden rounded-lg w-full md:w-[200px]">
           {thumbnail && typeof thumbnail !== 'string' ? (
