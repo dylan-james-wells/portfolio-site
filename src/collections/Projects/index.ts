@@ -36,6 +36,7 @@ export const Projects: CollectionConfig<'projects'> = {
     slug: true,
     categories: true,
     thumbnail: true,
+    heroImage: true,
     description: true,
     meta: {
       image: true,
