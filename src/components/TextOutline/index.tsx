@@ -120,19 +120,22 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
 
       if (mergedLines.length === 0) return
 
-      // Build the outline path - container edges for left/top/bottom, jagged right edge
+      // Calculate padding from the left edge of the first text line
+      const leftPadding = Math.min(...mergedLines.map((l) => l.left))
+      const topPadding = mergedLines[0].top
+
+      // Build the outline path - container edges for left/top, jagged right edge with padding
       const points: { x: number; y: number }[] = []
 
-      // Container bounds for left, top, bottom edges
+      // Container bounds for left, top edges
       const leftEdge = 0
       const topEdge = 0
-      const bottomEdge = containerRect.height
 
       // Start at top-left corner, go clockwise
       points.push({ x: leftEdge, y: topEdge })
 
-      // Go right along top to first line's right edge
-      points.push({ x: mergedLines[0].right, y: topEdge })
+      // Go right along top to first line's right edge + padding
+      points.push({ x: mergedLines[0].right + leftPadding, y: topEdge })
 
       // Trace down the jagged right edge
       for (let i = 0; i < mergedLines.length; i++) {
@@ -141,17 +144,18 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
 
         if (nextLine) {
           // Step down to bottom of current line
-          points.push({ x: line.right, y: line.bottom })
-          // Step horizontally to next line's right edge
-          points.push({ x: nextLine.right, y: line.bottom })
+          points.push({ x: line.right + leftPadding, y: line.bottom })
+          // Step horizontally to next line's right edge + padding
+          points.push({ x: nextLine.right + leftPadding, y: line.bottom })
         } else {
-          // Last line - extend down to container bottom
-          points.push({ x: line.right, y: bottomEdge })
+          // Last line - extend down with padding
+          points.push({ x: line.right + leftPadding, y: line.bottom + topPadding })
         }
       }
 
-      // Go left along bottom
-      points.push({ x: leftEdge, y: bottomEdge })
+      // Go left along bottom (with padding below last line)
+      const lastLine = mergedLines[mergedLines.length - 1]
+      points.push({ x: leftEdge, y: lastLine.bottom + topPadding })
 
       // Close path back to start
       points.push({ x: leftEdge, y: topEdge })
