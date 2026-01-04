@@ -5,6 +5,7 @@ import Link from 'next/link'
 
 import { Media } from '@/components/Media'
 import { GlitchTextReveal } from '@/components/GlitchTextReveal'
+import { ImageGlitchPan } from '@/components/ImageGlitchPan'
 
 export const WorksGridBlock: React.FC<
   WorksGridBlockType & {
@@ -56,10 +57,16 @@ const WorkCard: React.FC<{ work: Work }> = ({ work }) => {
       <div className="aspect-square sm:aspect-square md:aspect-video relative overflow-hidden w-1/3 sm:w-1/3 md:w-full shrink-0">
         {/* Hero image as background */}
         {heroImage && typeof heroImage !== 'string' && (
-          <Media
+          // <Media
+          //   resource={heroImage}
+          //   className="absolute inset-0 w-full h-full object-cover opacity-50"
+          //   imgClassName="h-full object-cover"
+          // />
+          <ImageGlitchPan
             resource={heroImage}
-            className="absolute inset-0 w-full h-full object-cover opacity-50"
-            imgClassName="h-full object-cover"
+            alt="Project screenshot"
+            className="h-[300px]"
+            animationDelay={200}
           />
         )}
         {/* Thumbnail image on top */}

@@ -51,6 +51,8 @@ const config = {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'image-pan': 'image-pan 24s linear infinite',
+        'glitch-pan': 'glitch-pan 3s linear infinite',
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -108,6 +110,21 @@ const config = {
         'accordion-up': {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
+        },
+        'image-pan': {
+          '0%': { transform: 'translate3d(-50%, 0, 0)' },
+          '25%': { transform: 'translate3d(-30%, 0, 0)' },
+          '50%': { transform: 'translate3d(-50%, 0, 0)' },
+          '75%': { transform: 'translate3d(-70%, 0, 0)' },
+          '100%': { transform: 'translate3d(-50%, 0, 0)' },
+        },
+        'glitch-pan': {
+          '0%': { backgroundPosition: '0 0', filter: 'hue-rotate(0deg)' },
+          '10%': { backgroundPosition: '15px 0' },
+          '15%': { backgroundPosition: '-15px 0' },
+          '20%': { filter: 'hue-rotate(360deg)' },
+          '25%': { backgroundPosition: '0 0', filter: 'hue-rotate(0deg)' },
+          '100%': { backgroundPosition: '0 0', filter: 'hue-rotate(0deg)' },
         },
       },
       typography: () => ({
