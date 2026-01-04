@@ -117,7 +117,7 @@ export const ImageGalleryBlock: React.FC<Props> = (props) => {
   const activeMedia = activeImage?.image as Media | undefined
 
   return (
-    <div className={cn('container my-16', className)}>
+    <div className={cn('my-16', className)}>
       {/* Gallery Container */}
       <div className={cn(getLayoutClasses())}>
         {images.map((item, index) => {

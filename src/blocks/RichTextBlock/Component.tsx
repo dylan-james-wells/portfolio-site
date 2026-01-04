@@ -7,7 +7,7 @@ export const RichTextBlockComponent: React.FC<RichTextBlockType> = ({ content })
   if (!content) return null
 
   return (
-    <div className="container my-16">
+    <div className="my-16">
       <RichText data={content} enableGutter={false} />
     </div>
   )
