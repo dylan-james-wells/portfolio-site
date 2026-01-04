@@ -65,7 +65,7 @@ const WorkCard: React.FC<{ work: Work }> = ({ work }) => {
           <ImageGlitchPan
             resource={heroImage}
             alt="Project screenshot"
-            className="h-[300px]"
+            className="h-full"
             animationDelay={200}
           />
         )}
@@ -73,7 +73,7 @@ const WorkCard: React.FC<{ work: Work }> = ({ work }) => {
         {thumbnail && typeof thumbnail !== 'string' ? (
           <Media
             resource={thumbnail}
-            className="relative z-10 w-full h-full group-hover:scale-105 transition-transform duration-300"
+            className="absolute top-0 left-0 z-10 w-full h-full group-hover:scale-105 transition-transform duration-300"
             imgClassName="w-full h-full object-contain p-4"
           />
         ) : (
