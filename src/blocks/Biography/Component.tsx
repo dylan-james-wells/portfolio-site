@@ -9,6 +9,7 @@ import { getMediaUrl } from '@/utilities/getMediaUrl'
 
 import { WindowReveal } from '@/components/WindowReveal'
 import { GlitchTextReveal } from '@/components/GlitchTextReveal'
+import { TextOutline } from '@/components/TextOutline'
 
 type Props = {
   className?: string
@@ -37,12 +38,14 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
             'md:order-1': !isMediaLeft,
           })}
         >
-          <h2 className="text-3xl font-bold">
-            <GlitchTextReveal className="relative p-4 pb-0 inline-block">{title}</GlitchTextReveal>
-          </h2>
-          <GlitchTextReveal className="p-4 inline-block">
-            <RichText data={body} enableGutter={false} />
-          </GlitchTextReveal>
+          <TextOutline className="inline-block">
+            <h2 className="text-3xl font-bold">
+              <GlitchTextReveal className="relative p-4 pb-0 inline-block">{title}</GlitchTextReveal>
+            </h2>
+            <GlitchTextReveal className="p-4 inline-block">
+              <RichText data={body} enableGutter={false} />
+            </GlitchTextReveal>
+          </TextOutline>
         </div>
         {/* Media - second on mobile, uses order for desktop positioning */}
         <div
