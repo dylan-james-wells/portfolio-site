@@ -320,10 +320,59 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     }
 
     // ============================================
-    // Thumbnail (centered, behind text)
+    // Thumbnail Coin (cylinder with textured caps)
     // ============================================
-    let thumbnailMesh: THREE.Mesh | null = null
+    let thumbnailGroup: THREE.Group | null = null
+    let thumbnailCylinder: THREE.Mesh | null = null
+    let frontCap: THREE.Mesh | null = null
+    let backCap: THREE.Mesh | null = null
     const thumbnailUrl = typeof thumbnail === 'object' && thumbnail?.url ? thumbnail.url : null
+
+    // Helper to get dominant color from image
+    const getDominantColor = (img: HTMLImageElement): number => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return 0x333333
+
+      // Sample at a smaller size for performance
+      const sampleSize = 50
+      canvas.width = sampleSize
+      canvas.height = sampleSize
+      ctx.drawImage(img, 0, 0, sampleSize, sampleSize)
+
+      const imageData = ctx.getImageData(0, 0, sampleSize, sampleSize)
+      const data = imageData.data
+
+      // Count colors (simplified - bucket by rounding to nearest 16)
+      const colorCounts: { [key: string]: number } = {}
+      let maxCount = 0
+      let dominantColor = { r: 51, g: 51, b: 51 } // Default gray
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i]
+        const g = data[i + 1]
+        const b = data[i + 2]
+        const a = data[i + 3]
+
+        // Skip transparent or near-transparent pixels
+        if (a < 128) continue
+
+        // Skip very dark or very light pixels (likely background)
+        const brightness = (r + g + b) / 3
+        if (brightness < 30 || brightness > 240) continue
+
+        // Bucket colors
+        const key = `${Math.round(r / 16) * 16},${Math.round(g / 16) * 16},${Math.round(b / 16) * 16}`
+        colorCounts[key] = (colorCounts[key] || 0) + 1
+
+        if (colorCounts[key] > maxCount) {
+          maxCount = colorCounts[key]
+          dominantColor = { r, g, b }
+        }
+      }
+
+      return (dominantColor.r << 16) | (dominantColor.g << 8) | dominantColor.b
+    }
 
     if (thumbnailUrl) {
       const thumbImg = new Image()
@@ -331,41 +380,66 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       thumbImg.onload = () => {
         const texture = new THREE.Texture(thumbImg)
         texture.needsUpdate = true
-        // Don't set colorSpace - output as-is with LinearSRGBColorSpace renderer
 
-        const imgWidth = thumbImg.width
-        const imgHeight = thumbImg.height
-        const imgAspect = imgWidth / imgHeight
+        // Get dominant color for edge
+        const edgeColor = getDominantColor(thumbImg)
 
-        // Target 150px square, object-fit contain
+        // Target size in pixels
         const targetSizePx = 150
         const { visibleWidth } = getVisibleDimensions(
           container.clientWidth / container.clientHeight,
         )
-        const targetSizeWorld = (targetSizePx / container.clientWidth) * visibleWidth
+        const radius = ((targetSizePx / 2) / container.clientWidth) * visibleWidth
+        const depth = radius * 0.3 // Coin thickness
 
-        let planeWidth: number
-        let planeHeight: number
+        // Create a group to hold the coin parts
+        thumbnailGroup = new THREE.Group()
+        thumbnailGroup.position.z = -1.2 // Push back to avoid clipping with text
 
-        if (imgAspect > 1) {
-          // Wide image
-          planeWidth = targetSizeWorld
-          planeHeight = targetSizeWorld / imgAspect
-        } else {
-          // Tall image
-          planeHeight = targetSizeWorld
-          planeWidth = targetSizeWorld * imgAspect
-        }
+        // Cylinder for the edge (no caps - we'll add custom ones)
+        // Use slightly smaller radius so edge sits behind the caps cleanly
+        const edgeRadius = radius * 0.995
+        const cylinderGeometry = new THREE.CylinderGeometry(
+          edgeRadius,
+          edgeRadius,
+          depth,
+          128, // high radial segments for smooth edge
+          1,
+          true, // open-ended (no caps)
+        )
+        const edgeMaterial = new THREE.MeshBasicMaterial({
+          color: edgeColor,
+          side: THREE.DoubleSide,
+        })
+        thumbnailCylinder = new THREE.Mesh(cylinderGeometry, edgeMaterial)
+        // Rotate so the flat faces point towards/away from camera
+        thumbnailCylinder.rotation.x = Math.PI / 2
+        thumbnailGroup.add(thumbnailCylinder)
 
-        const thumbGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight)
-        const thumbMaterial = new THREE.MeshBasicMaterial({
+        // Front cap (facing camera) - use CircleGeometry for flat texture mapping
+        const frontCapGeometry = new THREE.CircleGeometry(radius, 128)
+        const frontCapMaterial = new THREE.MeshBasicMaterial({
           map: texture,
           transparent: true,
+          side: THREE.FrontSide,
         })
+        frontCap = new THREE.Mesh(frontCapGeometry, frontCapMaterial)
+        frontCap.position.z = depth / 2
+        thumbnailGroup.add(frontCap)
 
-        thumbnailMesh = new THREE.Mesh(thumbGeometry, thumbMaterial)
-        thumbnailMesh.position.z = -0.5
-        scene.add(thumbnailMesh)
+        // Back cap (facing away) - use CircleGeometry for flat texture mapping
+        const backCapGeometry = new THREE.CircleGeometry(radius, 128)
+        const backCapMaterial = new THREE.MeshBasicMaterial({
+          map: texture,
+          transparent: true,
+          side: THREE.FrontSide,
+        })
+        backCap = new THREE.Mesh(backCapGeometry, backCapMaterial)
+        backCap.position.z = -depth / 2
+        backCap.rotation.y = Math.PI // Flip to face the other direction
+        thumbnailGroup.add(backCap)
+
+        scene.add(thumbnailGroup)
       }
       thumbImg.src = thumbnailUrl
     }
@@ -514,26 +588,27 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         bgMat.uniforms.containerAspect.value = aspect
       }
 
-      // Resize thumbnail
+      // Resize thumbnail coin
       const { visibleWidth: vw } = getVisibleDimensions(aspect)
-      if (thumbnailMesh && thumbnail && typeof thumbnail === 'object' && thumbnail.url) {
-        const imgAspect = (thumbnail.width || 1) / (thumbnail.height || 1)
+      if (thumbnailGroup && thumbnailCylinder && frontCap && backCap) {
         const targetSizePx = 150
-        const targetSizeWorld = (targetSizePx / width) * vw
+        const newRadius = ((targetSizePx / 2) / width) * vw
+        const newEdgeRadius = newRadius * 0.995
+        const newDepth = newRadius * 0.3
 
-        let planeWidth: number
-        let planeHeight: number
+        // Recreate geometries with new radius
+        thumbnailCylinder.geometry.dispose()
+        thumbnailCylinder.geometry = new THREE.CylinderGeometry(
+          newEdgeRadius, newEdgeRadius, newDepth, 128, 1, true
+        )
 
-        if (imgAspect > 1) {
-          planeWidth = targetSizeWorld
-          planeHeight = targetSizeWorld / imgAspect
-        } else {
-          planeHeight = targetSizeWorld
-          planeWidth = targetSizeWorld * imgAspect
-        }
+        frontCap.geometry.dispose()
+        frontCap.geometry = new THREE.CircleGeometry(newRadius, 128)
+        frontCap.position.z = newDepth / 2
 
-        thumbnailMesh.geometry.dispose()
-        thumbnailMesh.geometry = new THREE.PlaneGeometry(planeWidth, planeHeight)
+        backCap.geometry.dispose()
+        backCap.geometry = new THREE.CircleGeometry(newRadius, 128)
+        backCap.position.z = -newDepth / 2
       }
     }
     window.addEventListener('resize', handleResize)
@@ -583,11 +658,26 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       const scrollOffsetWorld = scrollProgress * visibleHeight * 1
       textGroup.position.y = -visibleHeight / 2 + bottomOffsetWorld + scrollOffsetWorld
 
-      // Update background zoom based on scroll
+      // Update background zoom based on scroll (but keep position fixed)
       if (backgroundMesh) {
         const bgMat = backgroundMesh.material as THREE.ShaderMaterial
         // Zoom from 1.0 to 1.3 as we scroll
         bgMat.uniforms.zoom.value = 1.0 + scrollProgress * 0.3
+        // Ensure background stays at y = 0 (fixed position)
+        backgroundMesh.position.set(0, 0, -2)
+      }
+
+      // Ensure camera stays fixed
+      camera.position.set(0, 0, 5)
+
+      // Animate thumbnail coin rotation and scroll movement
+      if (thumbnailGroup) {
+        thumbnailGroup.rotation.y = elapsedTime * 0.5
+        thumbnailGroup.rotation.x = Math.sin(elapsedTime * 0.3) * 0.2
+        // Move up as we scroll (similar to text but at a different rate for parallax)
+        // Start from center (y=0) and move up as we scroll
+        const thumbnailScrollOffset = scrollProgress * visibleHeight * 0.7
+        thumbnailGroup.position.y = thumbnailScrollOffset
       }
 
       renderer.render(scene, camera)
@@ -613,9 +703,17 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         ;(backgroundMesh.material as THREE.Material).dispose()
       }
 
-      if (thumbnailMesh) {
-        thumbnailMesh.geometry.dispose()
-        ;(thumbnailMesh.material as THREE.Material).dispose()
+      if (thumbnailCylinder) {
+        thumbnailCylinder.geometry.dispose()
+        ;(thumbnailCylinder.material as THREE.Material).dispose()
+      }
+      if (frontCap) {
+        frontCap.geometry.dispose()
+        ;(frontCap.material as THREE.Material).dispose()
+      }
+      if (backCap) {
+        backCap.geometry.dispose()
+        ;(backCap.material as THREE.Material).dispose()
       }
 
       renderer.dispose()
