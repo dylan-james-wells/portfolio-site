@@ -422,7 +422,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
 
         // Create a group to hold the coin parts
         thumbnailGroup = new THREE.Group()
-        thumbnailGroup.position.z = -1.2 // Push back to avoid clipping with text
+        // Position will be set in animation loop to align with text
 
         // Cylinder for the edge (no caps - we'll add custom ones)
         // Use slightly smaller radius so edge sits behind the caps cleanly
@@ -705,14 +705,55 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       // Ensure camera stays fixed
       camera.position.set(0, 0, 5)
 
-      // Animate thumbnail coin rotation and scroll movement
+      // Animate thumbnail coin rotation and position (aligned to left of text)
       if (thumbnailGroup) {
+        // Only rotate around Y axis (spin like a coin), no X tilt
         thumbnailGroup.rotation.y = elapsedTime * 0.5
-        thumbnailGroup.rotation.x = Math.sin(elapsedTime * 0.3) * 0.2
-        // Move up as we scroll (similar to text but at a different rate for parallax)
-        // Start from center (y=0) and move up as we scroll
-        const thumbnailScrollOffset = scrollProgress * visibleHeight * 0.7
-        thumbnailGroup.position.y = thumbnailScrollOffset
+        thumbnailGroup.rotation.x = 0
+
+        // Calculate thumbnail radius (same as in creation and resize)
+        const targetSizePx = 150
+        const { visibleWidth } = getVisibleDimensions(aspect)
+        const thumbnailRadius = (targetSizePx / 2 / currentViewportWidth) * visibleWidth
+
+        // Align X to left of text - position thumbnail so its right edge is at the text's left edge
+        // Add a larger gap between thumbnail and text
+        const gapPx = 48 // 48px gap between thumbnail and text
+        const gapWorld = (gapPx / currentViewportWidth) * visibleWidth
+        const marginPx = calculateContentLeftMargin(currentViewportWidth)
+        const marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
+        const textLeftEdge = -visibleWidth / 2 + marginLeftWorld
+        thumbnailGroup.position.x = textLeftEdge - thumbnailRadius - gapWorld
+
+        // Align Y to be vertically centered with the entire text block
+        // Text anchor is at bottom-left, so we need to calculate total text height
+        const fontSizePx = getFontSizeForBreakpoint(
+          currentViewportWidth,
+          tailwindScreens,
+          fontSizeBreakpoints,
+          32,
+        )
+        const fontSizeWorld = (fontSizePx / currentViewportWidth) * visibleWidth
+
+        // Get actual text bounds from the front text mesh if available
+        const frontTextMesh = textMeshes[0]
+        let textHeight = fontSizeWorld * 2 // Default to 2 lines
+        if (frontTextMesh && frontTextMesh.textRenderInfo) {
+          const bounds = frontTextMesh.textRenderInfo.blockBounds
+          if (bounds) {
+            // blockBounds is [minX, minY, maxX, maxY] in local units
+            textHeight = bounds[3] - bounds[1]
+          }
+        }
+
+        // Text bottom edge is at bottomOffsetWorld from viewport bottom
+        // Text center is at bottomOffsetWorld + textHeight/2
+        const textCenterY = -visibleHeight / 2 + bottomOffsetWorld + textHeight / 2
+        const thumbnailScrollOffset = scrollProgress * visibleHeight * 1
+        thumbnailGroup.position.y = textCenterY + thumbnailScrollOffset
+
+        // No z offset needed since thumbnail and text no longer intersect
+        thumbnailGroup.position.z = 0
       }
 
       renderer.render(scene, camera)
