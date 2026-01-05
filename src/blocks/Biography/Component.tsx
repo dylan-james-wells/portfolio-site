@@ -38,7 +38,7 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
             'md:order-1': !isMediaLeft,
           })}
         >
-          <TextOutline className="inline-block">
+          <TextOutline className="inline-block" useNoiseGradient>
             <h2 className="text-3xl font-bold">
               <GlitchTextReveal className="relative p-4 pb-0 inline-block">{title}</GlitchTextReveal>
             </h2>

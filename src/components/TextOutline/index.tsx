@@ -10,6 +10,7 @@ interface TextOutlineProps {
   borderColor?: string
   borderWidth?: number
   threshold?: number // 0-1, how far into viewport before activation (default 0)
+  useNoiseGradient?: boolean // Use animated noise gradient background instead of flat color
 }
 
 interface LineRect {
@@ -26,10 +27,13 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
   borderColor = 'white',
   borderWidth = 2,
   threshold = 0,
+  useNoiseGradient = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const gradientRef = useRef<HTMLDivElement>(null)
   const [animationState, setAnimationState] = useState<'hidden' | 'ready' | 'animating'>('hidden')
+  const [clipPath, setClipPath] = useState<string>('')
 
   // Track viewport intersection
   useEffect(() => {
@@ -59,29 +63,31 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
   }, [threshold, animationState])
 
   useEffect(() => {
-    const drawOutline = () => {
-      const container = containerRef.current
-      const canvas = canvasRef.current
-      if (!container || !canvas) return
+    const container = containerRef.current
+    const canvas = canvasRef.current
+    if (!container || !canvas) return
 
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
 
+    // Cache computed values
+    let cachedPoints: { x: number; y: number }[] = []
+    let cachedWidth = 0
+    let cachedHeight = 0
+    let resolvedBorderColor = ''
+
+    const computeOutlinePath = () => {
       const containerRect = container.getBoundingClientRect()
 
       // Set canvas size to match container
       canvas.width = containerRect.width
       canvas.height = containerRect.height
-
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      cachedWidth = containerRect.width
+      cachedHeight = containerRect.height
 
       // Resolve CSS custom properties for canvas
       const computedStyle = getComputedStyle(container)
-      const resolvedBackgroundColor = backgroundColor.includes('var(')
-        ? `hsl(${computedStyle.getPropertyValue(backgroundColor.match(/var\((--[^)]+)\)/)?.[1] || '')})`
-        : backgroundColor
-      const resolvedBorderColor = borderColor.includes('var(')
+      resolvedBorderColor = borderColor.includes('var(')
         ? `hsl(${computedStyle.getPropertyValue(borderColor.match(/var\((--[^)]+)\)/)?.[1] || '')})`
         : borderColor
 
@@ -123,7 +129,11 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
         })
       }
 
-      if (allRects.length === 0) return
+      if (allRects.length === 0) {
+        cachedPoints = []
+        setClipPath('')
+        return
+      }
 
       // Sort rectangles by vertical position
       allRects.sort((a, b) => a.top - b.top)
@@ -157,7 +167,11 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
         }
       })
 
-      if (mergedLines.length === 0) return
+      if (mergedLines.length === 0) {
+        cachedPoints = []
+        setClipPath('')
+        return
+      }
 
       // Calculate padding from the left edge of the first text line
       const leftPadding = Math.min(...mergedLines.map((l) => l.left))
@@ -209,21 +223,55 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
       // Close path back to start
       points.push({ x: leftEdge, y: topEdge })
 
-      // Draw the path
-      if (points.length < 3) return
+      cachedPoints = points
 
+      // Generate CSS clip-path polygon for the gradient div
+      if (useNoiseGradient && cachedWidth > 0 && cachedHeight > 0) {
+        const polygonPoints = points
+          .map((p) => `${(p.x / cachedWidth) * 100}% ${(p.y / cachedHeight) * 100}%`)
+          .join(', ')
+        setClipPath(`polygon(${polygonPoints})`)
+      }
+    }
+
+    const drawOutline = () => {
+      if (!ctx || cachedPoints.length < 3) return
+
+      // Clear canvas
+      ctx.clearRect(0, 0, cachedWidth, cachedHeight)
+
+      // For noise gradient mode, only draw the border on canvas
+      // The gradient background is handled by the CSS div with clip-path
+      if (!useNoiseGradient) {
+        // Build the clipping path and fill
+        ctx.save()
+        ctx.beginPath()
+        ctx.moveTo(cachedPoints[0].x, cachedPoints[0].y)
+        for (let i = 1; i < cachedPoints.length; i++) {
+          ctx.lineTo(cachedPoints[i].x, cachedPoints[i].y)
+        }
+        ctx.closePath()
+
+        // Resolve CSS custom properties for canvas
+        const computedStyle = getComputedStyle(container)
+        const resolvedBackgroundColor = backgroundColor.includes('var(')
+          ? `hsl(${computedStyle.getPropertyValue(backgroundColor.match(/var\((--[^)]+)\)/)?.[1] || '')})`
+          : backgroundColor
+
+        // Fill with background color
+        ctx.fillStyle = resolvedBackgroundColor
+        ctx.fill()
+        ctx.restore()
+      }
+
+      // Draw the border
       ctx.beginPath()
-      ctx.moveTo(points[0].x, points[0].y)
-      for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(points[i].x, points[i].y)
+      ctx.moveTo(cachedPoints[0].x, cachedPoints[0].y)
+      for (let i = 1; i < cachedPoints.length; i++) {
+        ctx.lineTo(cachedPoints[i].x, cachedPoints[i].y)
       }
       ctx.closePath()
 
-      // Fill with background color
-      ctx.fillStyle = resolvedBackgroundColor
-      ctx.fill()
-
-      // Draw border
       ctx.strokeStyle = resolvedBorderColor
       ctx.lineWidth = borderWidth
       ctx.lineJoin = 'miter'
@@ -231,25 +279,32 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
       ctx.stroke()
     }
 
-    // Initial draw with a small delay to ensure text is rendered
-    const timeoutId = setTimeout(drawOutline, 50)
+    // Initial compute and draw with a small delay to ensure text is rendered
+    const timeoutId = setTimeout(() => {
+      computeOutlinePath()
+      drawOutline()
+    }, 50)
 
     // Redraw on window resize
-    const handleResize = () => drawOutline()
+    const handleResize = () => {
+      computeOutlinePath()
+      drawOutline()
+    }
     window.addEventListener('resize', handleResize)
 
     // Observe size changes in container
-    const resizeObserver = new ResizeObserver(drawOutline)
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current)
-    }
+    const resizeObserver = new ResizeObserver(() => {
+      computeOutlinePath()
+      drawOutline()
+    })
+    resizeObserver.observe(container)
 
     return () => {
       clearTimeout(timeoutId)
       window.removeEventListener('resize', handleResize)
       resizeObserver.disconnect()
     }
-  }, [backgroundColor, borderColor, borderWidth, children])
+  }, [backgroundColor, borderColor, borderWidth, children, useNoiseGradient])
 
   // Compute canvas styles based on animation state
   const getCanvasStyle = (): React.CSSProperties => {
@@ -278,6 +333,22 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
 
   return (
     <div ref={containerRef} className={cn('relative', className)}>
+      {/* CSS gradient div with clip-path - contains overflow:hidden wrapper for noise */}
+      {useNoiseGradient && clipPath && (
+        <div
+          ref={gradientRef}
+          className="absolute inset-0 bg-noise-gradient-clipped pointer-events-none overflow-hidden"
+          style={{
+            ...getCanvasStyle(),
+            transformOrigin: 'center',
+            clipPath,
+          }}
+        >
+          {/* Noise overlay - inside the clipped container with overflow:hidden */}
+          <div className="noise-overlay-clipped" />
+        </div>
+      )}
+      {/* Canvas for border (and solid fill when not using noise gradient) */}
       <canvas
         ref={canvasRef}
         className="absolute top-0 left-0 pointer-events-none"

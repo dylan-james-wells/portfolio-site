@@ -190,3 +190,27 @@
   position: relative;
   z-index: 2;
 }
+
+/* Clipped noise gradient for TextOutline component - base layer only, noise added inline */
+.bg-noise-gradient-clipped {
+  background-color: hsl(var(--card));
+  background-image:
+    radial-gradient(ellipse at 20% 0%, hsl(249 23% 18% / 0.8) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, hsl(249 23% 15% / 0.6) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, hsl(249 23% 12% / 0.4) 0%, transparent 70%);
+}
+
+/* Noise overlay element for clipped gradients */
+.noise-overlay-clipped {
+  position: absolute;
+  top: -300%;
+  left: -150%;
+  height: 600%;
+  width: 600%;
+  background-image: url('/noise.png');
+  background-size: 200px;
+  background-repeat: repeat;
+  opacity: 0.15;
+  pointer-events: none;
+  animation: grain 7s steps(10) infinite;
+}

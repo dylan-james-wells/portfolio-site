@@ -28,7 +28,7 @@ export const ProjectsBlock: React.FC<
     <div className="my-16 select-none" id={`block-${id}`}>
       <div className="container">
         {(title || description) && (
-          <TextOutline className="inline-block">
+          <TextOutline className="inline-block" useNoiseGradient>
             <div className="mb-12 p-4">
               {title && (
                 <h2 className="text-3xl font-bold mb-4">
@@ -86,7 +86,7 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
       </WindowReveal>
 
       <div className="p-4">
-        <TextOutline className="flex flex-col top-[8px] md:top-0 justify-center pb-1">
+        <TextOutline className="flex flex-col top-[8px] md:top-0 justify-center pb-1" useNoiseGradient>
           {title && (
             <h3 className="text-xl font-semibold p-4 pb-0">
               <GlitchHover active={isHovered}>

@@ -28,7 +28,7 @@ export const WorksGridBlock: React.FC<
     <div className="my-16 select-none" id={`block-${id}`}>
       <div className="container py-8">
         {(title || description) && (
-          <TextOutline className="inline-block">
+          <TextOutline className="inline-block" useNoiseGradient>
             <div className="mb-12 p-4">
               {title && (
                 <h2 className="text-3xl font-bold mb-4">
