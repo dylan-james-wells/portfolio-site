@@ -3,6 +3,7 @@ import React from 'react'
 import { FileText, Mail, Linkedin, Github } from 'lucide-react'
 
 import type { Footer, Media } from '@/payload-types'
+import { GlitchHover } from '@/components/GlitchHover'
 
 export async function Footer() {
   const footerData: Footer = await getCachedGlobal('footer', 1)()
@@ -19,10 +20,12 @@ export async function Footer() {
             href={resumeUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+            className="flex items-center gap-2"
           >
-            <FileText className="w-5 h-5" />
-            <span>{resumeLinkText || 'Download Resume'}</span>
+            <GlitchHover className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              <span>{resumeLinkText || 'Download Resume'}</span>
+            </GlitchHover>
           </a>
         )}
 
@@ -30,10 +33,11 @@ export async function Footer() {
           {contactEmail && (
             <a
               href={`mailto:${contactEmail}`}
-              className="hover:opacity-70 transition-opacity"
               aria-label="Email"
             >
-              <Mail className="w-5 h-5" />
+              <GlitchHover>
+                <Mail className="w-5 h-5" />
+              </GlitchHover>
             </a>
           )}
           {linkedinUrl && (
@@ -41,10 +45,11 @@ export async function Footer() {
               href={linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:opacity-70 transition-opacity"
               aria-label="LinkedIn"
             >
-              <Linkedin className="w-5 h-5" />
+              <GlitchHover>
+                <Linkedin className="w-5 h-5" />
+              </GlitchHover>
             </a>
           )}
           {githubUrl && (
@@ -52,10 +57,11 @@ export async function Footer() {
               href={githubUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:opacity-70 transition-opacity"
               aria-label="GitHub"
             >
-              <Github className="w-5 h-5" />
+              <GlitchHover>
+                <Github className="w-5 h-5" />
+              </GlitchHover>
             </a>
           )}
         </div>
