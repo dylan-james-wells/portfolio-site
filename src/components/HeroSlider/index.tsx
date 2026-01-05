@@ -275,6 +275,13 @@ export const HeroSlider: React.FC = () => {
     let targetMouseX = 0
     let targetMouseY = 0
 
+    // Cache bounding rect (updated on resize)
+    let cachedRect: DOMRect = container.getBoundingClientRect()
+
+    // Throttle mouse move events
+    let lastMouseMoveTime = 0
+    const MOUSE_THROTTLE_MS = 16 // ~60fps
+
     // Scroll-based zoom state
     const SCROLL_RANGE = window.innerHeight
     // Initialize scroll progress from current scroll position immediately
@@ -557,6 +564,9 @@ export const HeroSlider: React.FC = () => {
       const pixelRatio = Math.min(window.devicePixelRatio, 2)
       textRenderTarget.setSize(width * pixelRatio, height * pixelRatio)
       blurMaterial.uniforms.resolution.value.set(width, height)
+
+      // Update cached bounding rect
+      cachedRect = container.getBoundingClientRect()
     }
     window.addEventListener('resize', handleResize)
 
@@ -575,23 +585,32 @@ export const HeroSlider: React.FC = () => {
     }
 
     const handleMouseMove = (event: MouseEvent) => {
-      const rect = container.getBoundingClientRect()
-      targetMouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1
-      targetMouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1
+      // Throttle mouse move events for performance
+      const now = performance.now()
 
-      if (!isDragging || isAutoAnimating) return
-      const dragDeltaX = event.clientX - dragStartX
-      const newDirection: 'forward' | 'backward' = dragDeltaX < 0 ? 'forward' : 'backward'
+      // Always process drag events without throttling for responsiveness
+      if (isDragging && !isAutoAnimating) {
+        const dragDeltaX = event.clientX - dragStartX
+        const newDirection: 'forward' | 'backward' = dragDeltaX < 0 ? 'forward' : 'backward'
 
-      if (newDirection !== lastDragDirection) {
-        lastDragDirection = newDirection
-        animationDirection = newDirection
-        updateSideTextures(newDirection)
+        if (newDirection !== lastDragDirection) {
+          lastDragDirection = newDirection
+          animationDirection = newDirection
+          updateSideTextures(newDirection)
+        }
+
+        const dragProgress = Math.min(Math.abs(dragDeltaX) / DRAG_THRESHOLD, 1) * 0.5
+        animationProgress = dragProgress
+        targetProgress = dragProgress
       }
 
-      const dragProgress = Math.min(Math.abs(dragDeltaX) / DRAG_THRESHOLD, 1) * 0.5
-      animationProgress = dragProgress
-      targetProgress = dragProgress
+      // Throttle chromatic aberration mouse tracking
+      if (now - lastMouseMoveTime < MOUSE_THROTTLE_MS) return
+      lastMouseMoveTime = now
+
+      // Use cached rect instead of forcing layout recalculation
+      targetMouseX = ((event.clientX - cachedRect.left) / cachedRect.width) * 2 - 1
+      targetMouseY = -((event.clientY - cachedRect.top) / cachedRect.height) * 2 + 1
     }
 
     const handleMouseUp = () => {
@@ -629,9 +648,9 @@ export const HeroSlider: React.FC = () => {
       )
       if (dragDistance > 10) return
 
-      const rect = container.getBoundingClientRect()
-      clickMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-      clickMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+      // Use cached rect instead of forcing layout recalculation
+      clickMouse.x = ((event.clientX - cachedRect.left) / cachedRect.width) * 2 - 1
+      clickMouse.y = -((event.clientY - cachedRect.top) / cachedRect.height) * 2 + 1
 
       raycaster.setFromCamera(clickMouse, camera)
       const intersects = raycaster.intersectObjects(
@@ -653,7 +672,7 @@ export const HeroSlider: React.FC = () => {
 
     container.addEventListener('mousedown', handleMouseDown)
     container.addEventListener('mousedown', handleClickStart)
-    container.addEventListener('mousemove', handleMouseMove)
+    container.addEventListener('mousemove', handleMouseMove, { passive: true })
     container.addEventListener('mouseup', handleMouseUp)
     container.addEventListener('mouseup', handleClick)
     container.addEventListener('mouseleave', handleMouseLeave)
