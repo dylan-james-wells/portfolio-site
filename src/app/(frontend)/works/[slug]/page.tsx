@@ -56,7 +56,7 @@ export default async function WorkPage({ params: paramsPromise }: Args) {
   if (!work) return <PayloadRedirects url={url} />
 
   return (
-    <article className="pt-16 pb-16">
+    <article>
       <PageClient />
 
       <PayloadRedirects disableNotFound url={url} />
@@ -65,7 +65,7 @@ export default async function WorkPage({ params: paramsPromise }: Args) {
 
       <WorkHero work={work} />
 
-      <div className="flex flex-col items-center gap-4 pt-8">
+      <div className="relative z-10 bg-black pt-8 pb-16" style={{ marginTop: '60vh' }}>
         <div className="container max-w-single">
           <RenderBlocks blocks={work.layout} />
           {work.relatedWorks && work.relatedWorks.length > 0 && (

@@ -51,7 +51,7 @@ export default async function ProjectPage({ params: paramsPromise }: Args) {
   if (!project) return <PayloadRedirects url={url} />
 
   return (
-    <article className="pt-16 pb-16">
+    <article>
       <PageClient />
 
       <PayloadRedirects disableNotFound url={url} />
@@ -60,7 +60,7 @@ export default async function ProjectPage({ params: paramsPromise }: Args) {
 
       <ProjectHero project={project} />
 
-      <div className="flex flex-col items-center gap-4 pt-8">
+      <div className="relative z-10 bg-black pt-8 pb-16" style={{ marginTop: '80vh' }}>
         <div className="container">
           <RenderBlocks blocks={project.layout} />
           {project.relatedProjects && project.relatedProjects.length > 0 && (
