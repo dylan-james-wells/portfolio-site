@@ -7,6 +7,7 @@ import { Text } from 'troika-three-text'
 import Link from 'next/link'
 
 import type { Media } from '@/payload-types'
+import { GlitchHover } from '@/components/GlitchHover'
 
 interface HeroSingleProps {
   title: string
@@ -896,40 +897,14 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       >
         <Link
           href="/"
-          className="group relative inline-flex items-center gap-2 text-white font-mono text-sm px-4 py-2 overflow-hidden rounded"
+          className="group relative inline-flex items-center gap-2 text-white font-mono text-sm px-4 py-2 bg-noise-gradient border-2 border-white transition-colors"
         >
-          {/* Rotating gradient background - must be large enough to cover rectangular button during rotation */}
-          <span
-            className="absolute"
-            style={{
-              background: 'conic-gradient(from 0deg, #ff6b6b, #4ecdc4, #ff6b6b)',
-              top: '50%',
-              left: '50%',
-              width: '450%',
-              height: '450%',
-              animation: 'spin-slow 3s linear infinite',
-            }}
-          />
-          {/* Inner background to create border effect */}
-          <span className="absolute inset-[2px] bg-black/40 group-hover:bg-black/20 transition-colors rounded-sm overflow-hidden">
-            {/* Noise overlay with grain animation */}
-            <span
-              className="absolute opacity-30 pointer-events-none"
-              style={{
-                backgroundImage: "url('/noise.png')",
-                backgroundSize: '200px',
-                backgroundRepeat: 'repeat',
-                top: '-300%',
-                left: '-150%',
-                width: '600%',
-                height: '600%',
-                animation: 'grain 7s steps(10) infinite',
-              }}
-            />
-          </span>
-          {/* Content */}
-          <span className="relative z-10">←</span>
-          <span className="relative z-10">Home</span>
+          <GlitchHover>
+            <span className="inline-flex items-center gap-2">
+              <span>←</span>
+              <span>Home</span>
+            </span>
+          </GlitchHover>
         </Link>
       </div>
     </>
