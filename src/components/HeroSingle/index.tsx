@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 // @ts-ignore
 import { Text } from 'troika-three-text'
@@ -193,6 +193,16 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
+  const [scrollY, setScrollY] = useState(0)
+
+  // Track scroll for back button position
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -881,6 +891,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
           right: 0,
           zIndex: 10,
           paddingTop: 'calc(env(safe-area-inset-top) + 2rem)',
+          transform: `translateY(-${scrollY}px)`,
         }}
       >
         <Link
@@ -889,20 +900,36 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         >
           {/* Rotating gradient background - must be large enough to cover rectangular button during rotation */}
           <span
-            className="absolute animate-spin-slow"
+            className="absolute"
             style={{
               background: 'conic-gradient(from 0deg, #ff6b6b, #4ecdc4, #ff6b6b)',
               top: '50%',
               left: '50%',
               width: '450%',
               height: '450%',
+              animation: 'spin-slow 3s linear infinite',
             }}
           />
           {/* Inner background to create border effect */}
-          <span className="absolute inset-[2px] bg-black/40 group-hover:bg-black/20 transition-colors rounded-sm" />
+          <span className="absolute inset-[2px] bg-black/40 group-hover:bg-black/20 transition-colors rounded-sm overflow-hidden">
+            {/* Noise overlay with grain animation */}
+            <span
+              className="absolute opacity-30 pointer-events-none"
+              style={{
+                backgroundImage: "url('/noise.png')",
+                backgroundSize: '200px',
+                backgroundRepeat: 'repeat',
+                top: '-300%',
+                left: '-150%',
+                width: '600%',
+                height: '600%',
+                animation: 'grain 7s steps(10) infinite',
+              }}
+            />
+          </span>
           {/* Content */}
           <span className="relative z-10">←</span>
-          <span className="relative z-10">Back to home</span>
+          <span className="relative z-10">Home</span>
         </Link>
       </div>
     </>
