@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, ReactNode } from 'react'
+import React, { useEffect, useRef, useState, ReactNode } from 'react'
 import { cn } from '@/utilities/ui'
 
 interface TextOutlineProps {
@@ -9,6 +9,7 @@ interface TextOutlineProps {
   backgroundColor?: string
   borderColor?: string
   borderWidth?: number
+  threshold?: number // 0-1, how far into viewport before activation (default 0)
 }
 
 interface LineRect {
@@ -24,9 +25,38 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
   backgroundColor = 'hsl(var(--card))',
   borderColor = 'white',
   borderWidth = 2,
+  threshold = 0,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [animationState, setAnimationState] = useState<'hidden' | 'ready' | 'animating'>('hidden')
+
+  // Track viewport intersection
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && animationState === 'hidden') {
+          // Set to ready state (scale 0, opacity 1), then trigger animation
+          setAnimationState('ready')
+          // Use requestAnimationFrame to ensure the ready state is painted before animating
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setAnimationState('animating')
+            })
+          })
+        }
+      },
+      { threshold },
+    )
+
+    observer.observe(containerRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [threshold, animationState])
 
   useEffect(() => {
     const drawOutline = () => {
@@ -221,12 +251,40 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
     }
   }, [backgroundColor, borderColor, borderWidth, children])
 
+  // Compute canvas styles based on animation state
+  const getCanvasStyle = (): React.CSSProperties => {
+    switch (animationState) {
+      case 'hidden':
+        return {
+          zIndex: 0,
+          opacity: 0,
+          transform: 'scale3d(1, 1, 1)',
+        }
+      case 'ready':
+        return {
+          zIndex: 0,
+          opacity: 1,
+          transform: 'scale3d(0, 0, 1)',
+        }
+      case 'animating':
+        return {
+          zIndex: 0,
+          opacity: 1,
+          transform: 'scale3d(1, 1, 1)',
+          transition: 'transform 500ms ease-out',
+        }
+    }
+  }
+
   return (
     <div ref={containerRef} className={cn('relative', className)}>
       <canvas
         ref={canvasRef}
         className="absolute top-0 left-0 pointer-events-none"
-        style={{ zIndex: 0 }}
+        style={{
+          ...getCanvasStyle(),
+          transformOrigin: 'center',
+        }}
       />
       <div className="relative" style={{ zIndex: 1 }}>
         {children}
