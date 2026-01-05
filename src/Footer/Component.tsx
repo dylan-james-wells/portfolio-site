@@ -13,7 +13,7 @@ export async function Footer() {
   const resumeUrl = resumeFile && typeof resumeFile !== 'string' ? (resumeFile as Media).url : null
 
   return (
-    <footer className="mt-auto border-t border-white border-border bg-background text-foreground z-10">
+    <footer className="mt-auto border-t border-border text-foreground z-10 bg-noise-gradient-dark">
       <div className="container py-8 flex flex-row justify-between items-center">
         {resumeUrl && (
           <a
