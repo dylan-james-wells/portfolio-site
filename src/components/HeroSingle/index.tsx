@@ -116,6 +116,54 @@ const fontSizeBreakpoints = {
   '2xl': '5rem',
 }
 
+// max-w-single from tailwind config
+const MAX_W_SINGLE_PX = 50 * 16 // 50rem = 800px
+
+// Calculate left margin for content constrained by max-w-single inside container
+const calculateContentLeftMargin = (
+  viewportWidth: number,
+  screens: { [key: string]: string },
+  padding: { [key: string]: string },
+): number => {
+  // First get the container's left edge (margin + padding)
+  const containerMargin = calculateContainerLeftMargin(viewportWidth, screens, padding, 0.05)
+
+  // Get the container's inner width (viewport - 2 * margin)
+  const breakpoints = Object.entries(screens)
+    .map(([key, value]) => ({ key, width: remToPx(value) }))
+    .sort((a, b) => b.width - a.width)
+
+  let activeBreakpoint = 'DEFAULT'
+  for (const bp of breakpoints) {
+    if (viewportWidth >= bp.width) {
+      activeBreakpoint = bp.key
+      break
+    }
+  }
+
+  const maxWidthStr = screens[activeBreakpoint]
+  let containerInnerWidth: number
+
+  if (!maxWidthStr || viewportWidth <= remToPx(maxWidthStr)) {
+    // Below breakpoint - container is full width minus padding
+    const paddingValue = padding[activeBreakpoint] || padding['DEFAULT'] || '1rem'
+    containerInnerWidth = viewportWidth - 2 * remToPx(paddingValue)
+  } else {
+    // Above breakpoint - container is capped at max-width
+    containerInnerWidth = remToPx(maxWidthStr)
+  }
+
+  // If content is constrained by max-w-single and container is wider
+  if (containerInnerWidth > MAX_W_SINGLE_PX) {
+    // Content is centered within container, so add half the difference
+    const extraMargin = (containerInnerWidth - MAX_W_SINGLE_PX) / 2
+    return containerMargin + extraMargin
+  }
+
+  // Content fills the container
+  return containerMargin
+}
+
 export const HeroSingle: React.FC<HeroSingleProps> = ({
   title,
   heroImage,
@@ -202,13 +250,14 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
               // Apply zoom (zoom > 1 means zoomed in)
               uv /= zoom;
 
-              // Object-cover calculation
+              // Object-cover: scale image to cover container, cropping as needed
+              // We need to shrink UV space so image covers the container
               if (containerAspect > imageAspect) {
-                // Container is wider than image
-                uv.y *= containerAspect / imageAspect;
+                // Container is wider than image - scale by width, crop height
+                uv.y *= imageAspect / containerAspect;
               } else {
-                // Container is taller than image
-                uv.x *= imageAspect / containerAspect;
+                // Container is taller than image - scale by height, crop width
+                uv.x *= containerAspect / imageAspect;
               }
 
               // Re-center
@@ -245,8 +294,8 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         const imgHeight = texture.image.height
         const imgAspect = imgWidth / imgHeight
 
-        // Target 200px square, object-fit contain
-        const targetSizePx = 200
+        // Target 150px square, object-fit contain
+        const targetSizePx = 150
         const { visibleWidth } = getVisibleDimensions(container.clientWidth / container.clientHeight)
         const targetSizeWorld = (targetSizePx / container.clientWidth) * visibleWidth
 
@@ -362,12 +411,11 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         mesh.sync()
       }
 
-      // Calculate left margin position
-      const marginPx = calculateContainerLeftMargin(
+      // Calculate left margin position (aligned with max-w-single content)
+      const marginPx = calculateContentLeftMargin(
         currentViewportWidth,
         tailwindScreens,
         tailwindPadding,
-        0.05,
       )
       const marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
 
@@ -475,7 +523,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       // Resize thumbnail
       if (thumbnailMesh && thumbnail && typeof thumbnail === 'object' && thumbnail.url) {
         const imgAspect = (thumbnail.width || 1) / (thumbnail.height || 1)
-        const targetSizePx = 200
+        const targetSizePx = 150
         const targetSizeWorld = (targetSizePx / width) * vw
 
         let planeWidth: number
