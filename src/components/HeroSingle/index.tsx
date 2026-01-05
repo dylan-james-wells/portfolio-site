@@ -38,10 +38,7 @@ const cssUnitToPx = (value: string): number => {
 }
 
 // Get the active breakpoint key based on viewport width
-const getActiveBreakpoint = (
-  viewportWidth: number,
-  screens: { [key: string]: string },
-): string => {
+const getActiveBreakpoint = (viewportWidth: number, screens: { [key: string]: string }): string => {
   const breakpoints = Object.entries(screens)
     .map(([key, value]) => ({ key, width: remToPx(value) }))
     .sort((a, b) => b.width - a.width)
@@ -206,7 +203,12 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     scene.background = new THREE.Color(0x000000)
 
     // Camera setup - perspective for 3D text effect
-    const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100)
+    const camera = new THREE.PerspectiveCamera(
+      50,
+      container.clientWidth / container.clientHeight,
+      0.1,
+      100,
+    )
     camera.position.set(0, 0, 5)
     camera.lookAt(0, 0, 0)
 
@@ -226,7 +228,9 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     let scrollProgress = 0
 
     // Calculate visible dimensions at z=0
-    const getVisibleDimensions = (aspect: number): { visibleWidth: number; visibleHeight: number } => {
+    const getVisibleDimensions = (
+      aspect: number,
+    ): { visibleWidth: number; visibleHeight: number } => {
       const distance = camera.position.z
       const vFov = (camera.fov * Math.PI) / 180
       const visibleHeight = 2 * Math.tan(vFov / 2) * distance
@@ -304,7 +308,9 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
           toneMapped: false,
         })
 
-        const { visibleWidth, visibleHeight } = getVisibleDimensions(container.clientWidth / container.clientHeight)
+        const { visibleWidth, visibleHeight } = getVisibleDimensions(
+          container.clientWidth / container.clientHeight,
+        )
         const bgGeometry = new THREE.PlaneGeometry(visibleWidth * 2, visibleHeight * 2)
         backgroundMesh = new THREE.Mesh(bgGeometry, bgMaterial)
         backgroundMesh.position.z = -2
@@ -333,7 +339,9 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
 
         // Target 150px square, object-fit contain
         const targetSizePx = 150
-        const { visibleWidth } = getVisibleDimensions(container.clientWidth / container.clientHeight)
+        const { visibleWidth } = getVisibleDimensions(
+          container.clientWidth / container.clientHeight,
+        )
         const targetSizeWorld = (targetSizePx / container.clientWidth) * visibleWidth
 
         let planeWidth: number
@@ -388,8 +396,13 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       )
       const fontSize = (fontSizePx / currentViewportWidth) * visibleWidth
 
-      // Calculate max width in world units (constrained to max-w-single)
-      const maxWidthWorld = (MAX_W_SINGLE_PX / currentViewportWidth) * visibleWidth
+      // Calculate available content width (viewport minus padding on both sides)
+      const marginPx = calculateContentLeftMargin(currentViewportWidth)
+      const availableWidthPx = currentViewportWidth - marginPx * 2
+
+      // Use minimum of max-w-single and available width for text wrapping
+      const maxWidthPx = Math.min(MAX_W_SINGLE_PX, availableWidthPx)
+      const maxWidthWorld = (maxWidthPx / currentViewportWidth) * visibleWidth
 
       textGroup.scale.setScalar(1)
 
@@ -400,7 +413,6 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       }
 
       // Calculate left margin position (aligned with max-w-single content)
-      const marginPx = calculateContentLeftMargin(currentViewportWidth)
       const marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
 
       textGroup.position.x = -visibleWidth / 2 + marginLeftWorld
@@ -419,7 +431,8 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
 
       const textMesh = new Text()
       textMesh.text = title.toUpperCase()
-      textMesh.font = 'https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf'
+      textMesh.font =
+        'https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf'
       textMesh.fontSize = initialFontSize
       textMesh.anchorX = 'left'
       textMesh.anchorY = 'bottom'
@@ -560,6 +573,15 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
 
       // Subtle oscillating rotation for text
       textGroup.rotation.y = Math.sin(elapsedTime * 0.3) * 0.08
+
+      // Update text vertical position based on scroll (move up as scrolling down)
+      const aspect = currentViewportWidth / currentViewportHeight
+      const { visibleHeight } = getVisibleDimensions(aspect)
+      const bottomOffsetPx = cssUnitToPx(titleBottomOffset)
+      const bottomOffsetWorld = (bottomOffsetPx / currentViewportHeight) * visibleHeight
+      // Add scroll-based offset: move up by up to 30% of visible height as we scroll
+      const scrollOffsetWorld = scrollProgress * visibleHeight * 1
+      textGroup.position.y = -visibleHeight / 2 + bottomOffsetWorld + scrollOffsetWorld
 
       // Update background zoom based on scroll
       if (backgroundMesh) {

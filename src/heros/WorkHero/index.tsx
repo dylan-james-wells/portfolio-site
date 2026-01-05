@@ -14,7 +14,7 @@ export const WorkHero: React.FC<{
       title={title}
       heroImage={heroImage}
       thumbnail={thumbnail}
-      height="60vh"
+      height="40vh"
     />
   )
 }
