@@ -927,6 +927,26 @@ export const HeroSlider: React.FC = () => {
         ref={containerRef}
         style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0 }}
       />
+      {/* Noise overlay layer - on top of everything for visible grain */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 2,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          className="noise-overlay-clipped"
+          style={{
+            opacity: 0.15,
+          }}
+        />
+      </div>
     </div>
   )
 }

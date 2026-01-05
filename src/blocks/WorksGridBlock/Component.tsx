@@ -89,7 +89,7 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
           )}
         </div>
         <div
-          className="relative z-10 flex flex-col justify-center p-4 bg-card border-t-2 border-white left-[2px] bottom-[2px]"
+          className="bg-noise-gradient relative z-10 flex flex-col justify-center p-4 bg-card border-t-2 border-white left-[2px] bottom-[2px]"
           style={{ width: 'calc(100% - 4px)' }}
         >
           {title && (
