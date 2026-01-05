@@ -12,12 +12,29 @@ interface HeroSingleProps {
   heroImage?: Media | number | null
   thumbnail?: Media | number | null
   height?: string
+  titleBottomOffset?: string // e.g. '2rem', '48px' - offset from bottom of hero
 }
 
 // Helper to convert rem string to pixels
 const remToPx = (remStr: string): number => {
   const remValue = parseFloat(remStr)
   return remValue * 16
+}
+
+// Helper to parse CSS unit string to pixels
+const cssUnitToPx = (value: string): number => {
+  const numValue = parseFloat(value)
+  if (value.endsWith('rem')) {
+    return numValue * 16
+  } else if (value.endsWith('em')) {
+    return numValue * 16 // Approximation, assumes 16px base
+  } else if (value.endsWith('px')) {
+    return numValue
+  } else if (value.endsWith('vh')) {
+    return (numValue / 100) * window.innerHeight
+  }
+  // Default to pixels if no unit
+  return numValue
 }
 
 // Get the active breakpoint key based on viewport width
@@ -174,6 +191,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
   heroImage,
   thumbnail,
   height = '60vh',
+  titleBottomOffset = '2rem',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -386,6 +404,12 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       const marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
 
       textGroup.position.x = -visibleWidth / 2 + marginLeftWorld
+
+      // Position text from bottom of viewport
+      const { visibleHeight } = getVisibleDimensions(aspect)
+      const bottomOffsetPx = cssUnitToPx(titleBottomOffset)
+      const bottomOffsetWorld = (bottomOffsetPx / currentViewportHeight) * visibleHeight
+      textGroup.position.y = -visibleHeight / 2 + bottomOffsetWorld
     }
 
     // Create text layers
@@ -398,7 +422,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       textMesh.font = 'https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf'
       textMesh.fontSize = initialFontSize
       textMesh.anchorX = 'left'
-      textMesh.anchorY = 'middle'
+      textMesh.anchorY = 'bottom'
       textMesh.textAlign = 'left'
       textMesh.position.z = layerZ
 
@@ -574,7 +598,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
 
       renderer.dispose()
     }
-  }, [title, heroImage, thumbnail])
+  }, [title, heroImage, thumbnail, titleBottomOffset])
 
   // Gradient overlay animation (CSS-based like WindowReveal)
   useEffect(() => {
@@ -587,7 +611,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         const progress = (currentTime % GRADIENT_LOOP_DURATION) / GRADIENT_LOOP_DURATION
         const currentAngle = 135 + progress * 360
 
-        overlayRef.current.style.background = `linear-gradient(${currentAngle}deg, rgba(255, 107, 107, 0.25), rgba(78, 205, 196, 0.25))`
+        overlayRef.current.style.background = `linear-gradient(${currentAngle}deg, rgba(255, 107, 107, 0.55), rgba(78, 205, 196, 0.5))`
       }
 
       animationId = requestAnimationFrame(animateGradient)
