@@ -12,7 +12,6 @@ import { GlitchHover } from '@/components/GlitchHover'
 interface HeroSingleProps {
   title: string
   heroImage?: Media | number | null
-  thumbnail?: Media | number | null
   height?: string
   titleBottomOffset?: string // e.g. '2rem', '48px' - offset from bottom of hero
 }
@@ -188,7 +187,6 @@ const GRADIENT_LOOP_DURATION = 10000 // ms for one full rotation
 export const HeroSingle: React.FC<HeroSingleProps> = ({
   title,
   heroImage,
-  thumbnail,
   height = '60vh',
   titleBottomOffset = '2rem',
 }) => {
@@ -362,131 +360,6 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     }
 
     // ============================================
-    // Thumbnail Coin (cylinder with textured caps)
-    // ============================================
-    let thumbnailGroup: THREE.Group | null = null
-    let thumbnailCylinder: THREE.Mesh | null = null
-    let frontCap: THREE.Mesh | null = null
-    let backCap: THREE.Mesh | null = null
-    const thumbnailUrl = typeof thumbnail === 'object' && thumbnail?.url ? thumbnail.url : null
-
-    // Helper to get dominant color from image
-    const getDominantColor = (img: HTMLImageElement): number => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return 0x333333
-
-      // Sample at a smaller size for performance
-      const sampleSize = 50
-      canvas.width = sampleSize
-      canvas.height = sampleSize
-      ctx.drawImage(img, 0, 0, sampleSize, sampleSize)
-
-      const imageData = ctx.getImageData(0, 0, sampleSize, sampleSize)
-      const data = imageData.data
-
-      // Count colors (simplified - bucket by rounding to nearest 16)
-      const colorCounts: { [key: string]: number } = {}
-      let maxCount = 0
-      let dominantColor = { r: 51, g: 51, b: 51 } // Default gray
-
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i]
-        const g = data[i + 1]
-        const b = data[i + 2]
-        const a = data[i + 3]
-
-        // Skip transparent or near-transparent pixels
-        if (a < 128) continue
-
-        // Skip very dark or very light pixels (likely background)
-        const brightness = (r + g + b) / 3
-        if (brightness < 30 || brightness > 240) continue
-
-        // Bucket colors
-        const key = `${Math.round(r / 16) * 16},${Math.round(g / 16) * 16},${Math.round(b / 16) * 16}`
-        colorCounts[key] = (colorCounts[key] || 0) + 1
-
-        if (colorCounts[key] > maxCount) {
-          maxCount = colorCounts[key]
-          dominantColor = { r, g, b }
-        }
-      }
-
-      return (dominantColor.r << 16) | (dominantColor.g << 8) | dominantColor.b
-    }
-
-    if (thumbnailUrl) {
-      const thumbImg = new Image()
-      thumbImg.crossOrigin = 'anonymous'
-      thumbImg.onload = () => {
-        const texture = new THREE.Texture(thumbImg)
-        texture.needsUpdate = true
-
-        // Get dominant color for edge
-        const edgeColor = getDominantColor(thumbImg)
-
-        // Target size in pixels
-        const targetSizePx = 150
-        const { visibleWidth } = getVisibleDimensions(
-          container.clientWidth / container.clientHeight,
-        )
-        const radius = (targetSizePx / 2 / container.clientWidth) * visibleWidth
-        const depth = radius * 0.3 // Coin thickness
-
-        // Create a group to hold the coin parts
-        thumbnailGroup = new THREE.Group()
-        // Position will be set in animation loop to align with text
-
-        // Cylinder for the edge (no caps - we'll add custom ones)
-        // Use slightly smaller radius so edge sits behind the caps cleanly
-        const edgeRadius = radius * 0.995
-        const cylinderGeometry = new THREE.CylinderGeometry(
-          edgeRadius,
-          edgeRadius,
-          depth,
-          128, // high radial segments for smooth edge
-          1,
-          true, // open-ended (no caps)
-        )
-        const edgeMaterial = new THREE.MeshBasicMaterial({
-          color: edgeColor,
-          side: THREE.DoubleSide,
-        })
-        thumbnailCylinder = new THREE.Mesh(cylinderGeometry, edgeMaterial)
-        // Rotate so the flat faces point towards/away from camera
-        thumbnailCylinder.rotation.x = Math.PI / 2
-        thumbnailGroup.add(thumbnailCylinder)
-
-        // Front cap (facing camera) - use CircleGeometry for flat texture mapping
-        const frontCapGeometry = new THREE.CircleGeometry(radius, 128)
-        const frontCapMaterial = new THREE.MeshBasicMaterial({
-          map: texture,
-          transparent: true,
-          side: THREE.FrontSide,
-        })
-        frontCap = new THREE.Mesh(frontCapGeometry, frontCapMaterial)
-        frontCap.position.z = depth / 2
-        thumbnailGroup.add(frontCap)
-
-        // Back cap (facing away) - use CircleGeometry for flat texture mapping
-        const backCapGeometry = new THREE.CircleGeometry(radius, 128)
-        const backCapMaterial = new THREE.MeshBasicMaterial({
-          map: texture,
-          transparent: true,
-          side: THREE.FrontSide,
-        })
-        backCap = new THREE.Mesh(backCapGeometry, backCapMaterial)
-        backCap.position.z = -depth / 2
-        backCap.rotation.y = Math.PI // Flip to face the other direction
-        thumbnailGroup.add(backCap)
-
-        scene.add(thumbnailGroup)
-      }
-      thumbImg.src = thumbnailUrl
-    }
-
-    // ============================================
     // PixelText Title (adapted from pixelText.ts)
     // ============================================
     const textGroup = new THREE.Group()
@@ -631,34 +504,6 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         const bgMat = backgroundMesh.material as THREE.ShaderMaterial
         bgMat.uniforms.containerAspect.value = aspect
       }
-
-      // Resize thumbnail coin
-      const { visibleWidth: vw } = getVisibleDimensions(aspect)
-      if (thumbnailGroup && thumbnailCylinder && frontCap && backCap) {
-        const targetSizePx = 150
-        const newRadius = (targetSizePx / 2 / width) * vw
-        const newEdgeRadius = newRadius * 0.995
-        const newDepth = newRadius * 0.3
-
-        // Recreate geometries with new radius
-        thumbnailCylinder.geometry.dispose()
-        thumbnailCylinder.geometry = new THREE.CylinderGeometry(
-          newEdgeRadius,
-          newEdgeRadius,
-          newDepth,
-          128,
-          1,
-          true,
-        )
-
-        frontCap.geometry.dispose()
-        frontCap.geometry = new THREE.CircleGeometry(newRadius, 128)
-        frontCap.position.z = newDepth / 2
-
-        backCap.geometry.dispose()
-        backCap.geometry = new THREE.CircleGeometry(newRadius, 128)
-        backCap.position.z = -newDepth / 2
-      }
     }
     window.addEventListener('resize', handleResize)
 
@@ -721,57 +566,6 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       // Ensure camera stays fixed
       camera.position.set(0, 0, 12)
 
-      // Animate thumbnail coin rotation and position (aligned to left of text)
-      if (thumbnailGroup) {
-        // Only rotate around Y axis (spin like a coin), no X tilt
-        thumbnailGroup.rotation.y = elapsedTime * 0.5
-        thumbnailGroup.rotation.x = 0
-
-        // Calculate thumbnail radius (same as in creation and resize)
-        const targetSizePx = 150
-        const { visibleWidth } = getVisibleDimensions(aspect)
-        const thumbnailRadius = (targetSizePx / 2 / currentViewportWidth) * visibleWidth
-
-        // Align X to left of text - position thumbnail so its right edge is at the text's left edge
-        // Add a larger gap between thumbnail and text
-        const gapPx = 48 // 48px gap between thumbnail and text
-        const gapWorld = (gapPx / currentViewportWidth) * visibleWidth
-        const marginPx = calculateContentLeftMargin(currentViewportWidth)
-        const marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
-        const textLeftEdge = -visibleWidth / 2 + marginLeftWorld
-        thumbnailGroup.position.x = textLeftEdge - thumbnailRadius - gapWorld
-
-        // Align Y to be vertically centered with the entire text block
-        // Text anchor is at bottom-left, so we need to calculate total text height
-        const fontSizePx = getFontSizeForBreakpoint(
-          currentViewportWidth,
-          tailwindScreens,
-          fontSizeBreakpoints,
-          32,
-        )
-        const fontSizeWorld = (fontSizePx / currentViewportWidth) * visibleWidth
-
-        // Get actual text bounds from the front text mesh if available
-        const frontTextMesh = textMeshes[0]
-        let textHeight = fontSizeWorld * 2 // Default to 2 lines
-        if (frontTextMesh && frontTextMesh.textRenderInfo) {
-          const bounds = frontTextMesh.textRenderInfo.blockBounds
-          if (bounds) {
-            // blockBounds is [minX, minY, maxX, maxY] in local units
-            textHeight = bounds[3] - bounds[1]
-          }
-        }
-
-        // Text bottom edge is at bottomOffsetWorld from viewport bottom
-        // Text center is at bottomOffsetWorld + textHeight/2
-        const textCenterY = -visibleHeight / 2 + bottomOffsetWorld + textHeight / 2
-        const thumbnailScrollOffset = scrollProgress * visibleHeight * 1
-        thumbnailGroup.position.y = textCenterY + thumbnailScrollOffset
-
-        // Push thumbnail back to same z-plane as text
-        thumbnailGroup.position.z = -2
-      }
-
       renderer.render(scene, camera)
     }
     animate()
@@ -795,22 +589,9 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         ;(backgroundMesh.material as THREE.Material).dispose()
       }
 
-      if (thumbnailCylinder) {
-        thumbnailCylinder.geometry.dispose()
-        ;(thumbnailCylinder.material as THREE.Material).dispose()
-      }
-      if (frontCap) {
-        frontCap.geometry.dispose()
-        ;(frontCap.material as THREE.Material).dispose()
-      }
-      if (backCap) {
-        backCap.geometry.dispose()
-        ;(backCap.material as THREE.Material).dispose()
-      }
-
       renderer.dispose()
     }
-  }, [title, heroImage, thumbnail, titleBottomOffset])
+  }, [title, heroImage, titleBottomOffset])
 
   // Gradient overlay animation (CSS-based like WindowReveal)
   useEffect(() => {
@@ -823,7 +604,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         const progress = (currentTime % GRADIENT_LOOP_DURATION) / GRADIENT_LOOP_DURATION
         const currentAngle = 135 + progress * 360
 
-        overlayRef.current.style.background = `linear-gradient(${currentAngle}deg, rgba(255, 107, 107, 0.55), rgba(78, 205, 196, 0.5))`
+        overlayRef.current.style.background = `linear-gradient(${currentAngle}deg, rgba(255, 107, 107, 0.75), rgba(78, 205, 196, 0.7))`
       }
 
       animationId = requestAnimationFrame(animateGradient)
@@ -879,6 +660,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
           className="noise-overlay-clipped"
           style={{
             opacity: 0.25,
+            mixBlendMode: 'overlay',
           }}
         />
       </div>

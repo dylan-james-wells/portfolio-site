@@ -65,7 +65,10 @@ export default async function WorkPage({ params: paramsPromise }: Args) {
 
       <WorkHero work={work} />
 
-      <div className="relative z-10 bg-noise-gradient pt-8 pb-16" style={{ marginTop: '40vh' }}>
+      <div
+        className="relative border-t-2 border-white z-10 bg-noise-gradient pt-8 pb-16"
+        style={{ marginTop: '40vh' }}
+      >
         <div className="container max-w-single">
           <RenderBlocks blocks={work.layout} />
           {work.relatedWorks && work.relatedWorks.length > 0 && (

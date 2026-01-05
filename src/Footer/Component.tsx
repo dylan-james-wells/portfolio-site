@@ -13,7 +13,7 @@ export async function Footer() {
   const resumeUrl = resumeFile && typeof resumeFile !== 'string' ? (resumeFile as Media).url : null
 
   return (
-    <footer className="mt-auto border-t border-border text-foreground z-10 bg-noise-gradient-dark">
+    <footer className="mt-auto border-t-2 border-white border-border text-foreground z-10 bg-noise-gradient-dark">
       <div className="container py-8 flex flex-row justify-between items-center">
         {resumeUrl && (
           <a
@@ -31,34 +31,21 @@ export async function Footer() {
 
         <div className="flex flex-row gap-4 items-center">
           {contactEmail && (
-            <a
-              href={`mailto:${contactEmail}`}
-              aria-label="Email"
-            >
+            <a href={`mailto:${contactEmail}`} aria-label="Email">
               <GlitchHover>
                 <Mail className="w-5 h-5" />
               </GlitchHover>
             </a>
           )}
           {linkedinUrl && (
-            <a
-              href={linkedinUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="LinkedIn"
-            >
+            <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
               <GlitchHover>
                 <Linkedin className="w-5 h-5" />
               </GlitchHover>
             </a>
           )}
           {githubUrl && (
-            <a
-              href={githubUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="GitHub"
-            >
+            <a href={githubUrl} target="_blank" rel="noopener noreferrer" aria-label="GitHub">
               <GlitchHover>
                 <Github className="w-5 h-5" />
               </GlitchHover>
