@@ -116,54 +116,6 @@ const fontSizeBreakpoints = {
   '2xl': '5rem',
 }
 
-// max-w-single from tailwind config
-const MAX_W_SINGLE_PX = 50 * 16 // 50rem = 800px
-
-// Calculate left margin for content constrained by max-w-single inside container
-const calculateContentLeftMargin = (
-  viewportWidth: number,
-  screens: { [key: string]: string },
-  padding: { [key: string]: string },
-): number => {
-  // First get the container's left edge (margin + padding)
-  const containerMargin = calculateContainerLeftMargin(viewportWidth, screens, padding, 0.05)
-
-  // Get the container's inner width (viewport - 2 * margin)
-  const breakpoints = Object.entries(screens)
-    .map(([key, value]) => ({ key, width: remToPx(value) }))
-    .sort((a, b) => b.width - a.width)
-
-  let activeBreakpoint = 'DEFAULT'
-  for (const bp of breakpoints) {
-    if (viewportWidth >= bp.width) {
-      activeBreakpoint = bp.key
-      break
-    }
-  }
-
-  const maxWidthStr = screens[activeBreakpoint]
-  let containerInnerWidth: number
-
-  if (!maxWidthStr || viewportWidth <= remToPx(maxWidthStr)) {
-    // Below breakpoint - container is full width minus padding
-    const paddingValue = padding[activeBreakpoint] || padding['DEFAULT'] || '1rem'
-    containerInnerWidth = viewportWidth - 2 * remToPx(paddingValue)
-  } else {
-    // Above breakpoint - container is capped at max-width
-    containerInnerWidth = remToPx(maxWidthStr)
-  }
-
-  // If content is constrained by max-w-single and container is wider
-  if (containerInnerWidth > MAX_W_SINGLE_PX) {
-    // Content is centered within container, so add half the difference
-    const extraMargin = (containerInnerWidth - MAX_W_SINGLE_PX) / 2
-    return containerMargin + extraMargin
-  }
-
-  // Content fills the container
-  return containerMargin
-}
-
 export const HeroSingle: React.FC<HeroSingleProps> = ({
   title,
   heroImage,
@@ -337,6 +289,38 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     const depth = 0.15
     const initialFontSize = 0.5
 
+    // Resize text to fit viewport (defined before loop so it can be used in sync callback)
+    const resizeTextToFit = (aspect: number) => {
+      const { visibleWidth } = getVisibleDimensions(aspect)
+
+      // Get font size for current breakpoint
+      const fontSizePx = getFontSizeForBreakpoint(
+        currentViewportWidth,
+        tailwindScreens,
+        fontSizeBreakpoints,
+        32,
+      )
+      const fontSize = (fontSizePx / currentViewportWidth) * visibleWidth
+
+      textGroup.scale.setScalar(1)
+
+      for (const mesh of textMeshes) {
+        mesh.fontSize = fontSize
+        mesh.sync()
+      }
+
+      // Calculate left margin position (aligned with container)
+      const marginPx = calculateContainerLeftMargin(
+        currentViewportWidth,
+        tailwindScreens,
+        tailwindPadding,
+        0.05,
+      )
+      const marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
+
+      textGroup.position.x = -visibleWidth / 2 + marginLeftWorld
+    }
+
     // Create text layers
     for (let i = 0; i < depthLayers; i++) {
       const layerZ = -i * (depth / depthLayers)
@@ -386,48 +370,16 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         textMesh.material = new THREE.MeshBasicMaterial({ color: darkColor })
       }
 
-      textMesh.sync()
+      // On front mesh sync, trigger initial sizing
+      if (isFront) {
+        textMesh.sync(() => {
+          resizeTextToFit(container.clientWidth / container.clientHeight)
+        })
+      } else {
+        textMesh.sync()
+      }
       textGroup.add(textMesh)
       textMeshes.push(textMesh)
-    }
-
-    // Resize text to fit viewport
-    const resizeTextToFit = (aspect: number) => {
-      const { visibleWidth } = getVisibleDimensions(aspect)
-
-      // Get font size for current breakpoint
-      const fontSizePx = getFontSizeForBreakpoint(
-        currentViewportWidth,
-        tailwindScreens,
-        fontSizeBreakpoints,
-        32,
-      )
-      const fontSize = (fontSizePx / currentViewportWidth) * visibleWidth
-
-      textGroup.scale.setScalar(1)
-
-      for (const mesh of textMeshes) {
-        mesh.fontSize = fontSize
-        mesh.sync()
-      }
-
-      // Calculate left margin position (aligned with max-w-single content)
-      const marginPx = calculateContentLeftMargin(
-        currentViewportWidth,
-        tailwindScreens,
-        tailwindPadding,
-      )
-      const marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
-
-      textGroup.position.x = -visibleWidth / 2 + marginLeftWorld
-    }
-
-    // Initial text sizing after first mesh syncs
-    const frontMesh = textMeshes[0]
-    if (frontMesh) {
-      frontMesh.sync(() => {
-        resizeTextToFit(container.clientWidth / container.clientHeight)
-      })
     }
 
     // ============================================
