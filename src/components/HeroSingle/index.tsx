@@ -883,7 +883,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       </div>
       {/* Back to home button */}
       <div
-        className="container"
+        className="container max-w-single"
         style={{
           position: 'fixed',
           top: 0,

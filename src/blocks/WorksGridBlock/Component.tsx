@@ -60,7 +60,7 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
   return (
     <Link
       href={`/works/${slug}`}
-      className="group flex flex-col overflow-hidden rounded-lg transition-colors hover:bg-accent"
+      className="group flex flex-col overflow-hidden rounded-lg transition-colors"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -88,19 +88,17 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
             </div>
           )}
         </div>
-        <div
-          className="bg-noise-gradient relative z-10 flex flex-col justify-center p-4 bg-card border-t-2 border-white left-[2px] bottom-[2px]"
-          style={{ width: 'calc(100% - 4px)' }}
-        >
-          {title && (
-            <h3 className="text-md font-semibold text-center">
-              <GlitchHover active={isHovered}>
-                <GlitchTextReveal>{title}</GlitchTextReveal>
-              </GlitchHover>
-            </h3>
-          )}
-        </div>
       </WindowReveal>
+
+      <div className="bg-noise-gradient relative flex flex-col justify-center p-4 bg-card border-2 border-t-0 border-white">
+        {title && (
+          <h3 className="text-md font-semibold text-center">
+            <GlitchHover active={isHovered}>
+              <GlitchTextReveal>{title}</GlitchTextReveal>
+            </GlitchHover>
+          </h3>
+        )}
+      </div>
     </Link>
   )
 }

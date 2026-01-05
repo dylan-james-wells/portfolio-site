@@ -6,6 +6,7 @@ interface WindowRevealProps {
   children: ReactNode
   className?: string
   threshold?: number // 0-1, how far into viewport before activation (default 0)
+  callback?: Function
 }
 
 interface Dimensions {
@@ -22,6 +23,7 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({
   children,
   className,
   threshold = 0,
+  callback,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -114,6 +116,9 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({
         animationRef.current = requestAnimationFrame(animate)
       } else {
         setAnimationComplete(true)
+        if (typeof callback === 'function') {
+          callback()
+        }
       }
     }
 
