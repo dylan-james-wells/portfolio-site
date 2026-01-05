@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 // @ts-ignore
 import { Text } from 'troika-three-text'
+import Link from 'next/link'
 
 import type { Media } from '@/payload-types'
 
@@ -869,6 +870,40 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
             opacity: 0.25,
           }}
         />
+      </div>
+      {/* Back to home button */}
+      <div
+        className="container"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+          paddingTop: 'calc(env(safe-area-inset-top) + 2rem)',
+        }}
+      >
+        <Link
+          href="/"
+          className="group relative inline-flex items-center gap-2 text-white font-mono text-sm px-4 py-2 overflow-hidden rounded"
+        >
+          {/* Rotating gradient background - must be large enough to cover rectangular button during rotation */}
+          <span
+            className="absolute animate-spin-slow"
+            style={{
+              background: 'conic-gradient(from 0deg, #ff6b6b, #4ecdc4, #ff6b6b)',
+              top: '50%',
+              left: '50%',
+              width: '450%',
+              height: '450%',
+            }}
+          />
+          {/* Inner background to create border effect */}
+          <span className="absolute inset-[2px] bg-black/40 group-hover:bg-black/20 transition-colors rounded-sm" />
+          {/* Content */}
+          <span className="relative z-10">←</span>
+          <span className="relative z-10">Back to home</span>
+        </Link>
       </div>
     </>
   )

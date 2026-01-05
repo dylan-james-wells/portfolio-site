@@ -214,3 +214,17 @@
   pointer-events: none;
   animation: grain 7s steps(10) infinite;
 }
+
+/* Slow spin animation for gradient buttons */
+@keyframes spin-slow {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
