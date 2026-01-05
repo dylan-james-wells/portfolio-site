@@ -185,7 +185,7 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({
         ref={contentRef}
         style={{
           opacity: animationComplete ? 1 : 0,
-          transition: 'opacity 200ms ease-in',
+          transition: 'opacity 800ms ease-in',
         }}
       >
         {children}

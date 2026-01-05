@@ -7,6 +7,7 @@ import Link from 'next/link'
 
 import { Media } from '@/components/Media'
 import { GlitchTextReveal } from '@/components/GlitchTextReveal'
+import { GlitchHover } from '@/components/GlitchHover'
 import { ImageGlitchPan } from '@/components/ImageGlitchPan'
 import { WindowReveal } from '@/components/WindowReveal'
 import { TextOutline } from '@/components/TextOutline'
@@ -93,7 +94,9 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
         >
           {title && (
             <h3 className="text-md font-semibold text-center">
-              <GlitchTextReveal active={isHovered}>{title}</GlitchTextReveal>
+              <GlitchHover active={isHovered}>
+                <GlitchTextReveal>{title}</GlitchTextReveal>
+              </GlitchHover>
             </h3>
           )}
         </div>

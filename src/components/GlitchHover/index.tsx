@@ -7,6 +7,7 @@ interface GlitchHoverProps {
   children: ReactNode
   className?: string
   intensity?: number // 0-1, how intense the glitch effect is (default 0.3)
+  active?: boolean // When true, activates the glitch effect (controlled mode)
 }
 
 // Generate HSL color that cycles through the spectrum
@@ -18,14 +19,18 @@ export const GlitchHover: React.FC<GlitchHoverProps> = ({
   children,
   className,
   intensity = 0.3,
+  active,
 }) => {
   const containerRef = useRef<HTMLSpanElement>(null)
   const [isHovered, setIsHovered] = useState(false)
   const animationRef = useRef<number | null>(null)
 
+  // Use active prop if provided, otherwise use internal hover state
+  const isActive = active !== undefined ? active : isHovered
+
   // Glitch animation on hover using drop-shadow filter (works with SVGs)
   useEffect(() => {
-    if (!isHovered || !containerRef.current) {
+    if (!isActive || !containerRef.current) {
       // Clean up when not hovered
       if (containerRef.current) {
         containerRef.current.style.filter = 'none'
@@ -71,7 +76,7 @@ export const GlitchHover: React.FC<GlitchHoverProps> = ({
         containerRef.current.style.filter = 'none'
       }
     }
-  }, [isHovered, intensity])
+  }, [isActive, intensity])
 
   return (
     <span

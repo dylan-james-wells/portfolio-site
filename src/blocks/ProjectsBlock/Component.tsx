@@ -7,6 +7,7 @@ import Link from 'next/link'
 
 import { Media } from '@/components/Media'
 import { GlitchTextReveal } from '@/components/GlitchTextReveal'
+import { GlitchHover } from '@/components/GlitchHover'
 import { ImageGlitchPan } from '@/components/ImageGlitchPan'
 import { WindowReveal } from '@/components/WindowReveal'
 import { TextOutline } from '@/components/TextOutline'
@@ -88,7 +89,9 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
         <TextOutline className="flex flex-col top-[8px] md:top-0 justify-center pb-1">
           {title && (
             <h3 className="text-xl font-semibold p-4 pb-0">
-              <GlitchTextReveal active={isHovered}>{title}</GlitchTextReveal>
+              <GlitchHover active={isHovered}>
+                <GlitchTextReveal>{title}</GlitchTextReveal>
+              </GlitchHover>
             </h3>
           )}
           {description && (

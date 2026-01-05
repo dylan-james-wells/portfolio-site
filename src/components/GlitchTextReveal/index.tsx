@@ -6,7 +6,6 @@ interface GlitchTextRevealProps {
   children: ReactNode
   className?: string
   threshold?: number // 0-1, how far into viewport before activation (default 0)
-  active?: boolean // When true, continuously plays the glitch animation
 }
 
 // Easing function for smooth animation
@@ -23,7 +22,6 @@ export const GlitchTextReveal: React.FC<GlitchTextRevealProps> = ({
   children,
   className,
   threshold = 0,
-  active = false,
 }) => {
   const containerRef = useRef<HTMLSpanElement>(null)
   const [isInViewport, setIsInViewport] = useState(false)
@@ -117,57 +115,6 @@ export const GlitchTextReveal: React.FC<GlitchTextRevealProps> = ({
       }
     }
   }, [isInViewport])
-
-  // Active mode: continuous glitch animation
-  useEffect(() => {
-    if (!active || !containerRef.current) {
-      // Clean up when active becomes false
-      if (containerRef.current && animationComplete) {
-        containerRef.current.style.textShadow = 'none'
-      }
-      return
-    }
-
-    const ACTIVE_INTENSITY = 0.3 // Intensity for active mode
-    const scale = 1.5
-
-    const animateActive = (currentTime: number) => {
-      if (!containerRef.current) return
-
-      const time = currentTime * 0.015
-      const jitter = Math.sin(time * 3) * ACTIVE_INTENSITY
-      const shadows: string[] = []
-
-      // Red channel offset
-      const redX = (Math.sin(time * 7) * 6 + jitter * 3) * ACTIVE_INTENSITY * scale
-      const redY = Math.cos(time * 5) * 3 * ACTIVE_INTENSITY * scale
-      shadows.push(`${hslColor(0, 100, 55)} ${redX}px ${redY}px ${8 * ACTIVE_INTENSITY}px`)
-
-      // Cyan offset (complementary to red for chromatic aberration look)
-      const cyanX = -redX * 0.8
-      const cyanY = -redY * 0.8
-      shadows.push(`${hslColor(180, 100, 50)} ${cyanX}px ${cyanY}px ${8 * ACTIVE_INTENSITY}px`)
-
-      // Blue offset
-      const blueX = (Math.cos(time * 8 + 4) * -5 + jitter) * ACTIVE_INTENSITY * scale
-      const blueY = Math.sin(time * 12 + 3) * 3 * ACTIVE_INTENSITY * scale
-      shadows.push(`${hslColor(220, 100, 55)} ${blueX}px ${blueY}px ${10 * ACTIVE_INTENSITY}px`)
-
-      containerRef.current.style.textShadow = shadows.join(', ')
-      animationRef.current = requestAnimationFrame(animateActive)
-    }
-
-    animationRef.current = requestAnimationFrame(animateActive)
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-      }
-      if (containerRef.current) {
-        containerRef.current.style.textShadow = 'none'
-      }
-    }
-  }, [active, animationComplete])
 
   return (
     <span
