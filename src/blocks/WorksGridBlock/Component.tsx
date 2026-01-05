@@ -56,6 +56,7 @@ export const WorksGridBlock: React.FC<
 const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
   const { slug, title, thumbnail, heroImage, description } = work
   const [isHovered, setIsHovered] = useState(false)
+  const [revealed, setRevealed] = useState(false)
 
   return (
     <Link
@@ -64,7 +65,7 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <WindowReveal threshold={1} className="w-full">
+      <WindowReveal threshold={1} callback={() => setRevealed(true)}>
         <div className="aspect-video relative overflow-hidden w-full">
           {/* Hero image as background */}
           {heroImage && typeof heroImage !== 'string' && (
@@ -90,14 +91,22 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
         </div>
       </WindowReveal>
 
-      <div className="bg-noise-gradient relative flex flex-col justify-center p-4 bg-card border-2 border-t-0 border-white">
-        {title && (
-          <h3 className="text-md font-semibold text-center">
-            <GlitchHover active={isHovered}>
-              <GlitchTextReveal>{title}</GlitchTextReveal>
-            </GlitchHover>
-          </h3>
-        )}
+      <div
+        className="bg-noise-gradient relative flex flex-col justify-center bg-card border-2 border-t-0 border-white overflow-hidden transition-all duration-500 ease"
+        style={{
+          maxHeight: revealed ? '200px' : '0px',
+          borderWidth: revealed ? '2px' : '0px',
+        }}
+      >
+        <div className="p-4">
+          {title && (
+            <h3 className="text-md font-semibold text-center">
+              <GlitchHover active={isHovered}>
+                <GlitchTextReveal>{title}</GlitchTextReveal>
+              </GlitchHover>
+            </h3>
+          )}
+        </div>
       </div>
     </Link>
   )
