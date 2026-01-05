@@ -672,6 +672,26 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
           pointerEvents: 'none',
         }}
       />
+      {/* Noise overlay layer - on top of everything for visible grain */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: height,
+          zIndex: 2,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          className="noise-overlay-clipped"
+          style={{
+            opacity: 0.25,
+          }}
+        />
+      </div>
     </>
   )
 }
