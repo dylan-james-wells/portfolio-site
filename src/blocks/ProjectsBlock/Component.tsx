@@ -65,7 +65,7 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <WindowReveal>
-        <div className="aspect-square relative overflow-hidden rounded-lg w-[120px] md:w-[200px]">
+        <div className="aspect-square relative overflow-hidden rounded-lg w-[100px] xsm:w-[150px] md:w-[200px]">
           {/* Hero image as background */}
           {heroImage && typeof heroImage !== 'string' && (
             <ImageGlitchPan resource={heroImage} alt="Project screenshot" className="h-full" />
