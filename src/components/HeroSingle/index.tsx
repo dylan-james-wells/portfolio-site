@@ -202,14 +202,14 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x000000)
 
-    // Camera setup - perspective for 3D text effect
+    // Camera setup - narrower FOV to reduce perspective distortion
     const camera = new THREE.PerspectiveCamera(
-      50,
+      35,
       container.clientWidth / container.clientHeight,
       0.1,
       100,
     )
-    camera.position.set(0, 0, 5)
+    camera.position.set(0, 0, 12)
     camera.lookAt(0, 0, 0)
 
     // Renderer setup
@@ -227,11 +227,12 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     let elapsedTime = 0
     let scrollProgress = 0
 
-    // Calculate visible dimensions at z=0
+    // Calculate visible dimensions at a given z-plane (default z=-2 where content is)
     const getVisibleDimensions = (
       aspect: number,
+      atZ: number = -2,
     ): { visibleWidth: number; visibleHeight: number } => {
-      const distance = camera.position.z
+      const distance = camera.position.z - atZ // Distance from camera to the z-plane
       const vFov = (camera.fov * Math.PI) / 180
       const visibleHeight = 2 * Math.tan(vFov / 2) * distance
       const visibleWidth = visibleHeight * aspect
@@ -338,10 +339,11 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
 
         const { visibleWidth, visibleHeight } = getVisibleDimensions(
           container.clientWidth / container.clientHeight,
+          -4, // Background is at z=-4
         )
         const bgGeometry = new THREE.PlaneGeometry(visibleWidth * 2, visibleHeight * 2)
         backgroundMesh = new THREE.Mesh(bgGeometry, bgMaterial)
-        backgroundMesh.position.z = -2
+        backgroundMesh.position.z = -4
         scene.add(backgroundMesh)
       }
       img.src = heroImageUrl
@@ -518,6 +520,8 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       const marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
 
       textGroup.position.x = -visibleWidth / 2 + marginLeftWorld
+      // Push text back in z-space for more depth
+      textGroup.position.z = -2
 
       // Position text from bottom of viewport
       const { visibleHeight } = getVisibleDimensions(aspect)
@@ -607,9 +611,9 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       // Resize text
       resizeTextToFit(aspect)
 
-      // Resize background
+      // Resize background (at z=-4)
       if (backgroundMesh) {
-        const { visibleWidth, visibleHeight } = getVisibleDimensions(aspect)
+        const { visibleWidth, visibleHeight } = getVisibleDimensions(aspect, -4)
         backgroundMesh.geometry.dispose()
         backgroundMesh.geometry = new THREE.PlaneGeometry(visibleWidth * 2, visibleHeight * 2)
         const bgMat = backgroundMesh.material as THREE.ShaderMaterial
@@ -699,11 +703,11 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         // Blur from 0 to 20 as we scroll (scaled in shader)
         bgMat.uniforms.blurAmount.value = scrollProgress * 20
         // Ensure background stays at y = 0 (fixed position)
-        backgroundMesh.position.set(0, 0, -2)
+        backgroundMesh.position.set(0, 0, -4)
       }
 
       // Ensure camera stays fixed
-      camera.position.set(0, 0, 5)
+      camera.position.set(0, 0, 12)
 
       // Animate thumbnail coin rotation and position (aligned to left of text)
       if (thumbnailGroup) {
@@ -752,8 +756,8 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         const thumbnailScrollOffset = scrollProgress * visibleHeight * 1
         thumbnailGroup.position.y = textCenterY + thumbnailScrollOffset
 
-        // No z offset needed since thumbnail and text no longer intersect
-        thumbnailGroup.position.z = 0
+        // Push thumbnail back to same z-plane as text
+        thumbnailGroup.position.z = -2
       }
 
       renderer.render(scene, camera)
