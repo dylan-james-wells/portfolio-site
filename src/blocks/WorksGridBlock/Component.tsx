@@ -67,27 +67,29 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
     >
       <WindowReveal threshold={1} callback={() => setRevealed(true)}>
         <div className="aspect-video relative overflow-hidden w-full">
-          {/* Hero image as background */}
-          {heroImage && typeof heroImage !== 'string' && (
-            <ImageGlitchPan
-              resource={heroImage}
-              alt="Project screenshot"
-              className="h-full"
-              animationDelay={200 * index}
-            />
-          )}
-          {/* Thumbnail image on top */}
-          {thumbnail && typeof thumbnail !== 'string' ? (
-            <Media
-              resource={thumbnail}
-              className="absolute top-0 left-0 z-10 w-full h-full group-hover:scale-105 group-hover:blur-sm transition-all duration-300"
-              imgClassName="w-full h-full object-contain p-[10%]"
-            />
-          ) : (
-            <div className="relative z-10 w-full h-full bg-muted flex items-center justify-center">
-              <GlitchTextReveal>No image</GlitchTextReveal>
-            </div>
-          )}
+          <div className="absolute inset-0 transition-transform duration-300 group-hover:scale-105">
+            {/* Hero image as background */}
+            {heroImage && typeof heroImage !== 'string' && (
+              <ImageGlitchPan
+                resource={heroImage}
+                alt="Project screenshot"
+                className="h-full"
+                animationDelay={200 * index}
+              />
+            )}
+            {/* Thumbnail image on top */}
+            {thumbnail && typeof thumbnail !== 'string' ? (
+              <Media
+                resource={thumbnail}
+                className="absolute top-0 left-0 z-10 w-full h-full group-hover:blur-sm transition-[filter] duration-300"
+                imgClassName="w-full h-full object-contain p-[10%]"
+              />
+            ) : (
+              <div className="relative z-10 w-full h-full bg-muted flex items-center justify-center">
+                <GlitchTextReveal>No image</GlitchTextReveal>
+              </div>
+            )}
+          </div>
         </div>
       </WindowReveal>
 

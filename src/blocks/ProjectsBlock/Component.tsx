@@ -66,22 +66,24 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
     >
       <WindowReveal>
         <div className="aspect-square relative overflow-hidden rounded-lg w-[100px] xsm:w-[150px] md:w-[200px]">
-          {/* Hero image as background */}
-          {heroImage && typeof heroImage !== 'string' && (
-            <ImageGlitchPan resource={heroImage} alt="Project screenshot" className="h-full" />
-          )}
-          {/* Thumbnail image on top */}
-          {thumbnail && typeof thumbnail !== 'string' ? (
-            <Media
-              resource={thumbnail}
-              className="absolute top-0 left-0 z-10 w-full h-full group-hover:scale-105 group-hover:blur-sm transition-all duration-300"
-              imgClassName="w-full h-full object-contain p-[10%]"
-            />
-          ) : (
-            <div className="relative z-10 w-full h-full bg-muted flex items-center justify-center">
-              <GlitchTextReveal>No image</GlitchTextReveal>
-            </div>
-          )}
+          <div className="absolute inset-0 transition-transform duration-300 group-hover:scale-105">
+            {/* Hero image as background */}
+            {heroImage && typeof heroImage !== 'string' && (
+              <ImageGlitchPan resource={heroImage} alt="Project screenshot" className="h-full" />
+            )}
+            {/* Thumbnail image on top */}
+            {thumbnail && typeof thumbnail !== 'string' ? (
+              <Media
+                resource={thumbnail}
+                className="absolute top-0 left-0 z-10 w-full h-full group-hover:blur-sm transition-[filter] duration-300"
+                imgClassName="w-full h-full object-contain p-[10%]"
+              />
+            ) : (
+              <div className="relative z-10 w-full h-full bg-muted flex items-center justify-center">
+                <GlitchTextReveal>No image</GlitchTextReveal>
+              </div>
+            )}
+          </div>
         </div>
       </WindowReveal>
 
