@@ -353,10 +353,14 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       )
       const fontSize = (fontSizePx / currentViewportWidth) * visibleWidth
 
+      // Calculate max width in world units (constrained to max-w-single)
+      const maxWidthWorld = (MAX_W_SINGLE_PX / currentViewportWidth) * visibleWidth
+
       textGroup.scale.setScalar(1)
 
       for (const mesh of textMeshes) {
         mesh.fontSize = fontSize
+        mesh.maxWidth = maxWidthWorld
         mesh.sync()
       }
 
