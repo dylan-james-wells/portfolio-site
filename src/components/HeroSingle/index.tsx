@@ -254,13 +254,15 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         // Don't set colorSpace - ShaderMaterial reads texture raw, and we output directly
         // Setting SRGB here + SRGB output would cause double gamma correction (darkening)
 
-        // Create shader material for object-cover + zoom effect (no lighting)
+        // Create shader material for object-cover + zoom + blur effect (no lighting)
         const bgMaterial = new THREE.ShaderMaterial({
           uniforms: {
             map: { value: texture },
             zoom: { value: 1.0 },
+            blurAmount: { value: 0.0 },
             imageAspect: { value: texture.image.width / texture.image.height },
             containerAspect: { value: container.clientWidth / container.clientHeight },
+            resolution: { value: new THREE.Vector2(container.clientWidth, container.clientHeight) },
           },
           vertexShader: `
             varying vec2 vUv;
@@ -272,13 +274,13 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
           fragmentShader: `
             uniform sampler2D map;
             uniform float zoom;
+            uniform float blurAmount;
             uniform float imageAspect;
             uniform float containerAspect;
+            uniform vec2 resolution;
             varying vec2 vUv;
 
-            void main() {
-              vec2 uv = vUv;
-
+            vec2 transformUV(vec2 uv) {
               // Center the UV
               uv -= 0.5;
 
@@ -286,22 +288,48 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
               uv /= zoom;
 
               // Object-cover: scale image to cover container, cropping as needed
-              // We need to shrink UV space so image covers the container
               if (containerAspect > imageAspect) {
-                // Container is wider than image - scale by width, crop height
                 uv.y *= imageAspect / containerAspect;
               } else {
-                // Container is taller than image - scale by height, crop width
                 uv.x *= containerAspect / imageAspect;
               }
 
               // Re-center
               uv += 0.5;
 
-              // Clamp to avoid edge artifacts
-              uv = clamp(uv, 0.0, 1.0);
+              return clamp(uv, 0.0, 1.0);
+            }
 
-              gl_FragColor = texture2D(map, uv);
+            void main() {
+              vec2 uv = transformUV(vUv);
+
+              if (blurAmount <= 0.0) {
+                gl_FragColor = texture2D(map, uv);
+                return;
+              }
+
+              // Gaussian-like blur with 9 samples
+              vec4 color = vec4(0.0);
+              vec2 texelSize = 1.0 / resolution;
+              float blur = blurAmount * 0.5; // Scale blur amount
+
+              // 3x3 kernel with weights approximating Gaussian
+              float kernel[9];
+              kernel[0] = 0.0625; kernel[1] = 0.125; kernel[2] = 0.0625;
+              kernel[3] = 0.125;  kernel[4] = 0.25;  kernel[5] = 0.125;
+              kernel[6] = 0.0625; kernel[7] = 0.125; kernel[8] = 0.0625;
+
+              vec2 offsets[9];
+              offsets[0] = vec2(-1.0, -1.0); offsets[1] = vec2(0.0, -1.0); offsets[2] = vec2(1.0, -1.0);
+              offsets[3] = vec2(-1.0, 0.0);  offsets[4] = vec2(0.0, 0.0);  offsets[5] = vec2(1.0, 0.0);
+              offsets[6] = vec2(-1.0, 1.0);  offsets[7] = vec2(0.0, 1.0);  offsets[8] = vec2(1.0, 1.0);
+
+              for (int i = 0; i < 9; i++) {
+                vec2 sampleUV = transformUV(vUv + offsets[i] * texelSize * blur);
+                color += texture2D(map, sampleUV) * kernel[i];
+              }
+
+              gl_FragColor = color;
             }
           `,
           depthWrite: false,
@@ -389,7 +417,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         const { visibleWidth } = getVisibleDimensions(
           container.clientWidth / container.clientHeight,
         )
-        const radius = ((targetSizePx / 2) / container.clientWidth) * visibleWidth
+        const radius = (targetSizePx / 2 / container.clientWidth) * visibleWidth
         const depth = radius * 0.3 // Coin thickness
 
         // Create a group to hold the coin parts
@@ -592,14 +620,19 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       const { visibleWidth: vw } = getVisibleDimensions(aspect)
       if (thumbnailGroup && thumbnailCylinder && frontCap && backCap) {
         const targetSizePx = 150
-        const newRadius = ((targetSizePx / 2) / width) * vw
+        const newRadius = (targetSizePx / 2 / width) * vw
         const newEdgeRadius = newRadius * 0.995
         const newDepth = newRadius * 0.3
 
         // Recreate geometries with new radius
         thumbnailCylinder.geometry.dispose()
         thumbnailCylinder.geometry = new THREE.CylinderGeometry(
-          newEdgeRadius, newEdgeRadius, newDepth, 128, 1, true
+          newEdgeRadius,
+          newEdgeRadius,
+          newDepth,
+          128,
+          1,
+          true,
         )
 
         frontCap.geometry.dispose()
@@ -658,11 +691,13 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       const scrollOffsetWorld = scrollProgress * visibleHeight * 1
       textGroup.position.y = -visibleHeight / 2 + bottomOffsetWorld + scrollOffsetWorld
 
-      // Update background zoom based on scroll (but keep position fixed)
+      // Update background zoom and blur based on scroll (but keep position fixed)
       if (backgroundMesh) {
         const bgMat = backgroundMesh.material as THREE.ShaderMaterial
         // Zoom from 1.0 to 1.3 as we scroll
         bgMat.uniforms.zoom.value = 1.0 + scrollProgress * 0.3
+        // Blur from 0 to 20 as we scroll (scaled in shader)
+        bgMat.uniforms.blurAmount.value = scrollProgress * 20
         // Ensure background stays at y = 0 (fixed position)
         backgroundMesh.position.set(0, 0, -2)
       }
