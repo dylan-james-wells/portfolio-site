@@ -196,6 +196,9 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setSize(container.clientWidth, container.clientHeight)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.toneMapping = THREE.NoToneMapping
+    // Use LinearSRGBColorSpace to output colors as-is without gamma correction
+    renderer.outputColorSpace = THREE.LinearSRGBColorSpace
     container.appendChild(renderer.domElement)
 
     // Track state
@@ -217,15 +220,19 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     // Background Image
     // ============================================
     let backgroundMesh: THREE.Mesh | null = null
-    const textureLoader = new THREE.TextureLoader()
-
     const heroImageUrl = typeof heroImage === 'object' && heroImage?.url ? heroImage.url : null
 
     if (heroImageUrl) {
-      textureLoader.load(heroImageUrl, (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace
+      // Load texture using Image element like react-3d-slideshow example
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => {
+        const texture = new THREE.Texture(img)
+        texture.needsUpdate = true
+        // Don't set colorSpace - ShaderMaterial reads texture raw, and we output directly
+        // Setting SRGB here + SRGB output would cause double gamma correction (darkening)
 
-        // Create shader material for object-cover + zoom effect
+        // Create shader material for object-cover + zoom effect (no lighting)
         const bgMaterial = new THREE.ShaderMaterial({
           uniforms: {
             map: { value: texture },
@@ -276,6 +283,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
             }
           `,
           depthWrite: false,
+          toneMapped: false,
         })
 
         const { visibleWidth, visibleHeight } = getVisibleDimensions(container.clientWidth / container.clientHeight)
@@ -283,7 +291,8 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         backgroundMesh = new THREE.Mesh(bgGeometry, bgMaterial)
         backgroundMesh.position.z = -2
         scene.add(backgroundMesh)
-      })
+      }
+      img.src = heroImageUrl
     }
 
     // ============================================
@@ -293,11 +302,15 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     const thumbnailUrl = typeof thumbnail === 'object' && thumbnail?.url ? thumbnail.url : null
 
     if (thumbnailUrl) {
-      textureLoader.load(thumbnailUrl, (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace
+      const thumbImg = new Image()
+      thumbImg.crossOrigin = 'anonymous'
+      thumbImg.onload = () => {
+        const texture = new THREE.Texture(thumbImg)
+        texture.needsUpdate = true
+        // Don't set colorSpace - output as-is with LinearSRGBColorSpace renderer
 
-        const imgWidth = texture.image.width
-        const imgHeight = texture.image.height
+        const imgWidth = thumbImg.width
+        const imgHeight = thumbImg.height
         const imgAspect = imgWidth / imgHeight
 
         // Target 150px square, object-fit contain
@@ -327,7 +340,8 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         thumbnailMesh = new THREE.Mesh(thumbGeometry, thumbMaterial)
         thumbnailMesh.position.z = -0.5
         scene.add(thumbnailMesh)
-      })
+      }
+      thumbImg.src = thumbnailUrl
     }
 
     // ============================================
@@ -573,7 +587,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         const progress = (currentTime % GRADIENT_LOOP_DURATION) / GRADIENT_LOOP_DURATION
         const currentAngle = 135 + progress * 360
 
-        overlayRef.current.style.background = `linear-gradient(${currentAngle}deg, rgba(255, 107, 107, 0.55), rgba(78, 205, 196, 0.5))`
+        overlayRef.current.style.background = `linear-gradient(${currentAngle}deg, rgba(255, 107, 107, 0.25), rgba(78, 205, 196, 0.25))`
       }
 
       animationId = requestAnimationFrame(animateGradient)
