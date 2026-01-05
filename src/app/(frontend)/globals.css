@@ -119,8 +119,8 @@
 
 .bg-noise-gradient::after {
   content: '';
-  position: fixed;
-  z-index: 9999;
+  position: absolute;
+  z-index: 1;
   top: -300%;
   left: -150%;
   height: 600%;
@@ -128,7 +128,7 @@
   background-image: url('/noise.png');
   background-size: 200px;
   background-repeat: repeat;
-  opacity: 0.25;
+  opacity: 0.15;
   pointer-events: none;
   animation: grain 7s steps(10) infinite;
 }
