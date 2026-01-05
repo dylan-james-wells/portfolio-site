@@ -79,38 +79,19 @@ export const GlitchTextReveal: React.FC<GlitchTextRevealProps> = ({
           const scale = 2.5
 
           // Red channel offset
-          const redX = (Math.sin(time * 7) * 8 + jitter * 4) * glitchIntensity * scale
-          const redY = Math.cos(time * 5) * 4 * glitchIntensity * scale
-          shadows.push(`${hslColor(0, 100, 55)} ${redX}px ${redY}px ${12 * glitchIntensity}px`)
+          const redX = (Math.sin(time * 7) * 6 + jitter * 3) * glitchIntensity * scale
+          const redY = Math.cos(time * 5) * 3 * glitchIntensity * scale
+          shadows.push(`${hslColor(0, 100, 55)} ${redX}px ${redY}px ${8 * glitchIntensity}px`)
 
-          // Yellow/orange offset
-          const yellowX = (Math.sin(time * 11 + 1) * 6 - jitter * 2) * glitchIntensity * scale
-          const yellowY = Math.cos(time * 8 + 2) * 5 * glitchIntensity * scale
-          shadows.push(
-            `${hslColor(45, 100, 50)} ${yellowX}px ${yellowY}px ${14 * glitchIntensity}px`,
-          )
-
-          // Green offset
-          const greenX = Math.cos(time * 9 + 2) * -6 * glitchIntensity * scale
-          const greenY = (Math.sin(time * 6 + 1) * -4 + jitter * 2) * glitchIntensity * scale
-          shadows.push(`${hslColor(120, 90, 45)} ${greenX}px ${greenY}px ${10 * glitchIntensity}px`)
-
-          // Cyan offset
-          const cyanX = Math.sin(time * 13 + 3) * 5 * glitchIntensity * scale
-          const cyanY = (Math.cos(time * 10) * -6 - jitter * 3) * glitchIntensity * scale
-          shadows.push(`${hslColor(180, 100, 50)} ${cyanX}px ${cyanY}px ${12 * glitchIntensity}px`)
+          // Cyan offset (complementary to red for chromatic aberration look)
+          const cyanX = -redX * 0.8
+          const cyanY = -redY * 0.8
+          shadows.push(`${hslColor(180, 100, 50)} ${cyanX}px ${cyanY}px ${8 * glitchIntensity}px`)
 
           // Blue offset
-          const blueX = (Math.cos(time * 8 + 4) * -8 + jitter * 2) * glitchIntensity * scale
-          const blueY = Math.sin(time * 12 + 3) * 4 * glitchIntensity * scale
-          shadows.push(`${hslColor(220, 100, 55)} ${blueX}px ${blueY}px ${16 * glitchIntensity}px`)
-
-          // Magenta offset
-          const magentaX = Math.sin(time * 6 + 5) * 6 * glitchIntensity * scale
-          const magentaY = (Math.cos(time * 9 + 4) * 5 + jitter) * glitchIntensity * scale
-          shadows.push(
-            `${hslColor(300, 100, 50)} ${magentaX}px ${magentaY}px ${11 * glitchIntensity}px`,
-          )
+          const blueX = (Math.cos(time * 8 + 4) * -5 + jitter) * glitchIntensity * scale
+          const blueY = Math.sin(time * 12 + 3) * 3 * glitchIntensity * scale
+          shadows.push(`${hslColor(220, 100, 55)} ${blueX}px ${blueY}px ${10 * glitchIntensity}px`)
         }
 
         containerRef.current.style.textShadow = shadows.length > 0 ? shadows.join(', ') : 'none'
@@ -147,8 +128,8 @@ export const GlitchTextReveal: React.FC<GlitchTextRevealProps> = ({
       return
     }
 
-    const ACTIVE_INTENSITY = 0.2 // Lower intensity for active mode
-    const scale = 2.0
+    const ACTIVE_INTENSITY = 0.3 // Intensity for active mode
+    const scale = 1.5
 
     const animateActive = (currentTime: number) => {
       if (!containerRef.current) return
@@ -158,36 +139,19 @@ export const GlitchTextReveal: React.FC<GlitchTextRevealProps> = ({
       const shadows: string[] = []
 
       // Red channel offset
-      const redX = (Math.sin(time * 7) * 8 + jitter * 4) * ACTIVE_INTENSITY * scale
-      const redY = Math.cos(time * 5) * 4 * ACTIVE_INTENSITY * scale
-      shadows.push(`${hslColor(0, 100, 55)} ${redX}px ${redY}px ${12 * ACTIVE_INTENSITY}px`)
+      const redX = (Math.sin(time * 7) * 6 + jitter * 3) * ACTIVE_INTENSITY * scale
+      const redY = Math.cos(time * 5) * 3 * ACTIVE_INTENSITY * scale
+      shadows.push(`${hslColor(0, 100, 55)} ${redX}px ${redY}px ${8 * ACTIVE_INTENSITY}px`)
 
-      // Yellow/orange offset
-      const yellowX = (Math.sin(time * 11 + 1) * 6 - jitter * 2) * ACTIVE_INTENSITY * scale
-      const yellowY = Math.cos(time * 8 + 2) * 5 * ACTIVE_INTENSITY * scale
-      shadows.push(`${hslColor(45, 100, 50)} ${yellowX}px ${yellowY}px ${14 * ACTIVE_INTENSITY}px`)
-
-      // Green offset
-      const greenX = Math.cos(time * 9 + 2) * -6 * ACTIVE_INTENSITY * scale
-      const greenY = (Math.sin(time * 6 + 1) * -4 + jitter * 2) * ACTIVE_INTENSITY * scale
-      shadows.push(`${hslColor(120, 90, 45)} ${greenX}px ${greenY}px ${10 * ACTIVE_INTENSITY}px`)
-
-      // Cyan offset
-      const cyanX = Math.sin(time * 13 + 3) * 5 * ACTIVE_INTENSITY * scale
-      const cyanY = (Math.cos(time * 10) * -6 - jitter * 3) * ACTIVE_INTENSITY * scale
-      shadows.push(`${hslColor(180, 100, 50)} ${cyanX}px ${cyanY}px ${12 * ACTIVE_INTENSITY}px`)
+      // Cyan offset (complementary to red for chromatic aberration look)
+      const cyanX = -redX * 0.8
+      const cyanY = -redY * 0.8
+      shadows.push(`${hslColor(180, 100, 50)} ${cyanX}px ${cyanY}px ${8 * ACTIVE_INTENSITY}px`)
 
       // Blue offset
-      const blueX = (Math.cos(time * 8 + 4) * -8 + jitter * 2) * ACTIVE_INTENSITY * scale
-      const blueY = Math.sin(time * 12 + 3) * 4 * ACTIVE_INTENSITY * scale
-      shadows.push(`${hslColor(220, 100, 55)} ${blueX}px ${blueY}px ${16 * ACTIVE_INTENSITY}px`)
-
-      // Magenta offset
-      const magentaX = Math.sin(time * 6 + 5) * 6 * ACTIVE_INTENSITY * scale
-      const magentaY = (Math.cos(time * 9 + 4) * 5 + jitter) * ACTIVE_INTENSITY * scale
-      shadows.push(
-        `${hslColor(300, 100, 50)} ${magentaX}px ${magentaY}px ${11 * ACTIVE_INTENSITY}px`,
-      )
+      const blueX = (Math.cos(time * 8 + 4) * -5 + jitter) * ACTIVE_INTENSITY * scale
+      const blueY = Math.sin(time * 12 + 3) * 3 * ACTIVE_INTENSITY * scale
+      shadows.push(`${hslColor(220, 100, 55)} ${blueX}px ${blueY}px ${10 * ACTIVE_INTENSITY}px`)
 
       containerRef.current.style.textShadow = shadows.join(', ')
       animationRef.current = requestAnimationFrame(animateActive)
