@@ -167,6 +167,8 @@ const calculateContentLeftMargin = (viewportWidth: number): number => {
   return containerMargin
 }
 
+const GRADIENT_LOOP_DURATION = 10000 // ms for one full rotation
+
 export const HeroSingle: React.FC<HeroSingleProps> = ({
   title,
   heroImage,
@@ -174,6 +176,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
   height = '60vh',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -433,63 +436,6 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     }
 
     // ============================================
-    // Gradient Overlay (spinning)
-    // ============================================
-    const gradientMaterial = new THREE.ShaderMaterial({
-      transparent: true,
-      uniforms: {
-        time: { value: 0 },
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float time;
-        varying vec2 vUv;
-
-        void main() {
-          // Rotate UV around center
-          vec2 centeredUv = vUv - 0.5;
-          float angle = time * 0.628318; // 2*PI / 10 seconds
-          float cosA = cos(angle);
-          float sinA = sin(angle);
-          vec2 rotatedUv = vec2(
-            centeredUv.x * cosA - centeredUv.y * sinA,
-            centeredUv.x * sinA + centeredUv.y * cosA
-          );
-          rotatedUv += 0.5;
-
-          // Gradient from pink-red to teal
-          vec3 color1 = vec3(1.0, 0.42, 0.42); // rgba(255, 107, 107)
-          vec3 color2 = vec3(0.306, 0.804, 0.769); // rgba(78, 205, 196)
-
-          // Diagonal gradient based on rotated position
-          float t = (rotatedUv.x + rotatedUv.y) * 0.5;
-          vec3 color = mix(color1, color2, t);
-
-          // Apply opacity (0.5-0.55 range)
-          float alpha = 0.5;
-
-          gl_FragColor = vec4(color, alpha);
-        }
-      `,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    })
-
-    const { visibleWidth: initVisibleWidth, visibleHeight: initVisibleHeight } = getVisibleDimensions(
-      container.clientWidth / container.clientHeight,
-    )
-    const gradientGeometry = new THREE.PlaneGeometry(initVisibleWidth * 2, initVisibleHeight * 2)
-    const gradientMesh = new THREE.Mesh(gradientGeometry, gradientMaterial)
-    gradientMesh.position.z = 1
-    scene.add(gradientMesh)
-
-    // ============================================
     // Handle Resize
     // ============================================
     const handleResize = () => {
@@ -517,12 +463,8 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         bgMat.uniforms.containerAspect.value = aspect
       }
 
-      // Resize gradient overlay
-      const { visibleWidth: vw, visibleHeight: vh } = getVisibleDimensions(aspect)
-      gradientMesh.geometry.dispose()
-      gradientMesh.geometry = new THREE.PlaneGeometry(vw * 2, vh * 2)
-
       // Resize thumbnail
+      const { visibleWidth: vw } = getVisibleDimensions(aspect)
       if (thumbnailMesh && thumbnail && typeof thumbnail === 'object' && thumbnail.url) {
         const imgAspect = (thumbnail.width || 1) / (thumbnail.height || 1)
         const targetSizePx = 150
@@ -581,9 +523,6 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       // Subtle oscillating rotation for text
       textGroup.rotation.y = Math.sin(elapsedTime * 0.3) * 0.08
 
-      // Update gradient rotation
-      gradientMaterial.uniforms.time.value = elapsedTime
-
       // Update background zoom based on scroll
       if (backgroundMesh) {
         const bgMat = backgroundMesh.material as THREE.ShaderMaterial
@@ -608,8 +547,6 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       }
 
       textMeshes.forEach((mesh) => mesh.dispose())
-      gradientGeometry.dispose()
-      gradientMaterial.dispose()
 
       if (backgroundMesh) {
         backgroundMesh.geometry.dispose()
@@ -625,17 +562,56 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     }
   }, [title, heroImage, thumbnail])
 
+  // Gradient overlay animation (CSS-based like WindowReveal)
+  useEffect(() => {
+    if (!overlayRef.current) return
+
+    let animationId: number
+
+    const animateGradient = (currentTime: number) => {
+      if (overlayRef.current) {
+        const progress = (currentTime % GRADIENT_LOOP_DURATION) / GRADIENT_LOOP_DURATION
+        const currentAngle = 135 + progress * 360
+
+        overlayRef.current.style.background = `linear-gradient(${currentAngle}deg, rgba(255, 107, 107, 0.55), rgba(78, 205, 196, 0.5))`
+      }
+
+      animationId = requestAnimationFrame(animateGradient)
+    }
+
+    animationId = requestAnimationFrame(animateGradient)
+
+    return () => {
+      cancelAnimationFrame(animationId)
+    }
+  }, [])
+
   return (
-    <div
-      ref={containerRef}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: height,
-        zIndex: 0,
-      }}
-    />
+    <>
+      <div
+        ref={containerRef}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: height,
+          zIndex: 0,
+        }}
+      />
+      <div
+        ref={overlayRef}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: height,
+          zIndex: 1,
+          mixBlendMode: 'hard-light',
+          pointerEvents: 'none',
+        }}
+      />
+    </>
   )
 }
