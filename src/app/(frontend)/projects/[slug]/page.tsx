@@ -62,9 +62,9 @@ export default async function ProjectPage({ params: paramsPromise }: Args) {
 
       <div
         className="relative z-10 border-t-2 border-white bg-noise-gradient pt-8 pb-16"
-        style={{ marginTop: '80vh' }}
+        style={{ marginTop: '40vh' }}
       >
-        <div className="container">
+        <div className="container max-w-single">
           <RenderBlocks blocks={project.layout} />
           {project.relatedProjects && project.relatedProjects.length > 0 && (
             <RelatedProjects

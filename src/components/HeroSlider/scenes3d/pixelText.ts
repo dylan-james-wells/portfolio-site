@@ -551,12 +551,26 @@ export function create(options: PixelTextOptions = {}): Scene3D {
     }
   }
 
+  // End drag when window loses focus to prevent stuck drag state
+  const handleWindowBlur = () => {
+    if (isDragging) {
+      // Transfer any remaining momentum
+      velocityX += dragOffsetX * 15
+      velocityY += dragOffsetY * 15
+
+      isDragging = false
+      dragOffsetX = 0
+      dragOffsetY = 0
+    }
+  }
+
   window.addEventListener('mousemove', handleMouseMove)
   window.addEventListener('mousedown', handleMouseDown)
   window.addEventListener('mouseup', handleMouseUp)
   window.addEventListener('touchmove', handleTouchMove, { passive: true })
   window.addEventListener('touchstart', handleTouchStart, { passive: true })
   window.addEventListener('touchend', handleTouchEnd)
+  window.addEventListener('blur', handleWindowBlur)
 
   return {
     scene,
@@ -640,6 +654,7 @@ export function create(options: PixelTextOptions = {}): Scene3D {
       window.removeEventListener('touchmove', handleTouchMove)
       window.removeEventListener('touchstart', handleTouchStart)
       window.removeEventListener('touchend', handleTouchEnd)
+      window.removeEventListener('blur', handleWindowBlur)
       textMeshes.forEach((mesh) => mesh.dispose())
     },
     resize: (width: number, _height: number, aspect: number) => {
