@@ -6,7 +6,7 @@ interface WindowRevealProps {
   children: ReactNode
   className?: string
   threshold?: number // 0-1, how far into viewport before activation (default 0)
-  callback?: Function
+  callback?: () => void
 }
 
 interface Dimensions {
