@@ -365,116 +365,203 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     const textGroup = new THREE.Group()
     scene.add(textGroup)
 
-    const textMeshes: InstanceType<typeof Text>[] = []
+    // Structure: lineGroups[lineIndex] contains { group, meshes[] } for each line
+    const lineGroups: { group: THREE.Group; meshes: InstanceType<typeof Text>[] }[] = []
     const colorStart = 0xff6b6b
     const colorEnd = 0x4ecdc4
     const depthLayers = 12
     const depth = 0.15
     const initialFontSize = 0.5
 
-    // Resize text to fit viewport (defined before loop so it can be used in sync callback)
-    const resizeTextToFit = (aspect: number) => {
-      const { visibleWidth } = getVisibleDimensions(aspect)
+    // Split title into lines: words with N+ letters get their own line,
+    // shorter words are grouped together
+    const splitTitleIntoLines = (titleText: string, minWordLength = 6): string[] => {
+      const words = titleText.toUpperCase().split(/\s+/)
+      const lines: string[] = []
+      let currentGroup: string[] = []
 
-      // Get font size for current breakpoint
-      const fontSizePx = getFontSizeForBreakpoint(
-        currentViewportWidth,
-        tailwindScreens,
-        fontSizeBreakpoints,
-        32,
-      )
-      const fontSize = (fontSizePx / currentViewportWidth) * visibleWidth
+      for (const word of words) {
+        if (word.length >= minWordLength) {
+          // If we have accumulated short words, push them as a line first
+          if (currentGroup.length > 0) {
+            lines.push(currentGroup.join(' '))
+            currentGroup = []
+          }
+          // Long word gets its own line
+          lines.push(word)
+        } else {
+          // Short word - accumulate with other short words
+          currentGroup.push(word)
+        }
+      }
+
+      // Don't forget remaining short words
+      if (currentGroup.length > 0) {
+        lines.push(currentGroup.join(' '))
+      }
+
+      return lines
+    }
+
+    const titleLines = splitTitleIntoLines(title)
+
+    // Resize text to fit viewport - scale based on longest line width
+    const resizeTextToFit = (aspect: number) => {
+      const { visibleWidth, visibleHeight } = getVisibleDimensions(aspect)
 
       // Calculate available content width (viewport minus padding on both sides)
       const marginPx = calculateContentLeftMargin(currentViewportWidth)
       const availableWidthPx = currentViewportWidth - marginPx * 2
+      const availableWidthWorld = (availableWidthPx / currentViewportWidth) * visibleWidth
 
-      // Use minimum of max-w-single and available width for text wrapping
-      const maxWidthPx = Math.min(MAX_W_SINGLE_PX, availableWidthPx)
-      const maxWidthWorld = (maxWidthPx / currentViewportWidth) * visibleWidth
-
-      textGroup.scale.setScalar(1)
-
-      for (const mesh of textMeshes) {
-        mesh.fontSize = fontSize
-        mesh.maxWidth = maxWidthWorld
-        mesh.sync()
-      }
-
-      // Calculate left margin position (aligned with max-w-single content)
+      // Calculate left margin position
       const marginLeftWorld = (marginPx / currentViewportWidth) * visibleWidth
 
-      textGroup.position.x = -visibleWidth / 2 + marginLeftWorld
-      // Push text back in z-space for more depth
-      textGroup.position.z = -2
-
       // Position text from bottom of viewport
-      const { visibleHeight } = getVisibleDimensions(aspect)
       const bottomOffsetPx = cssUnitToPx(titleBottomOffset)
       const bottomOffsetWorld = (bottomOffsetPx / currentViewportHeight) * visibleHeight
-      textGroup.position.y = -visibleHeight / 2 + bottomOffsetWorld
+
+      // Base font size for measuring
+      const baseFontSize = 0.5
+
+      // First pass: find the longest line width to determine uniform scale
+      let maxLineWidth = 0
+      const lineWidths: number[] = []
+      const lineHeights: number[] = []
+
+      for (let lineIdx = 0; lineIdx < lineGroups.length; lineIdx++) {
+        const { meshes } = lineGroups[lineIdx]
+        const frontMesh = meshes[0]
+
+        if (frontMesh && frontMesh.textRenderInfo) {
+          const bounds = frontMesh.textRenderInfo.blockBounds
+          const textWidth = bounds[2] - bounds[0]
+          const textHeight = bounds[3] - bounds[1]
+
+          lineWidths[lineIdx] = textWidth
+          lineHeights[lineIdx] = textHeight
+
+          if (textWidth > maxLineWidth) {
+            maxLineWidth = textWidth
+          }
+        } else {
+          lineWidths[lineIdx] = 0
+          lineHeights[lineIdx] = baseFontSize
+        }
+      }
+
+      // Calculate uniform scale based on longest line
+      const uniformScale = maxLineWidth > 0 ? availableWidthWorld / maxLineWidth : 1
+
+      // Calculate total height with uniform scale
+      let totalHeight = 0
+      for (const height of lineHeights) {
+        totalHeight += height * uniformScale
+      }
+
+      // Second pass: position all lines with uniform scale
+      let yOffset = bottomOffsetWorld + totalHeight
+
+      for (let lineIdx = 0; lineIdx < lineGroups.length; lineIdx++) {
+        const { group, meshes } = lineGroups[lineIdx]
+        const lineHeight = lineHeights[lineIdx] * uniformScale
+
+        // Position the line group
+        group.position.x = -visibleWidth / 2 + marginLeftWorld
+        group.position.z = -2
+
+        // Position from top of text block going down
+        yOffset -= lineHeight
+        group.position.y = -visibleHeight / 2 + yOffset
+
+        // Apply uniform scale to all line groups
+        group.scale.setScalar(uniformScale)
+
+        // Reset individual mesh font sizes (scaling is handled by group)
+        for (const mesh of meshes) {
+          mesh.fontSize = baseFontSize
+        }
+      }
     }
 
-    // Create text layers
-    for (let i = 0; i < depthLayers; i++) {
-      const layerZ = -i * (depth / depthLayers)
-      const isFront = i === 0
+    // Create text meshes for each line
+    for (let lineIdx = 0; lineIdx < titleLines.length; lineIdx++) {
+      const lineText = titleLines[lineIdx]
+      const lineGroup = new THREE.Group()
+      textGroup.add(lineGroup)
 
-      const textMesh = new Text()
-      textMesh.text = title.toUpperCase()
-      textMesh.font =
-        'https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf'
-      textMesh.fontSize = initialFontSize
-      textMesh.anchorX = 'left'
-      textMesh.anchorY = 'bottom'
-      textMesh.textAlign = 'left'
-      textMesh.position.z = layerZ
+      const lineMeshes: InstanceType<typeof Text>[] = []
 
-      if (isFront) {
-        // Front face - animated gradient
-        textMesh.material = new THREE.ShaderMaterial({
-          uniforms: {
-            colorStart: { value: new THREE.Color(colorStart) },
-            colorEnd: { value: new THREE.Color(colorEnd) },
-            time: { value: 0 },
-          },
-          vertexShader: `
-            varying vec2 vUv;
-            void main() {
-              vUv = uv;
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-          `,
-          fragmentShader: `
-            uniform vec3 colorStart;
-            uniform vec3 colorEnd;
-            uniform float time;
-            varying vec2 vUv;
+      // Create depth layers for this line
+      for (let i = 0; i < depthLayers; i++) {
+        const layerZ = -i * (depth / depthLayers)
+        const isFront = i === 0
 
-            void main() {
-              float t = vUv.x + sin(time * 2.0) * 0.2;
-              vec3 color = mix(colorStart, colorEnd, t);
-              gl_FragColor = vec4(color, 1.0);
-            }
-          `,
-        })
-      } else {
-        // Back layers - darker color for depth
-        const layerProgress = i / (depthLayers - 1)
-        const darkColor = new THREE.Color(colorStart).multiplyScalar(0.3 - layerProgress * 0.2)
-        textMesh.material = new THREE.MeshBasicMaterial({ color: darkColor })
+        const textMesh = new Text()
+        textMesh.text = lineText
+        textMesh.font =
+          'https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf'
+        textMesh.fontSize = initialFontSize
+        textMesh.anchorX = 'left'
+        textMesh.anchorY = 'bottom'
+        textMesh.textAlign = 'left'
+        textMesh.position.z = layerZ
+
+        if (isFront) {
+          // Front face - animated gradient
+          textMesh.material = new THREE.ShaderMaterial({
+            uniforms: {
+              colorStart: { value: new THREE.Color(colorStart) },
+              colorEnd: { value: new THREE.Color(colorEnd) },
+              time: { value: 0 },
+            },
+            vertexShader: `
+              varying vec2 vUv;
+              void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+              }
+            `,
+            fragmentShader: `
+              uniform vec3 colorStart;
+              uniform vec3 colorEnd;
+              uniform float time;
+              varying vec2 vUv;
+
+              void main() {
+                float t = vUv.x + sin(time * 2.0) * 0.2;
+                vec3 color = mix(colorStart, colorEnd, t);
+                gl_FragColor = vec4(color, 1.0);
+              }
+            `,
+          })
+        } else {
+          // Back layers - darker color for depth
+          const layerProgress = i / (depthLayers - 1)
+          const darkColor = new THREE.Color(colorStart).multiplyScalar(0.3 - layerProgress * 0.2)
+          textMesh.material = new THREE.MeshBasicMaterial({ color: darkColor })
+        }
+
+        lineGroup.add(textMesh)
+        lineMeshes.push(textMesh)
       }
 
-      // On front mesh sync, trigger initial sizing
-      if (isFront) {
-        textMesh.sync(() => {
-          resizeTextToFit(container.clientWidth / container.clientHeight)
+      lineGroups.push({ group: lineGroup, meshes: lineMeshes })
+    }
+
+    // Sync all meshes and trigger initial sizing after all are ready
+    let syncCount = 0
+    const totalMeshes = titleLines.length * depthLayers
+
+    for (const { meshes } of lineGroups) {
+      for (const mesh of meshes) {
+        mesh.sync(() => {
+          syncCount++
+          if (syncCount === totalMeshes) {
+            resizeTextToFit(container.clientWidth / container.clientHeight)
+          }
         })
-      } else {
-        textMesh.sync()
       }
-      textGroup.add(textMesh)
-      textMeshes.push(textMesh)
     }
 
     // ============================================
@@ -531,12 +618,14 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       lastTime = currentTime
       elapsedTime += deltaTime
 
-      // Update text shader time
-      const frontTextMesh = textMeshes[0]
-      if (frontTextMesh) {
-        const material = frontTextMesh.material as THREE.ShaderMaterial
-        if (material.uniforms) {
-          material.uniforms.time.value = elapsedTime
+      // Update text shader time for all front meshes
+      for (const { meshes } of lineGroups) {
+        const frontMesh = meshes[0]
+        if (frontMesh) {
+          const material = frontMesh.material as THREE.ShaderMaterial
+          if (material.uniforms) {
+            material.uniforms.time.value = elapsedTime
+          }
         }
       }
 
@@ -544,13 +633,11 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       textGroup.rotation.y = Math.sin(elapsedTime * 0.3) * 0.08
 
       // Update text vertical position based on scroll (move up as scrolling down)
+      // Apply scroll offset to the parent textGroup - line positions are relative to this
       const aspect = currentViewportWidth / currentViewportHeight
       const { visibleHeight } = getVisibleDimensions(aspect)
-      const bottomOffsetPx = cssUnitToPx(titleBottomOffset)
-      const bottomOffsetWorld = (bottomOffsetPx / currentViewportHeight) * visibleHeight
-      // Add scroll-based offset: move up by up to 30% of visible height as we scroll
       const scrollOffsetWorld = scrollProgress * visibleHeight * 1
-      textGroup.position.y = -visibleHeight / 2 + bottomOffsetWorld + scrollOffsetWorld
+      textGroup.position.y = scrollOffsetWorld
 
       // Update background zoom and blur based on scroll (but keep position fixed)
       if (backgroundMesh) {
@@ -582,7 +669,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         container.removeChild(renderer.domElement)
       }
 
-      textMeshes.forEach((mesh) => mesh.dispose())
+      lineGroups.forEach(({ meshes }) => meshes.forEach((mesh) => mesh.dispose()))
 
       if (backgroundMesh) {
         backgroundMesh.geometry.dispose()
