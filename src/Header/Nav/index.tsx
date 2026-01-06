@@ -5,7 +5,6 @@ import React, { useCallback } from 'react'
 import type { Header as HeaderType } from '@/payload-types'
 
 import Link from 'next/link'
-import { SearchIcon } from 'lucide-react'
 import { GlitchHover } from '@/components/GlitchHover'
 
 interface NavLinkProps {
@@ -49,10 +48,8 @@ const NavLink: React.FC<NavLinkProps> = ({ href, label, newTab }) => {
 export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
   const navItems = data?.navItems || []
 
-  console.log('navItems', navItems)
-
   return (
-    <nav className="relative bg-noise-gradient border-2 border-t-0 border-white rounded-sm px-2 py-1 flex gap-1 items-center">
+    <nav className="relative bg-noise-gradient border-2 border-white border-t-0 rounded-sm px-2 py-1 flex gap-1 items-center">
       {navItems.map(({ link }, i) => {
         // Construct href from link data
         const href =
@@ -66,12 +63,6 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
           <NavLink key={i} href={href} label={link.label || ''} newTab={link.newTab || false} />
         )
       })}
-      <GlitchHover intensity={0.4}>
-        <Link href="/search" className="px-3 py-2 flex items-center">
-          <span className="sr-only">Search</span>
-          <SearchIcon className="w-5 text-primary" />
-        </Link>
-      </GlitchHover>
     </nav>
   )
 }
