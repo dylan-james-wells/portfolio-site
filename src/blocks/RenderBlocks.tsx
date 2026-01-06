@@ -28,6 +28,14 @@ const blockComponents = {
   worksGridBlock: WorksGridBlock,
 }
 
+// Map block types to their display names for ID generation
+const blockTypeNames: Record<string, string> = {
+  biography: 'Biography',
+  worksGridBlock: 'WorksGrid',
+  worksBlock: 'Works',
+  projectsBlock: 'Projects',
+}
+
 export const RenderBlocks: React.FC<{
   blocks: Page['layout'][0][] | Work['layout'][0][]
 }> = (props) => {
@@ -36,6 +44,9 @@ export const RenderBlocks: React.FC<{
   const hasBlocks = blocks && Array.isArray(blocks) && blocks.length > 0
 
   if (hasBlocks) {
+    // Track instance counts for each block type
+    const blockTypeCounts: Record<string, number> = {}
+
     return (
       <Fragment>
         {blocks.map((block, index) => {
@@ -44,12 +55,18 @@ export const RenderBlocks: React.FC<{
           if (blockType && blockType in blockComponents) {
             const Block = blockComponents[blockType]
 
-            //  py-16
+            // Calculate block index for this type
+            const blockIndex = blockTypeCounts[blockType] ?? 0
+            blockTypeCounts[blockType] = blockIndex + 1
+
+            // Get display name for ID generation
+            const blockName = blockTypeNames[blockType]
+
             if (Block) {
               return (
                 <div className="relative z-1" key={index}>
                   {/* @ts-expect-error there may be some mismatch between the expected types here */}
-                  <Block {...block} disableInnerContainer />
+                  <Block {...block} blockIndex={blockIndex} blockName={blockName} disableInnerContainer />
                 </div>
               )
             }

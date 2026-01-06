@@ -15,9 +15,12 @@ import { TextOutline } from '@/components/TextOutline'
 export const WorksGridBlock: React.FC<
   WorksGridBlockType & {
     id?: string
+    blockIndex?: number
+    blockName?: string
   }
 > = (props) => {
-  const { id, title, description, works: selectedWorks } = props
+  const { title, description, works: selectedWorks, blockIndex, blockName } = props
+  const blockId = blockName ? `${blockName}-${blockIndex}` : undefined
 
   // Filter out any non-object entries (in case they're just IDs)
   const works = (selectedWorks || []).filter(
@@ -25,7 +28,7 @@ export const WorksGridBlock: React.FC<
   )
 
   return (
-    <div className="my-16 select-none" id={`block-${id}`}>
+    <div className="my-16 select-none" id={blockId}>
       <div className="container py-8">
         {(title || description) && (
           <TextOutline className="inline-block" useNoiseGradient>

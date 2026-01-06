@@ -15,9 +15,12 @@ import { TextOutline } from '@/components/TextOutline'
 export const ProjectsBlock: React.FC<
   ProjectsBlockType & {
     id?: string
+    blockIndex?: number
+    blockName?: string
   }
 > = (props) => {
-  const { id, title, description, projects: selectedProjects } = props
+  const { title, description, projects: selectedProjects, blockIndex, blockName } = props
+  const blockId = blockName ? `${blockName}-${blockIndex}` : undefined
 
   // Filter out any non-object entries (in case they're just IDs)
   const projects = (selectedProjects || []).filter(
@@ -25,7 +28,7 @@ export const ProjectsBlock: React.FC<
   )
 
   return (
-    <div className="my-16 select-none" id={`block-${id}`}>
+    <div className="my-16 select-none" id={blockId}>
       <div className="container">
         {(title || description) && (
           <TextOutline className="inline-block" useNoiseGradient>

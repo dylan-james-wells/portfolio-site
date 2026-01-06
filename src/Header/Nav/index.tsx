@@ -49,8 +49,10 @@ const NavLink: React.FC<NavLinkProps> = ({ href, label, newTab }) => {
 export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
   const navItems = data?.navItems || []
 
+  console.log('navItems', navItems)
+
   return (
-    <nav className="relative bg-noise-gradient border-2 border-white rounded-sm px-2 py-1 flex gap-1 items-center">
+    <nav className="relative bg-noise-gradient border-2 border-t-0 border-white rounded-sm px-2 py-1 flex gap-1 items-center">
       {navItems.map(({ link }, i) => {
         // Construct href from link data
         const href =

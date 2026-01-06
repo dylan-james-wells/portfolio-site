@@ -13,9 +13,12 @@ import { TextOutline } from '@/components/TextOutline'
 
 type Props = {
   className?: string
+  blockIndex?: number
+  blockName?: string
 } & BiographyBlockProps
 
-export const BiographyBlock: React.FC<Props> = ({ className, title, body, media, alignment }) => {
+export const BiographyBlock: React.FC<Props> = ({ className, title, body, media, alignment, blockIndex, blockName }) => {
+  const blockId = blockName ? `${blockName}-${blockIndex}` : undefined
   const isMediaLeft = alignment === 'left'
 
   const posterImage = media?.posterImage
@@ -29,7 +32,7 @@ export const BiographyBlock: React.FC<Props> = ({ className, title, body, media,
       : undefined
 
   return (
-    <div className={cn('container select-none', className)}>
+    <div className={cn('container select-none', className)} id={blockId}>
       <div className="flex justify-between flex-col md:flex-row items-center gap-8 py-16">
         {/* Text - always first on mobile, uses order for desktop positioning */}
         <div
