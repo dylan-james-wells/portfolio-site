@@ -7,6 +7,7 @@ import { Text } from 'troika-three-text'
 import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
+import { GlitchHover } from '@/components/GlitchHover'
 
 export const NotFoundScene: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -228,13 +229,15 @@ export const NotFoundScene: React.FC = () => {
         className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
         style={{ zIndex: 3, paddingTop: '20rem' }}
       >
-        <Button
-          asChild
-          variant="outline"
-          className="pointer-events-auto border-2 border-white bg-transparent hover:bg-white/10"
-        >
-          <Link href="/">Go Home</Link>
-        </Button>
+        <GlitchHover className="pointer-events-auto">
+          <Button
+            asChild
+            variant="outline"
+            className="border-2 border-white bg-transparent hover:bg-transparent hover:text-current"
+          >
+            <Link href="/">Go Home</Link>
+          </Button>
+        </GlitchHover>
       </div>
 
       {/* Animated noise overlay */}
