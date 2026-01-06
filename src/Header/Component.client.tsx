@@ -1,12 +1,10 @@
 'use client'
 import { useHeaderTheme } from '@/providers/HeaderTheme'
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 
 import type { Header } from '@/payload-types'
 
-import { Logo } from '@/components/Logo/Logo'
 import { HeaderNav } from './Nav'
 
 interface HeaderClientProps {
@@ -19,6 +17,11 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
   const { headerTheme, setHeaderTheme } = useHeaderTheme()
   const pathname = usePathname()
 
+  // Scroll hide/show state
+  const [isVisible, setIsVisible] = useState(true)
+  const lastScrollY = useRef(0)
+  const ticking = useRef(false)
+
   useEffect(() => {
     setHeaderTheme(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -29,15 +32,44 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [headerTheme])
 
+  // Handle scroll to hide/show header
+  const handleScroll = useCallback(() => {
+    if (!ticking.current) {
+      requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY
+
+        if (currentScrollY < 50) {
+          // Always show header near top of page
+          setIsVisible(true)
+        } else if (currentScrollY < lastScrollY.current) {
+          // Scrolling up - show header
+          setIsVisible(true)
+        } else if (currentScrollY > lastScrollY.current) {
+          // Scrolling down - hide header
+          setIsVisible(false)
+        }
+
+        lastScrollY.current = currentScrollY
+        ticking.current = false
+      })
+      ticking.current = true
+    }
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [handleScroll])
+
   return (
     <header
-      className="container absolute top-0 left-0 w-full z-20 pt-[env(safe-area-inset-top)]"
+      className="fixed top-0 left-0 w-full z-20 pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out"
+      style={{
+        transform: isVisible ? 'translateY(0)' : 'translateY(-100%)',
+      }}
       {...(theme ? { 'data-theme': theme } : {})}
     >
-      <div className="py-8 flex justify-between">
-        <Link href="/">
-          <Logo loading="eager" priority="high" className="invert dark:invert-0" />
-        </Link>
+      <div className="container flex justify-end">
         <HeaderNav data={data} />
       </div>
     </header>
