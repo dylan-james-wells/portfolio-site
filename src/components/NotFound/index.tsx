@@ -51,13 +51,54 @@ export const NotFoundScene: React.FC = () => {
     camera.lookAt(0, 0, 0)
     cameraRef.current = camera
 
+    const colorStart = 0xff6b6b // red
+    const colorEnd = 0x4ecdc4 // teal
+    const colorStartVec = new THREE.Color(colorStart)
+    const colorEndVec = new THREE.Color(colorEnd)
+
+    // Create expanding circles behind text
+    const circleCount = 12
+    const circles: THREE.Line[] = []
+    const circleData: { phase: number; speed: number }[] = []
+
+    for (let i = 0; i < circleCount; i++) {
+      const geometry = new THREE.BufferGeometry()
+      const segments = 64
+      const positions = new Float32Array((segments + 1) * 3)
+
+      for (let j = 0; j <= segments; j++) {
+        const angle = (j / segments) * Math.PI * 2
+        positions[j * 3] = Math.cos(angle)
+        positions[j * 3 + 1] = Math.sin(angle)
+        positions[j * 3 + 2] = 0
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+
+      const material = new THREE.LineBasicMaterial({
+        color: colorStartVec,
+        transparent: true,
+        opacity: 0.6,
+      })
+
+      const circle = new THREE.Line(geometry, material)
+      circle.position.z = -1 // Behind text
+      circle.scale.setScalar(0.01) // Start tiny
+      circles.push(circle)
+      scene.add(circle)
+
+      // Stagger the circles so they're at different phases
+      circleData.push({
+        phase: (i / circleCount) * Math.PI * 2,
+        speed: 0.8 + Math.random() * 0.2,
+      })
+    }
+
     // Create pixel text for "404"
     const textGroup = new THREE.Group()
     textGroupRef.current = textGroup
     scene.add(textGroup)
 
-    const colorStart = 0xff6b6b // red
-    const colorEnd = 0x4ecdc4 // teal
     const depthLayers = 8
     const depth = 0.12
 
@@ -171,6 +212,29 @@ export const NotFoundScene: React.FC = () => {
         textGroupRef.current.rotation.y = Math.sin(elapsedTime * 0.3) * 0.05
       }
 
+      // Animate expanding circles
+      const maxScale = 15 // Large enough to go off screen
+      for (let i = 0; i < circles.length; i++) {
+        const circle = circles[i]
+        const data = circleData[i]
+        const material = circle.material as THREE.LineBasicMaterial
+
+        // Calculate progress (0 to 1) based on time and phase offset
+        const cycleTime = elapsedTime * data.speed + data.phase
+        const progress = (cycleTime % (Math.PI * 2)) / (Math.PI * 2)
+
+        // Scale from 0 to maxScale
+        const scale = progress * maxScale
+        circle.scale.setScalar(Math.max(0.01, scale))
+
+        // Fade out as it grows
+        material.opacity = (1 - progress) * 0.5
+
+        // Color shifts through gradient based on progress
+        const colorT = (Math.sin(cycleTime * 0.5) + 1) / 2
+        material.color.lerpColors(colorStartVec, colorEndVec, colorT)
+      }
+
       renderer.render(scene, camera)
       animationFrameRef.current = requestAnimationFrame(animate)
     }
@@ -196,6 +260,10 @@ export const NotFoundScene: React.FC = () => {
       textMeshesRef.current.forEach((mesh) => mesh.dispose())
       textMeshesRef.current = []
       textGroupRef.current = null
+      circles.forEach((circle) => {
+        circle.geometry.dispose()
+        ;(circle.material as THREE.Material).dispose()
+      })
       renderer.dispose()
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement)
