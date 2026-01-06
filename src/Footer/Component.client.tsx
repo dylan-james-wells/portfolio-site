@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { FileText, Mail, Linkedin, Github } from 'lucide-react'
 
 import type { Footer, Media } from '@/payload-types'
 import { GlitchHover } from '@/components/GlitchHover'
+import { cn } from '@/utilities/ui'
 
 interface FooterClientProps {
   data: Footer
@@ -12,13 +13,18 @@ interface FooterClientProps {
 
 export const FooterClient: React.FC<FooterClientProps> = ({ data }) => {
   const [glitchActive, setGlitchActive] = useState(false)
+  const [bounceActive, setBounceActive] = useState(false)
+  const [pendingAnimation, setPendingAnimation] = useState(false)
+  const footerRef = useRef<HTMLElement>(null)
 
   const { resumeLinkText, resumeFile, contactEmail, linkedinUrl, githubUrl } = data || {}
   const resumeUrl = resumeFile && typeof resumeFile !== 'string' ? (resumeFile as Media).url : null
 
-  // Listen for custom event to trigger glitch effect
+  // Listen for custom event to trigger glitch and bounce effects
   useEffect(() => {
     const handleFooterGlitch = () => {
+      // Set pending animation - will trigger when footer is in view
+      setPendingAnimation(true)
       setGlitchActive(true)
       setTimeout(() => {
         setGlitchActive(false)
@@ -29,10 +35,36 @@ export const FooterClient: React.FC<FooterClientProps> = ({ data }) => {
     return () => window.removeEventListener('footer-glitch', handleFooterGlitch)
   }, [])
 
+  // Watch for footer visibility to trigger bounce animation
+  useEffect(() => {
+    if (!pendingAnimation || !footerRef.current) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && pendingAnimation) {
+          setBounceActive(true)
+          setPendingAnimation(false)
+          setTimeout(() => {
+            setBounceActive(false)
+          }, 3000)
+        }
+      },
+      { threshold: 0.5 },
+    )
+
+    observer.observe(footerRef.current)
+
+    return () => observer.disconnect()
+  }, [pendingAnimation])
+
   return (
     <footer
+      ref={footerRef}
       id="SiteFooter"
-      className="mt-auto border-t-2 border-white border-border text-foreground z-10 bg-noise-gradient-dark"
+      className={cn(
+        'absolute bottom-0 left-0 right-0 border-t-2 border-white border-border text-foreground z-10 bg-noise-gradient-dark origin-bottom transition-transform duration-300 ease-out',
+        bounceActive && 'animate-bounce-scale',
+      )}
     >
       <div className="container py-8 flex flex-row justify-between items-center">
         {resumeUrl && (
