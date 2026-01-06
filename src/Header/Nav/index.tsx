@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 
 import type { Header as HeaderType } from '@/payload-types'
 
@@ -11,22 +12,46 @@ interface NavLinkProps {
   href: string
   label: string
   newTab?: boolean
+  onAnchorClick?: () => void
 }
 
-const NavLink: React.FC<NavLinkProps> = ({ href, label, newTab }) => {
+const NavLink: React.FC<NavLinkProps> = ({ href, label, newTab, onAnchorClick }) => {
+  const pathname = usePathname()
+  const router = useRouter()
+
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
-      // Check if this is a hash link for smooth scrolling
+      // Check if this is a hash link
       if (href.startsWith('#')) {
-        e.preventDefault()
         const targetId = href.slice(1)
-        const targetElement = document.getElementById(targetId)
-        if (targetElement) {
-          targetElement.scrollIntoView({ behavior: 'smooth' })
+
+        // Special case: #SiteFooter always scrolls on current page
+        if (targetId === 'SiteFooter') {
+          e.preventDefault()
+          const targetElement = document.getElementById(targetId)
+          if (targetElement) {
+            onAnchorClick?.()
+            targetElement.scrollIntoView({ behavior: 'smooth' })
+          }
+          return
+        }
+
+        // For other hash links: if on homepage, scroll; otherwise navigate to homepage with hash
+        if (pathname === '/') {
+          e.preventDefault()
+          const targetElement = document.getElementById(targetId)
+          if (targetElement) {
+            onAnchorClick?.()
+            targetElement.scrollIntoView({ behavior: 'smooth' })
+          }
+        } else {
+          // Navigate to homepage with the hash
+          e.preventDefault()
+          router.push(`/${href}`)
         }
       }
     },
-    [href],
+    [href, onAnchorClick, pathname, router],
   )
 
   const newTabProps = newTab ? { rel: 'noopener noreferrer', target: '_blank' as const } : {}
@@ -36,7 +61,7 @@ const NavLink: React.FC<NavLinkProps> = ({ href, label, newTab }) => {
       <Link
         href={href}
         onClick={handleClick}
-        className="text-primary hover:text-primary/80 transition-colors px-3 py-2"
+        className="text-primary hover:text-primary/80 transition-colors px-2 md:px-3 py-2"
         {...newTabProps}
       >
         {label}
@@ -45,7 +70,10 @@ const NavLink: React.FC<NavLinkProps> = ({ href, label, newTab }) => {
   )
 }
 
-export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
+export const HeaderNav: React.FC<{ data: HeaderType; onAnchorClick?: () => void }> = ({
+  data,
+  onAnchorClick,
+}) => {
   const navItems = data?.navItems || []
 
   return (
@@ -60,7 +88,13 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
             : link.url || '#'
 
         return (
-          <NavLink key={i} href={href} label={link.label || ''} newTab={link.newTab || false} />
+          <NavLink
+            key={i}
+            href={href}
+            label={link.label || ''}
+            newTab={link.newTab || false}
+            onAnchorClick={onAnchorClick}
+          />
         )
       })}
     </nav>

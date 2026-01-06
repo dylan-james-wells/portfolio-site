@@ -21,6 +21,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
   const [isVisible, setIsVisible] = useState(true)
   const lastScrollY = useRef(0)
   const ticking = useRef(false)
+  const isAnchorScrolling = useRef(false)
 
   useEffect(() => {
     setHeaderTheme(null)
@@ -32,8 +33,21 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [headerTheme])
 
+  // Called when an anchor link is clicked to temporarily disable scroll hiding
+  const onAnchorClick = useCallback(() => {
+    isAnchorScrolling.current = true
+    // Re-enable scroll hiding after the smooth scroll animation completes
+    setTimeout(() => {
+      isAnchorScrolling.current = false
+      lastScrollY.current = window.scrollY
+    }, 1000)
+  }, [])
+
   // Handle scroll to hide/show header
   const handleScroll = useCallback(() => {
+    // Skip scroll handling during anchor navigation
+    if (isAnchorScrolling.current) return
+
     if (!ticking.current) {
       requestAnimationFrame(() => {
         const currentScrollY = window.scrollY
@@ -69,8 +83,8 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
       }}
       {...(theme ? { 'data-theme': theme } : {})}
     >
-      <div className="container flex justify-end">
-        <HeaderNav data={data} />
+      <div className="container flex justify-center md:justify-end">
+        <HeaderNav data={data} onAnchorClick={onAnchorClick} />
       </div>
     </header>
   )
