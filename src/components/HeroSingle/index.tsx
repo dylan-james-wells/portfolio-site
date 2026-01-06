@@ -498,7 +498,8 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         const isFront = i === 0
 
         const textMesh = new Text()
-        textMesh.text = lineText
+        // Replace regular spaces with thin spaces (U+2009) for tighter word spacing
+        textMesh.text = lineText.replace(/ /g, '\u2009')
         textMesh.font =
           'https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf'
         textMesh.fontSize = initialFontSize
