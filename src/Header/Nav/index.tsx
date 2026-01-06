@@ -25,13 +25,15 @@ const NavLink: React.FC<NavLinkProps> = ({ href, label, newTab, onAnchorClick })
       if (href.startsWith('#')) {
         const targetId = href.slice(1)
 
-        // Special case: #SiteFooter always scrolls on current page
+        // Special case: #SiteFooter always scrolls on current page and triggers glitch effect
         if (targetId === 'SiteFooter') {
           e.preventDefault()
           const targetElement = document.getElementById(targetId)
           if (targetElement) {
             onAnchorClick?.()
             targetElement.scrollIntoView({ behavior: 'smooth' })
+            // Dispatch custom event to trigger footer glitch effect
+            window.dispatchEvent(new CustomEvent('footer-glitch'))
           }
           return
         }
