@@ -56,6 +56,64 @@ export const NotFoundScene: React.FC = () => {
     const colorStartVec = new THREE.Color(colorStart)
     const colorEndVec = new THREE.Color(colorEnd)
 
+    // Create twinkling stars in background
+    const starCount = 100
+    const starGeometry = new THREE.BufferGeometry()
+    const starPositions = new Float32Array(starCount * 3)
+    const starPhases = new Float32Array(starCount) // For twinkling animation
+
+    for (let i = 0; i < starCount; i++) {
+      // Spread stars across the visible area
+      starPositions[i * 3] = (Math.random() - 0.5) * 12
+      starPositions[i * 3 + 1] = (Math.random() - 0.5) * 8
+      starPositions[i * 3 + 2] = -2 // Behind everything
+      starPhases[i] = Math.random() * Math.PI * 2 // Random starting phase
+    }
+
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3))
+    starGeometry.setAttribute('phase', new THREE.BufferAttribute(starPhases, 1))
+
+    const starMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        pixelRatio: { value: window.devicePixelRatio },
+      },
+      vertexShader: `
+        attribute float phase;
+        varying float vPhase;
+        uniform float pixelRatio;
+
+        void main() {
+          vPhase = phase;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = 2.0 * pixelRatio;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        varying float vPhase;
+
+        void main() {
+          // Twinkle effect
+          float twinkle = sin(time * 2.0 + vPhase) * 0.5 + 0.5;
+          float alpha = 0.3 + twinkle * 0.7;
+
+          // Soft circular point
+          vec2 center = gl_PointCoord - vec2(0.5);
+          float dist = length(center);
+          if (dist > 0.5) discard;
+
+          gl_FragColor = vec4(1.0, 1.0, 1.0, alpha * (1.0 - dist * 2.0));
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+    })
+
+    const stars = new THREE.Points(starGeometry, starMaterial)
+    scene.add(stars)
+
     // Create expanding circles behind text
     const circleCount = 12
     const circles: THREE.Line[] = []
@@ -197,6 +255,9 @@ export const NotFoundScene: React.FC = () => {
       lastTime = time
       elapsedTime += deltaTime
 
+      // Update star twinkle
+      starMaterial.uniforms.time.value = elapsedTime
+
       // Update text shader
       const frontMesh = textMeshesRef.current[0]
       if (frontMesh) {
@@ -264,6 +325,8 @@ export const NotFoundScene: React.FC = () => {
         circle.geometry.dispose()
         ;(circle.material as THREE.Material).dispose()
       })
+      starGeometry.dispose()
+      starMaterial.dispose()
       renderer.dispose()
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement)

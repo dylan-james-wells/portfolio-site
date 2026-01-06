@@ -62,7 +62,7 @@ export const FooterClient: React.FC<FooterClientProps> = ({ data }) => {
       ref={footerRef}
       id="SiteFooter"
       className={cn(
-        'absolute bottom-0 left-0 right-0 border-t-2 border-white border-border text-foreground z-10 bg-noise-gradient-dark origin-bottom transition-transform duration-300 ease-out',
+        'absolute bottom-0 left-0 right-0 border-t-2 border-white text-foreground z-10 bg-noise-gradient-dark origin-bottom transition-transform duration-300 ease-out',
         bounceActive && 'animate-bounce-scale',
       )}
     >
