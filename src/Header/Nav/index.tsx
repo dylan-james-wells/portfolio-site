@@ -63,7 +63,7 @@ const NavLink: React.FC<NavLinkProps> = ({ href, label, newTab, onAnchorClick })
       <Link
         href={href}
         onClick={handleClick}
-        className="text-primary hover:text-primary/80 transition-colors px-2 md:px-3 py-2"
+        className="text-primary hover:text-primary/80 transition-colors px-2 md:px-3 h-10 flex items-center pointer-events-auto"
         {...newTabProps}
       >
         {label}
@@ -79,7 +79,7 @@ export const HeaderNav: React.FC<{ data: HeaderType; onAnchorClick?: () => void 
   const navItems = data?.navItems || []
 
   return (
-    <nav className="relative bg-noise-gradient border-2 border-white border-t-0 rounded-sm px-2 py-1 flex gap-1 items-center">
+    <nav className="relative bg-noise-gradient border-2 border-white border-t-0 rounded-sm h-10 flex gap-1 items-center">
       {navItems.map(({ link }, i) => {
         // Construct href from link data
         const href =

@@ -77,7 +77,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
 
   return (
     <header
-      className="fixed top-0 left-0 w-full z-20 pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out"
+      className="fixed top-0 left-0 w-full z-20 pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out pointer-events-none"
       style={{
         transform: isVisible ? 'translateY(0)' : 'translateY(-100%)',
       }}

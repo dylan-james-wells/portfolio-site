@@ -666,20 +666,19 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       </div>
       {/* Back to home button */}
       <div
-        className="container max-w-single"
+        className="container max-w-single pointer-events-none"
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           zIndex: 10,
-          paddingTop: 'calc(env(safe-area-inset-top) + 2rem)',
           transform: `translateY(-${scrollY}px)`,
         }}
       >
         <Link
           href="/"
-          className="group relative inline-flex items-center gap-2 text-white font-mono text-sm px-4 py-2 bg-noise-gradient border-2 border-white transition-colors"
+          className="group border-t-0 relative inline-flex items-center gap-2 text-white font-mono text-sm px-2 md:px-3 h-10 bg-noise-gradient border-2 border-white transition-colors pointer-events-auto"
         >
           <GlitchHover>
             <span className="inline-flex items-center gap-2">
