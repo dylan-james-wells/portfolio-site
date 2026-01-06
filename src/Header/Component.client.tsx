@@ -29,8 +29,6 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [headerTheme])
 
-  return null
-
   return (
     <header
       className="container absolute top-0 left-0 w-full z-20 pt-[env(safe-area-inset-top)]"
