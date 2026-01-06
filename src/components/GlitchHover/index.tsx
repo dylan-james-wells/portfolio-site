@@ -25,8 +25,9 @@ export const GlitchHover: React.FC<GlitchHoverProps> = ({
   const [isHovered, setIsHovered] = useState(false)
   const animationRef = useRef<number | null>(null)
 
-  // Use active prop if provided, otherwise use internal hover state
-  const isActive = active !== undefined ? active : isHovered
+  // Use active prop if true, otherwise use internal hover state
+  // This allows hover to work even when active is explicitly false
+  const isActive = active || isHovered
 
   // Glitch animation on hover using drop-shadow filter (works with SVGs)
   useEffect(() => {

@@ -16,6 +16,8 @@ export const FooterClient: React.FC<FooterClientProps> = ({ data }) => {
   const [bounceActive, setBounceActive] = useState(false)
   const [pendingAnimation, setPendingAnimation] = useState(false)
   const footerRef = useRef<HTMLElement>(null)
+  const glitchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const bounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const { resumeLinkText, resumeFile, contactEmail, linkedinUrl, githubUrl } = data || {}
   const resumeUrl = resumeFile && typeof resumeFile !== 'string' ? (resumeFile as Media).url : null
@@ -23,16 +25,29 @@ export const FooterClient: React.FC<FooterClientProps> = ({ data }) => {
   // Listen for custom event to trigger glitch and bounce effects
   useEffect(() => {
     const handleFooterGlitch = () => {
+      // Clear existing timeouts to reset animation duration
+      if (glitchTimeoutRef.current) {
+        clearTimeout(glitchTimeoutRef.current)
+      }
+      if (bounceTimeoutRef.current) {
+        clearTimeout(bounceTimeoutRef.current)
+      }
+
       // Set pending animation - will trigger when footer is in view
       setPendingAnimation(true)
       setGlitchActive(true)
-      setTimeout(() => {
+      glitchTimeoutRef.current = setTimeout(() => {
         setGlitchActive(false)
       }, 3000)
     }
 
     window.addEventListener('footer-glitch', handleFooterGlitch)
-    return () => window.removeEventListener('footer-glitch', handleFooterGlitch)
+    return () => {
+      window.removeEventListener('footer-glitch', handleFooterGlitch)
+      // Clean up timeouts on unmount
+      if (glitchTimeoutRef.current) clearTimeout(glitchTimeoutRef.current)
+      if (bounceTimeoutRef.current) clearTimeout(bounceTimeoutRef.current)
+    }
   }, [])
 
   // Watch for footer visibility to trigger bounce animation
@@ -42,9 +57,14 @@ export const FooterClient: React.FC<FooterClientProps> = ({ data }) => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && pendingAnimation) {
+          // Clear existing bounce timeout to reset duration on repeated clicks
+          if (bounceTimeoutRef.current) {
+            clearTimeout(bounceTimeoutRef.current)
+          }
+
           setBounceActive(true)
           setPendingAnimation(false)
-          setTimeout(() => {
+          bounceTimeoutRef.current = setTimeout(() => {
             setBounceActive(false)
           }, 3000)
         }

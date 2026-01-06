@@ -56,22 +56,35 @@ export const NotFoundScene: React.FC = () => {
     const colorStartVec = new THREE.Color(colorStart)
     const colorEndVec = new THREE.Color(colorEnd)
 
-    // Create twinkling stars in background
-    const starCount = 100
+    // Create twinkling stars in background with continuous panning
+    const starCount = 150
     const starGeometry = new THREE.BufferGeometry()
     const starPositions = new Float32Array(starCount * 3)
     const starPhases = new Float32Array(starCount) // For twinkling animation
 
+    // Star field boundaries (larger than visible area for wrapping)
+    const starFieldWidth = 16
+    const starFieldHeight = 10
+    const starZ = -2
+
     for (let i = 0; i < starCount; i++) {
-      // Spread stars across the visible area
-      starPositions[i * 3] = (Math.random() - 0.5) * 12
-      starPositions[i * 3 + 1] = (Math.random() - 0.5) * 8
-      starPositions[i * 3 + 2] = -2 // Behind everything
+      // Spread stars across the field
+      starPositions[i * 3] = (Math.random() - 0.5) * starFieldWidth
+      starPositions[i * 3 + 1] = (Math.random() - 0.5) * starFieldHeight
+      starPositions[i * 3 + 2] = starZ
       starPhases[i] = Math.random() * Math.PI * 2 // Random starting phase
     }
 
     starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3))
     starGeometry.setAttribute('phase', new THREE.BufferAttribute(starPhases, 1))
+
+    // Store star field config for animation
+    const starConfig = {
+      width: starFieldWidth,
+      height: starFieldHeight,
+      panSpeedX: 0.15, // Slow horizontal drift
+      panSpeedY: 0.05, // Slower vertical drift
+    }
 
     const starMaterial = new THREE.ShaderMaterial({
       uniforms: {
@@ -257,6 +270,33 @@ export const NotFoundScene: React.FC = () => {
 
       // Update star twinkle
       starMaterial.uniforms.time.value = elapsedTime
+
+      // Pan stars and wrap around edges (rotating planet perspective)
+      const positions = starGeometry.attributes.position.array as Float32Array
+      const halfWidth = starConfig.width / 2
+      const halfHeight = starConfig.height / 2
+
+      for (let i = 0; i < starCount; i++) {
+        const ix = i * 3
+        const iy = i * 3 + 1
+
+        // Move stars
+        positions[ix] -= deltaTime * starConfig.panSpeedX
+        positions[iy] -= deltaTime * starConfig.panSpeedY
+
+        // Wrap around horizontally
+        if (positions[ix] < -halfWidth) {
+          positions[ix] = halfWidth
+          positions[iy] = (Math.random() - 0.5) * starConfig.height // Randomize Y on wrap
+        }
+
+        // Wrap around vertically
+        if (positions[iy] < -halfHeight) {
+          positions[iy] = halfHeight
+        }
+      }
+
+      starGeometry.attributes.position.needsUpdate = true
 
       // Update text shader
       const frontMesh = textMeshesRef.current[0]
