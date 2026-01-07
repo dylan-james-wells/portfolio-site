@@ -19,6 +19,8 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
 
   // Scroll hide/show state
   const [isVisible, setIsVisible] = useState(true)
+  // Start hidden, then slide in after mount + delay
+  const [hasInitialized, setHasInitialized] = useState(false)
   const lastScrollY = useRef(0)
   const ticking = useRef(false)
   const isAnchorScrolling = useRef(false)
@@ -75,11 +77,19 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [handleScroll])
 
+  // Initialize with slide-in animation after mount + delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHasInitialized(true)
+    }, 300) // 300ms delay after mount
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
     <header
       className="fixed top-0 left-0 w-full z-20 pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out pointer-events-none"
       style={{
-        transform: isVisible ? 'translateY(0)' : 'translateY(-100%)',
+        transform: hasInitialized && isVisible ? 'translateY(0)' : 'translateY(-100%)',
       }}
       {...(theme ? { 'data-theme': theme } : {})}
     >

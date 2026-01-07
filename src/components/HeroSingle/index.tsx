@@ -195,6 +195,8 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
 
   // Scroll hide/show state for back button (same pattern as nav)
   const [isButtonVisible, setIsButtonVisible] = useState(true)
+  // Start hidden, then slide in after mount + delay
+  const [hasInitialized, setHasInitialized] = useState(false)
   const lastScrollY = useRef(0)
   const ticking = useRef(false)
 
@@ -226,6 +228,14 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     window.addEventListener('scroll', handleButtonScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleButtonScroll)
   }, [handleButtonScroll])
+
+  // Initialize with slide-in animation after mount + delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHasInitialized(true)
+    }, 300) // 300ms delay after mount
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -780,7 +790,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       <div
         className="fixed top-0 left-0 right-0 z-20 container max-w-single pointer-events-none transition-transform duration-300 ease-out"
         style={{
-          transform: isButtonVisible ? 'translateY(0)' : 'translateY(-100%)',
+          transform: hasInitialized && isButtonVisible ? 'translateY(0)' : 'translateY(-100%)',
         }}
       >
         <Link
