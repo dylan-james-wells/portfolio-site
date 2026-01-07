@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
 // @ts-ignore
 import { Text } from 'troika-three-text'
@@ -192,16 +192,40 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
-  const [scrollY, setScrollY] = useState(0)
 
-  // Track scroll for back button position
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY)
+  // Scroll hide/show state for back button (same pattern as nav)
+  const [isButtonVisible, setIsButtonVisible] = useState(true)
+  const lastScrollY = useRef(0)
+  const ticking = useRef(false)
+
+  // Handle scroll to hide/show back button
+  const handleButtonScroll = useCallback(() => {
+    if (!ticking.current) {
+      requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY
+
+        if (currentScrollY < 50) {
+          // Always show button near top of page
+          setIsButtonVisible(true)
+        } else if (currentScrollY < lastScrollY.current) {
+          // Scrolling up - show button
+          setIsButtonVisible(true)
+        } else if (currentScrollY > lastScrollY.current) {
+          // Scrolling down - hide button
+          setIsButtonVisible(false)
+        }
+
+        lastScrollY.current = currentScrollY
+        ticking.current = false
+      })
+      ticking.current = true
     }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleButtonScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleButtonScroll)
+  }, [handleButtonScroll])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -754,14 +778,9 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       </div>
       {/* Back to home button */}
       <div
-        className="container max-w-single pointer-events-none"
+        className="fixed top-0 left-0 right-0 z-10 container max-w-single pointer-events-none transition-transform duration-300 ease-out"
         style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 10,
-          transform: `translateY(-${scrollY}px)`,
+          transform: isButtonVisible ? 'translateY(0)' : 'translateY(-100%)',
         }}
       >
         <Link
