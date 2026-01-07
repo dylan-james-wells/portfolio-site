@@ -162,13 +162,20 @@ export const RetroBootScreen: React.FC<RetroBootScreenProps> = ({ onComplete }) 
         }}
       />
 
-      {/* Main content container - flex layout for text and animation */}
+      {/* 3D Animation - always centered */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="opacity-50 md:opacity-100 scale-75 md:scale-100">
+          <PyramidCubes />
+        </div>
+      </div>
+
+      {/* Main content container */}
       <div className="absolute inset-0 flex items-center">
-        <div className="container flex items-center justify-between w-full">
-          {/* Terminal content - left side */}
+        <div className="container w-full">
+          {/* Terminal content */}
           <div
             ref={containerRef}
-            className="flex-1 overflow-y-auto max-h-[80vh] py-4 md:py-8"
+            className="overflow-y-auto max-h-[80vh] py-4 md:py-8 md:max-w-[50%]"
             style={gradientTextStyle}
           >
             {/* Boot messages */}
@@ -195,11 +202,6 @@ export const RetroBootScreen: React.FC<RetroBootScreenProps> = ({ onComplete }) 
                   />
                 </div>
               )}
-          </div>
-
-          {/* 3D Animation - right side */}
-          <div className="hidden md:flex items-center justify-end flex-shrink-0 ml-8">
-            <PyramidCubes />
           </div>
         </div>
       </div>
