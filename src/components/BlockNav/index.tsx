@@ -8,6 +8,21 @@ export const BlockNav: React.FC = () => {
   const [bottomOffset, setBottomOffset] = useState<number | null>(null)
   const [isTopDisabled, setIsTopDisabled] = useState(true)
   const [isBottomDisabled, setIsBottomDisabled] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // Watch for modal open/close via data attribute on body
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsModalOpen(document.body.dataset.modalOpen === 'true')
+    })
+
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['data-modal-open'],
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   // Check if there's a next block to scroll to
   const hasNextBlock = useCallback(() => {
@@ -30,21 +45,29 @@ export const BlockNav: React.FC = () => {
     const footer = document.getElementById('SiteFooter')
     if (!footer || !navRef.current) return
 
-    const footerRect = footer.getBoundingClientRect()
-    const gapAboveFooter = 16 // 1rem in pixels
-    const defaultBottom = 16 // default bottom-4 position
+    // Only apply footer overlap prevention on small screens (below md breakpoint = 48rem = 768px)
+    // On larger screens, buttons are vertically centered and don't need this logic
+    const isSmallScreen = window.innerWidth < 768
 
-    // Calculate where the bottom of the nav would be with default positioning
-    const navBottomWithDefault = window.innerHeight - defaultBottom
+    if (isSmallScreen) {
+      const footerRect = footer.getBoundingClientRect()
+      const gapAboveFooter = 16 // 1rem in pixels
+      const defaultBottom = 16 // default bottom-4 position
 
-    // Calculate where footer top is
-    const footerTop = footerRect.top
+      // Calculate where the bottom of the nav would be with default positioning
+      const navBottomWithDefault = window.innerHeight - defaultBottom
 
-    // If nav would overlap with footer (within gap), push it up
-    if (navBottomWithDefault > footerTop - gapAboveFooter) {
-      // Position nav so its bottom is 1rem above footer top
-      const newBottom = window.innerHeight - footerTop + gapAboveFooter
-      setBottomOffset(newBottom)
+      // Calculate where footer top is
+      const footerTop = footerRect.top
+
+      // If nav would overlap with footer (within gap), push it up
+      if (navBottomWithDefault > footerTop - gapAboveFooter) {
+        // Position nav so its bottom is 1rem above footer top
+        const newBottom = window.innerHeight - footerTop + gapAboveFooter
+        setBottomOffset(newBottom)
+      } else {
+        setBottomOffset(null)
+      }
     } else {
       setBottomOffset(null)
     }
@@ -110,7 +133,7 @@ export const BlockNav: React.FC = () => {
         }
         @media (min-width: 48rem) {
           .block-nav {
-            --container-right: calc((100vw - 48rem) / 2 + 2rem);
+            --container-right: 1rem;
           }
         }
         @media (min-width: 64rem) {
@@ -131,7 +154,9 @@ export const BlockNav: React.FC = () => {
       `}</style>
       <div
         ref={navRef}
-        className="block-nav fixed z-20 pointer-events-none flex flex-col gap-2 bottom-4 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2 transition-[bottom] duration-150 ease-out"
+        className={`block-nav fixed z-20 pointer-events-none flex flex-col gap-2 bottom-4 md:bottom-auto md:top-1/2 md:-translate-y-1/2 transition-all duration-150 ease-out ${
+          isModalOpen ? 'opacity-0 pointer-events-none' : ''
+        }`}
         style={{
           right: 'var(--container-right)',
           ...(bottomOffset !== null ? { bottom: bottomOffset, top: 'auto', transform: 'none' } : {}),

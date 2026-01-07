@@ -49,10 +49,12 @@ export const ImageGalleryBlock: React.FC<Props> = (props) => {
     }
 
     document.body.style.overflow = 'hidden'
+    document.body.dataset.modalOpen = 'true'
     window.addEventListener('keydown', handleKeyDown)
 
     return () => {
       document.body.style.overflow = ''
+      delete document.body.dataset.modalOpen
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [modalOpen, closeModal, goToNext, goToPrev])
