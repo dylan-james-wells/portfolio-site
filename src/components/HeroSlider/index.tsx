@@ -959,9 +959,9 @@ export const HeroSlider: React.FC = () => {
         <div
           className="fixed inset-0 z-0"
           style={{
-            opacity: isLoaded ? 0 : 1,
+            opacity: !showBootScreen ? 0 : 1,
             transition: 'opacity 0.8s ease-out',
-            pointerEvents: isLoaded ? 'none' : 'auto',
+            pointerEvents: !showBootScreen ? 'none' : 'auto',
           }}
         >
           <RetroBootScreen onComplete={handleBootComplete} />
@@ -977,7 +977,7 @@ export const HeroSlider: React.FC = () => {
           position: 'fixed',
           top: 0,
           left: 0,
-          opacity: isLoaded ? 1 : 0,
+          opacity: !showBootScreen ? 1 : 0,
           transition: 'opacity 0.8s ease-in',
         }}
       />
