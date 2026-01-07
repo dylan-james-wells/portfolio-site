@@ -64,7 +64,7 @@ export const RenderBlocks: React.FC<{
 
             if (Block) {
               return (
-                <div className="relative z-1" key={index}>
+                <div className="relative z-1 block-nav-target" key={index}>
                   {/* @ts-expect-error there may be some mismatch between the expected types here */}
                   <Block {...block} blockIndex={blockIndex} blockName={blockName} disableInnerContainer />
                 </div>

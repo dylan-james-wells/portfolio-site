@@ -778,14 +778,14 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       </div>
       {/* Back to home button */}
       <div
-        className="fixed top-0 left-0 right-0 z-10 container max-w-single pointer-events-none transition-transform duration-300 ease-out"
+        className="fixed top-0 left-0 right-0 z-20 container max-w-single pointer-events-none transition-transform duration-300 ease-out"
         style={{
           transform: isButtonVisible ? 'translateY(0)' : 'translateY(-100%)',
         }}
       >
         <Link
           href="/"
-          className="group border-t-0 relative inline-flex items-center gap-2 text-white font-mono text-sm px-2 md:px-3 h-10 bg-noise-gradient border-2 border-white transition-colors pointer-events-auto"
+          className="group border-t-0 relative inline-flex items-center gap-2 text-white font-mono px-2 md:px-3 h-10 bg-noise-gradient border-2 border-white transition-colors pointer-events-auto"
         >
           <GlitchHover>
             <span className="inline-flex items-center gap-2">
