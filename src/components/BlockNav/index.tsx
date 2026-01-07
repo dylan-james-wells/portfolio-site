@@ -6,14 +6,31 @@ import { GlitchHover } from '@/components/GlitchHover'
 export const BlockNav: React.FC = () => {
   const navRef = useRef<HTMLDivElement>(null)
   const [bottomOffset, setBottomOffset] = useState<number | null>(null)
+  const [isTopDisabled, setIsTopDisabled] = useState(true)
+  const [isBottomDisabled, setIsBottomDisabled] = useState(false)
 
-  // Track scroll to stop buttons 1rem above footer
+  // Check if there's a next block to scroll to
+  const hasNextBlock = useCallback(() => {
+    const blocks = document.querySelectorAll('.block-nav-target')
+    const currentScrollY = window.scrollY
+
+    for (const block of blocks) {
+      const rect = block.getBoundingClientRect()
+      const blockTop = rect.top + currentScrollY
+
+      if (blockTop > currentScrollY + 100) {
+        return true
+      }
+    }
+    return false
+  }, [])
+
+  // Track scroll to stop buttons 1rem above footer and update disabled states
   const handleScroll = useCallback(() => {
     const footer = document.getElementById('SiteFooter')
     if (!footer || !navRef.current) return
 
     const footerRect = footer.getBoundingClientRect()
-    const navHeight = navRef.current.offsetHeight
     const gapAboveFooter = 16 // 1rem in pixels
     const defaultBottom = 16 // default bottom-4 position
 
@@ -31,7 +48,15 @@ export const BlockNav: React.FC = () => {
     } else {
       setBottomOffset(null)
     }
-  }, [])
+
+    // Update disabled states
+    // Top button: disabled if above hero fold (40vh)
+    const heroFold = window.innerHeight * 0.4
+    setIsTopDisabled(window.scrollY < heroFold)
+
+    // Bottom button: disabled if no next block to scroll to
+    setIsBottomDisabled(!hasNextBlock())
+  }, [hasNextBlock])
 
   useEffect(() => {
     window.addEventListener('scroll', handleScroll, { passive: true })
@@ -63,8 +88,13 @@ export const BlockNav: React.FC = () => {
       }
     }
 
-    // If no next block, scroll to bottom
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+    // If no next block, scroll to the last block
+    if (blocks.length > 0) {
+      const lastBlock = blocks[blocks.length - 1]
+      const rect = lastBlock.getBoundingClientRect()
+      const blockTop = rect.top + currentScrollY
+      window.scrollTo({ top: blockTop - 20, behavior: 'smooth' })
+    }
   }
 
   return (
@@ -109,7 +139,9 @@ export const BlockNav: React.FC = () => {
       >
         <button
           onClick={scrollToTop}
-          className="pointer-events-auto w-10 h-10 flex items-center justify-center text-white font-mono text-lg bg-noise-gradient border-2 border-white"
+          className={`pointer-events-auto w-10 h-10 flex items-center justify-center text-white font-mono text-lg bg-noise-gradient border-2 border-white transition-opacity ${
+            isTopDisabled ? 'opacity-30' : ''
+          }`}
           aria-label="Scroll to top"
         >
           <GlitchHover>
@@ -118,7 +150,10 @@ export const BlockNav: React.FC = () => {
         </button>
         <button
           onClick={scrollToNextBlock}
-          className="pointer-events-auto w-10 h-10 flex items-center justify-center text-white font-mono text-lg bg-noise-gradient border-2 border-white"
+          disabled={isBottomDisabled}
+          className={`w-10 h-10 flex items-center justify-center text-white font-mono text-lg bg-noise-gradient border-2 border-white transition-opacity ${
+            isBottomDisabled ? 'opacity-30 pointer-events-none' : 'pointer-events-auto'
+          }`}
           aria-label="Scroll to next section"
         >
           <GlitchHover>
