@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { PyramidCubes } from './PyramidCubes'
 
 interface RetroBootScreenProps {
   onComplete?: () => void
@@ -161,32 +162,45 @@ export const RetroBootScreen: React.FC<RetroBootScreenProps> = ({ onComplete }) 
         }}
       />
 
-      {/* Terminal content */}
-      <div
-        ref={containerRef}
-        className="absolute inset-0 overflow-y-auto"
-      >
-        <div className="container py-4 md:py-8" style={gradientTextStyle}>
-        {/* Boot messages */}
-        {displayedLines.map((line, index) => (
-          <div key={index} className="whitespace-pre-wrap min-h-[1.5em]">
-            {line}
-            {index === displayedLines.length - 1 &&
+      {/* Main content container - flex layout for text and animation */}
+      <div className="absolute inset-0 flex items-center">
+        <div className="container flex items-center justify-between w-full">
+          {/* Terminal content - left side */}
+          <div
+            ref={containerRef}
+            className="flex-1 overflow-y-auto max-h-[80vh] py-4 md:py-8"
+            style={gradientTextStyle}
+          >
+            {/* Boot messages */}
+            {displayedLines.map((line, index) => (
+              <div key={index} className="whitespace-pre-wrap min-h-[1.5em]">
+                {line}
+                {index === displayedLines.length - 1 &&
+                  currentLineIndex < BOOT_MESSAGES.length && (
+                    <span
+                      className="inline-block w-[0.6em] h-[1.1em] ml-[1px] align-middle"
+                      style={cursorStyle}
+                    />
+                  )}
+              </div>
+            ))}
+
+            {/* Show cursor on empty line when between messages */}
+            {displayedLines.length === currentLineIndex &&
               currentLineIndex < BOOT_MESSAGES.length && (
-                <span
-                  className="inline-block w-[0.6em] h-[1.1em] ml-[1px] align-middle"
-                  style={cursorStyle}
-                />
+                <div>
+                  <span
+                    className="inline-block w-[0.6em] h-[1.1em] align-middle"
+                    style={cursorStyle}
+                  />
+                </div>
               )}
           </div>
-        ))}
 
-        {/* Show cursor on empty line when between messages */}
-        {displayedLines.length === currentLineIndex && currentLineIndex < BOOT_MESSAGES.length && (
-          <div>
-            <span className="inline-block w-[0.6em] h-[1.1em] align-middle" style={cursorStyle} />
+          {/* 3D Animation - right side */}
+          <div className="hidden md:flex items-center justify-end flex-shrink-0 ml-8">
+            <PyramidCubes />
           </div>
-        )}
         </div>
       </div>
 
