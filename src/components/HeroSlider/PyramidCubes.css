@@ -125,7 +125,7 @@
 /* Cube positions - triangle formation around pyramid (120 degrees apart) */
 /* Cube 1 - Front (0 degrees) */
 .cube-1 {
-  transform: translate(-50%, -50%) translateZ(100px);
+  transform: translate(-50%, -50%) translateZ(150px);
   animation: cubeRotate 1.6s infinite ease;
 }
 
@@ -136,7 +136,7 @@
 
 /* Cube 2 - Back-left (120 degrees) */
 .cube-2 {
-  transform: translate(-50%, -50%) rotateY(120deg) translateZ(100px);
+  transform: translate(-50%, -50%) rotateY(120deg) translateZ(150px);
   animation: cubeRotate 1.6s infinite ease;
   animation-delay: -0.5s;
 }
@@ -148,7 +148,7 @@
 
 /* Cube 3 - Back-right (240 degrees) */
 .cube-3 {
-  transform: translate(-50%, -50%) rotateY(240deg) translateZ(100px);
+  transform: translate(-50%, -50%) rotateY(240deg) translateZ(150px);
   animation: cubeRotate 1.6s infinite ease;
   animation-delay: -1s;
 }
