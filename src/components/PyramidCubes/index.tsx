@@ -1,1 +1,0 @@
-export { PyramidCubes } from './PyramidCubes'

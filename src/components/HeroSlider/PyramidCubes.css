@@ -220,10 +220,3 @@
     rotate: 405deg;
   }
 }
-
-/* Mobile: reduce scale by 30% */
-@media (max-width: 768px) {
-  .pyramid-cubes-container {
-    transform: scale(0.7);
-  }
-}
