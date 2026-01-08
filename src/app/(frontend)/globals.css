@@ -323,3 +323,52 @@
 .animate-reveal-line {
   animation: reveal-line 500ms ease-out forwards;
 }
+
+/* Rising lines animation for footer */
+@keyframes footer-line-rise {
+  0% {
+    bottom: 0;
+    opacity: 0.6;
+  }
+  30% {
+    opacity: 0.3;
+  }
+  60% {
+    opacity: 0;
+  }
+  100% {
+    bottom: 100%;
+    opacity: 0;
+  }
+}
+
+.footer-rising-lines {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.footer-rising-line {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  opacity: 0;
+  animation: footer-line-rise 2s ease-out forwards;
+}
+
+/* 12 lines with staggered delays and red-teal gradient colors */
+.footer-rising-line-1 { background: #ff6b6b; animation-delay: 0s; }
+.footer-rising-line-2 { background: #e9848d; animation-delay: 0.16s; }
+.footer-rising-line-3 { background: #b8a3a3; animation-delay: 0.33s; }
+.footer-rising-line-4 { background: #83b8b3; animation-delay: 0.5s; }
+.footer-rising-line-5 { background: #5bc7ba; animation-delay: 0.66s; }
+.footer-rising-line-6 { background: #4ecdc4; animation-delay: 0.83s; }
+.footer-rising-line-7 { background: #4ecdc4; animation-delay: 1s; }
+.footer-rising-line-8 { background: #5bc7ba; animation-delay: 1.16s; }
+.footer-rising-line-9 { background: #83b8b3; animation-delay: 1.33s; }
+.footer-rising-line-10 { background: #b8a3a3; animation-delay: 1.5s; }
+.footer-rising-line-11 { background: #e9848d; animation-delay: 1.66s; }
+.footer-rising-line-12 { background: #ff6b6b; animation-delay: 1.83s; }

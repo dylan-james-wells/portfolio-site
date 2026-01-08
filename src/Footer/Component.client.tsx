@@ -86,6 +86,23 @@ export const FooterClient: React.FC<FooterClientProps> = ({ data }) => {
         bounceActive && 'animate-bounce-scale',
       )}
     >
+      {/* Rising lines animation */}
+      {bounceActive && (
+        <div className="footer-rising-lines">
+          <div className="footer-rising-line footer-rising-line-1" />
+          <div className="footer-rising-line footer-rising-line-2" />
+          <div className="footer-rising-line footer-rising-line-3" />
+          <div className="footer-rising-line footer-rising-line-4" />
+          <div className="footer-rising-line footer-rising-line-5" />
+          <div className="footer-rising-line footer-rising-line-6" />
+          <div className="footer-rising-line footer-rising-line-7" />
+          <div className="footer-rising-line footer-rising-line-8" />
+          <div className="footer-rising-line footer-rising-line-9" />
+          <div className="footer-rising-line footer-rising-line-10" />
+          <div className="footer-rising-line footer-rising-line-11" />
+          <div className="footer-rising-line footer-rising-line-12" />
+        </div>
+      )}
       <div className="container py-8 flex flex-row justify-between items-center">
         {resumeUrl && (
           <a
