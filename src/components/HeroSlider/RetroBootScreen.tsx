@@ -8,38 +8,30 @@ interface RetroBootScreenProps {
 
 // Boot sequence messages - MS-DOS / early Windows style
 const BOOT_MESSAGES = [
-  { text: 'BIOS POST... OK', delay: 10 },
-  { text: 'Memory Test: 640K OK', delay: 10 },
-  { text: 'Extended Memory: 31457280K OK', delay: 20 },
+  { text: 'BIOS POST... OK', delay: 100 },
+  { text: 'Memory Test: 640K OK', delay: 150 },
+  { text: 'Extended Memory: 31457280K OK', delay: 200 },
   { text: '', delay: 100 },
-  { text: 'Detecting IDE drives...', delay: 30 },
-  { text: '  Primary Master: CREATIVE_WORKS_500GB', delay: 20 },
-  { text: '  Primary Slave: None', delay: 10 },
+  { text: 'Detecting IDE drives...', delay: 300 },
+  { text: '  Primary Master: CREATIVE_WORKS_500GB', delay: 200 },
+  { text: '  Primary Slave: None', delay: 100 },
   { text: '', delay: 50 },
-  { text: 'Loading PORTFOLIO.SYS...', delay: 40 },
-  { text: 'Initializing graphics subsystem...', delay: 30 },
-  { text: 'Loading texture assets...', delay: 50 },
-  { text: 'Compiling shaders... [##########] 100%', delay: 50 },
+  { text: 'Loading PORTFOLIO.SYS...', delay: 400 },
+  { text: 'Initializing graphics subsystem...', delay: 300 },
+  { text: 'Loading texture assets...', delay: 250 },
+  { text: 'Compiling shaders... [##########] 100%', delay: 350 },
   { text: '', delay: 100 },
-  { text: 'C:\\PORTFOLIO> MAKE_FUN.EXE', delay: 20 },
+  { text: 'C:\\PORTFOLIO> MAKE_FUN.EXE', delay: 200 },
   { text: '', delay: 100 },
-  { text: 'Starting 3D renderer...', delay: 30 },
+  { text: 'Starting 3D renderer...', delay: 300 },
 ]
 
-// How many characters to type per frame (higher = faster)
-const CHARS_PER_TICK = 3
-// Milliseconds between ticks
-const TICK_INTERVAL_MS = 16 // ~60fps
-
 export const RetroBootScreen: React.FC<RetroBootScreenProps> = ({ onComplete }) => {
-  // Initialize with the first character already typed to avoid blank screen
-  const [displayedLines, setDisplayedLines] = useState<string[]>([
-    BOOT_MESSAGES[0].text.substring(0, CHARS_PER_TICK),
-  ])
+  const [displayedLines, setDisplayedLines] = useState<string[]>([])
   const [currentLineIndex, setCurrentLineIndex] = useState(0)
-  const [currentCharIndex, setCurrentCharIndex] = useState(CHARS_PER_TICK)
+  const [currentCharIndex, setCurrentCharIndex] = useState(0)
+  const [isTyping, setIsTyping] = useState(true)
   const [showCursor, setShowCursor] = useState(true)
-  const [delayRemaining, setDelayRemaining] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Cursor blink effect
@@ -57,62 +49,63 @@ export const RetroBootScreen: React.FC<RetroBootScreenProps> = ({ onComplete }) 
     }
   }, [])
 
-  // Typing animation using interval for consistent speed
+  // Typing animation
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Handle delay between lines
-      if (delayRemaining > 0) {
-        setDelayRemaining((prev) => Math.max(0, prev - TICK_INTERVAL_MS))
-        return
-      }
-
-      // Check if we're done
+    if (!isTyping || currentLineIndex >= BOOT_MESSAGES.length) {
       if (currentLineIndex >= BOOT_MESSAGES.length) {
-        clearInterval(interval)
-        setTimeout(() => onComplete?.(), 100)
-        return
+        // Boot sequence complete
+        const timeout = setTimeout(() => {
+          onComplete?.()
+        }, 500)
+        return () => clearTimeout(timeout)
       }
+      return
+    }
 
-      const currentMessage = BOOT_MESSAGES[currentLineIndex]
-      const fullText = currentMessage.text
+    const currentMessage = BOOT_MESSAGES[currentLineIndex]
+    const fullText = currentMessage.text
 
-      // Handle empty lines
-      if (fullText === '') {
-        setDisplayedLines((prev) => [...prev, ''])
-        setCurrentLineIndex((prev) => prev + 1)
-        setCurrentCharIndex(0)
-        setDelayRemaining(currentMessage.delay)
-        scrollToBottom()
-        return
-      }
-
-      // Type multiple characters per tick
-      const newCharIndex = Math.min(currentCharIndex + CHARS_PER_TICK, fullText.length)
-
-      setDisplayedLines((prev) => {
-        const newLines = [...prev]
-        if (newLines.length === currentLineIndex) {
-          newLines.push(fullText.substring(0, newCharIndex))
-        } else {
-          newLines[currentLineIndex] = fullText.substring(0, newCharIndex)
-        }
-        return newLines
-      })
-
-      if (newCharIndex >= fullText.length) {
-        // Line complete, set delay and move to next
-        setCurrentLineIndex((prev) => prev + 1)
-        setCurrentCharIndex(0)
-        setDelayRemaining(currentMessage.delay)
-      } else {
-        setCurrentCharIndex(newCharIndex)
-      }
-
+    // Handle empty lines (just add them instantly)
+    if (fullText === '') {
+      setDisplayedLines((prev) => [...prev, ''])
+      setCurrentLineIndex((prev) => prev + 1)
+      setCurrentCharIndex(0)
       scrollToBottom()
-    }, TICK_INTERVAL_MS)
+      return
+    }
 
-    return () => clearInterval(interval)
-  }, [currentLineIndex, currentCharIndex, delayRemaining, onComplete, scrollToBottom])
+    // Type character by character
+    if (currentCharIndex < fullText.length) {
+      // Vary typing speed for more realistic effect
+      const baseSpeed = 15
+      const variance = Math.random() * 20
+      const speed = baseSpeed + variance
+
+      const timeout = setTimeout(() => {
+        setDisplayedLines((prev) => {
+          const newLines = [...prev]
+          if (newLines.length === currentLineIndex) {
+            newLines.push(fullText.substring(0, currentCharIndex + 1))
+          } else {
+            newLines[currentLineIndex] = fullText.substring(0, currentCharIndex + 1)
+          }
+          return newLines
+        })
+        setCurrentCharIndex((prev) => prev + 1)
+        scrollToBottom()
+      }, speed)
+
+      return () => clearTimeout(timeout)
+    } else {
+      // Line complete, wait then move to next
+      const timeout = setTimeout(() => {
+        setCurrentLineIndex((prev) => prev + 1)
+        setCurrentCharIndex(0)
+      }, currentMessage.delay)
+
+      return () => clearTimeout(timeout)
+    }
+  }, [isTyping, currentLineIndex, currentCharIndex, onComplete, scrollToBottom])
 
   // Gradient text style (red to teal like the main theme)
   const gradientTextStyle = {
@@ -120,8 +113,7 @@ export const RetroBootScreen: React.FC<RetroBootScreenProps> = ({ onComplete }) 
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
     backgroundClip: 'text',
-    filter:
-      'drop-shadow(0 0 8px rgba(255, 107, 107, 0.4)) drop-shadow(0 0 8px rgba(78, 205, 196, 0.4))',
+    filter: 'drop-shadow(0 0 8px rgba(255, 107, 107, 0.4)) drop-shadow(0 0 8px rgba(78, 205, 196, 0.4))',
   } as React.CSSProperties
 
   // Cursor gradient colors
@@ -164,14 +156,22 @@ export const RetroBootScreen: React.FC<RetroBootScreenProps> = ({ onComplete }) 
       {/* Terminal content */}
       <div
         ref={containerRef}
-        className="absolute inset-0 overflow-y-auto"
+        className="absolute inset-0 p-4 md:p-8 overflow-y-auto"
+        style={gradientTextStyle}
       >
-        <div className="container py-4 md:py-8" style={gradientTextStyle}>
+        {/* DOS header */}
+        <div className="mb-4 opacity-80">
+          <div>PORTFOLIO BIOS (C)2024 Creative Works Inc.</div>
+          <div>Version 4.20.69</div>
+          <div className="mt-2">-------------------------------------------</div>
+        </div>
+
         {/* Boot messages */}
         {displayedLines.map((line, index) => (
           <div key={index} className="whitespace-pre-wrap min-h-[1.5em]">
             {line}
             {index === displayedLines.length - 1 &&
+              isTyping &&
               currentLineIndex < BOOT_MESSAGES.length && (
                 <span
                   className="inline-block w-[0.6em] h-[1.1em] ml-[1px] align-middle"
@@ -187,7 +187,6 @@ export const RetroBootScreen: React.FC<RetroBootScreenProps> = ({ onComplete }) 
             <span className="inline-block w-[0.6em] h-[1.1em] align-middle" style={cursorStyle} />
           </div>
         )}
-        </div>
       </div>
 
       {/* Slight vignette */}
