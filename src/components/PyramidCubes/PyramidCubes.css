@@ -291,6 +291,38 @@
 /* Mobile: reduce scale by 30% */
 @media (max-width: 768px) {
   .pyramid-cubes-container {
-    transform: scale(0.7);
+    transform: scale(0.27);
+  }
+}
+
+/* Rotating gradient overlay for loader */
+.loader-gradient-overlay {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: hard-light;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.loader-gradient-overlay::before {
+  content: '';
+  position: absolute;
+  /* Make it larger than container so rotation doesn't show corners */
+  width: 200%;
+  height: 200%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(0deg, rgba(255, 107, 107, 0.25), rgba(78, 205, 196, 0.27));
+  animation: rotateGradient 5s linear infinite;
+}
+
+@keyframes rotateGradient {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }

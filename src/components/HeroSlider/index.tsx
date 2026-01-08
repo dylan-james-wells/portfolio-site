@@ -965,6 +965,8 @@ export const HeroSlider: React.FC = () => {
             pointerEvents: isLoaded ? 'none' : 'auto',
           }}
         >
+          {/* Rotating gradient overlay */}
+          <div className="loader-gradient-overlay" />
           <div
             className="noise-overlay-clipped"
             style={{

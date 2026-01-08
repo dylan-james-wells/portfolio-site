@@ -183,8 +183,6 @@ const calculateContentLeftMargin = (viewportWidth: number): number => {
   return containerMargin
 }
 
-const GRADIENT_LOOP_DURATION = 10000 // ms for one full rotation
-
 export const HeroSingle: React.FC<HeroSingleProps> = ({
   title,
   heroImage,
@@ -771,6 +769,8 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
             pointerEvents: isLoaded ? 'none' : 'auto',
           }}
         >
+          {/* Rotating gradient overlay */}
+          <div className="loader-gradient-overlay" />
           <div className="noise-overlay-clipped" style={{ opacity: 0.15 }} />
           <div
             className="flex items-center justify-center"
