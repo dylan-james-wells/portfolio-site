@@ -8,6 +8,7 @@ import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
 import { GlitchHover } from '@/components/GlitchHover'
+import { PyramidCubes } from '@/components/PyramidCubes'
 
 export const NotFoundScene: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -18,10 +19,20 @@ export const NotFoundScene: React.FC = () => {
   const textGroupRef = useRef<THREE.Group | null>(null)
   const animationFrameRef = useRef<number>(0)
   const [isClient, setIsClient] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [showLoader, setShowLoader] = useState(true)
 
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  // Hide loader after fade-out transition completes
+  useEffect(() => {
+    if (isLoaded) {
+      const timer = setTimeout(() => setShowLoader(false), 600)
+      return () => clearTimeout(timer)
+    }
+  }, [isLoaded])
 
   useEffect(() => {
     if (!isClient || !containerRef.current) return
@@ -244,6 +255,8 @@ export const NotFoundScene: React.FC = () => {
         // Scale text after it syncs
         textMesh.sync(() => {
           scaleTextToFit()
+          // Mark as loaded once text is ready
+          setIsLoaded(true)
         })
       } else {
         // Back layers - darker color for depth effect
@@ -379,6 +392,33 @@ export const NotFoundScene: React.FC = () => {
       className="relative w-screen h-screen overflow-hidden"
       style={{ backgroundColor: 'hsl(249 23% 6%)' }}
     >
+      {/* Loading animation */}
+      {showLoader && (
+        <div
+          className="absolute inset-0 overflow-hidden"
+          style={{
+            backgroundColor: 'hsl(249 23% 6%)',
+            zIndex: 50,
+            opacity: isLoaded ? 0 : 1,
+            transition: 'opacity 0.5s ease-out',
+            pointerEvents: isLoaded ? 'none' : 'auto',
+          }}
+        >
+          {/* Rotating gradient overlay */}
+          <div className="loader-gradient-overlay" />
+          <div
+            className="noise-overlay-clipped"
+            style={{ opacity: 0.15 }}
+          />
+          <div
+            className="flex items-center justify-center"
+            style={{ position: 'absolute', inset: 0 }}
+          >
+            <PyramidCubes />
+          </div>
+        </div>
+      )}
+
       {/* Gradient overlay */}
       <div
         className="absolute inset-0 pointer-events-none"
