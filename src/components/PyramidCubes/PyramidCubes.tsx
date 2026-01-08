@@ -5,16 +5,6 @@ import './PyramidCubes.css'
 export const PyramidCubes: React.FC = () => {
   return (
     <div className="pyramid-cubes-container">
-      {/* Pulsing rings behind the shapes */}
-      <div className="pulse-rings">
-        <div className="pulse-ring pulse-ring-1"></div>
-        <div className="pulse-ring pulse-ring-2"></div>
-        <div className="pulse-ring pulse-ring-3"></div>
-        <div className="pulse-ring pulse-ring-4"></div>
-        <div className="pulse-ring pulse-ring-5"></div>
-        <div className="pulse-ring pulse-ring-6"></div>
-      </div>
-
       {/* Central Pyramid */}
       <div className="pyramid-loader">
         <div className="wrapper">
