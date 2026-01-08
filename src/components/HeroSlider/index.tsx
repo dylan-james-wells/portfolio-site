@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import { RetroBootScreen } from './RetroBootScreen'
 import {
   EffectComposer,
   EffectPass,
@@ -29,8 +28,6 @@ import { createWave, processWaves } from './rippleWave'
 
 export const HeroSlider: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [isLoaded, setIsLoaded] = useState(false)
-  const [showBootScreen, setShowBootScreen] = useState(true)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -510,8 +507,7 @@ export const HeroSlider: React.FC = () => {
       const centerOffset = GRID_EXTENT / 2
       cubeGroup.position.set(-centerOffset + CUBE_SIZE / 2, -centerOffset + CUBE_SIZE / 2, 0)
 
-      // Mark as loaded and start the first animation after a short delay
-      setIsLoaded(true)
+      // Start the first animation after a short delay
       setTimeout(() => {
         animationDirection = 'forward'
         updateSideTextures('forward')
@@ -944,42 +940,11 @@ export const HeroSlider: React.FC = () => {
     }
   }, [])
 
-  // Handle boot screen completion
-  const handleBootComplete = () => {
-    // Small delay before hiding boot screen to ensure smooth transition
-    setTimeout(() => {
-      setShowBootScreen(false)
-    }, 300)
-  }
-
   return (
     <div style={{ paddingTop: '100vh' }}>
-      {/* Retro boot screen - shown behind Three.js while loading */}
-      {showBootScreen && (
-        <div
-          className="fixed inset-0 z-0"
-          style={{
-            opacity: isLoaded ? 0 : 1,
-            transition: 'opacity 0.8s ease-out',
-            pointerEvents: isLoaded ? 'none' : 'auto',
-          }}
-        >
-          <RetroBootScreen onComplete={handleBootComplete} />
-        </div>
-      )}
-
-      {/* Three.js canvas container */}
       <div
         ref={containerRef}
-        style={{
-          width: '100vw',
-          height: '100vh',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          opacity: isLoaded ? 1 : 0,
-          transition: 'opacity 0.8s ease-in',
-        }}
+        style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0 }}
       />
       {/* Noise overlay layer - on top of everything for visible grain */}
       <div
