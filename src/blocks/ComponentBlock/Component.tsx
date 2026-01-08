@@ -14,17 +14,14 @@ type Props = {
 // Dynamically import components that use Three.js/WebGL to avoid SSR issues
 const SlideshowDemo = dynamic(
   () => import('@/components/SlideshowDemo').then((mod) => mod.SlideshowDemo),
-  { ssr: false }
+  { ssr: false },
 )
 
 const componentMap: Record<string, React.ComponentType<{ className?: string }>> = {
   'react-3d-slideshow': SlideshowDemo,
 }
 
-export const ComponentBlockComponent: React.FC<Props> = ({
-  className,
-  component,
-}) => {
+export const ComponentBlockComponent: React.FC<Props> = ({ className, component }) => {
   const Component = componentMap[component]
 
   if (!Component) {
@@ -32,7 +29,7 @@ export const ComponentBlockComponent: React.FC<Props> = ({
   }
 
   return (
-    <div className={cn('container py-16', className)}>
+    <div className={cn('my-16', className)}>
       <Component />
     </div>
   )
