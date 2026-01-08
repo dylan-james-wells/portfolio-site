@@ -8,6 +8,7 @@ import Link from 'next/link'
 
 import type { Media } from '@/payload-types'
 import { GlitchHover } from '@/components/GlitchHover'
+import { PyramidCubes } from '@/components/PyramidCubes'
 
 interface HeroSingleProps {
   title: string
@@ -193,6 +194,10 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
   const containerRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
 
+  // Loading state for Three.js content
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [showLoader, setShowLoader] = useState(true)
+
   // Scroll hide/show state for back button (same pattern as nav)
   const [isButtonVisible, setIsButtonVisible] = useState(true)
   // Start hidden, then slide in after mount + delay
@@ -236,6 +241,14 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     }, 300) // 300ms delay after mount
     return () => clearTimeout(timer)
   }, [])
+
+  // Hide loader after fade-out transition completes
+  useEffect(() => {
+    if (isLoaded) {
+      const timer = setTimeout(() => setShowLoader(false), 600)
+      return () => clearTimeout(timer)
+    }
+  }, [isLoaded])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -594,6 +607,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
           syncCount++
           if (syncCount === totalMeshes) {
             resizeTextToFit(container.clientWidth / container.clientHeight)
+            setIsLoaded(true)
           }
         })
       }
@@ -741,6 +755,32 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
 
   return (
     <>
+      {/* Loading animation - constrained to hero area */}
+      {showLoader && (
+        <div
+          className="bg-noise-gradient-clipped overflow-hidden"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: height,
+            zIndex: 50,
+            opacity: isLoaded ? 0 : 1,
+            transition: 'opacity 0.5s ease-out',
+            pointerEvents: isLoaded ? 'none' : 'auto',
+          }}
+        >
+          <div className="noise-overlay-clipped" style={{ opacity: 0.15 }} />
+          <div
+            className="flex items-center justify-center"
+            style={{ position: 'absolute', inset: 0 }}
+          >
+            <PyramidCubes />
+          </div>
+        </div>
+      )}
+
       <div
         ref={containerRef}
         style={{
@@ -750,6 +790,8 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
           width: '100vw',
           height: height,
           zIndex: 0,
+          opacity: isLoaded ? 1 : 0,
+          transition: 'opacity 0.5s ease-in',
         }}
       />
       <div
