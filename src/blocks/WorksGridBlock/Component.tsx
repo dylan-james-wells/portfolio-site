@@ -2,7 +2,7 @@
 
 import type { Work, WorksGridBlockType } from '@/payload-types'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 
 import { Media } from '@/components/Media'
@@ -57,9 +57,30 @@ export const WorksGridBlock: React.FC<
 }
 
 const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
-  const { slug, title, thumbnail, heroImage, description } = work
+  const { slug, title, thumbnail, heroImage } = work
   const [isHovered, setIsHovered] = useState(false)
   const [revealed, setRevealed] = useState(false)
+  const [contentHeight, setContentHeight] = useState<number | null>(null)
+  const measureRef = useRef<HTMLDivElement>(null)
+
+  // Measure content height on mount using hidden measurement div
+  useEffect(() => {
+    if (measureRef.current && contentHeight === null) {
+      setContentHeight(measureRef.current.offsetHeight)
+    }
+  }, [contentHeight])
+
+  const titleContent = (
+    <div className="p-4">
+      {title && (
+        <h3 className="text-md font-semibold text-center">
+          <GlitchHover active={isHovered}>
+            <GlitchTextReveal>{title}</GlitchTextReveal>
+          </GlitchHover>
+        </h3>
+      )}
+    </div>
+  )
 
   return (
     <Link
@@ -96,22 +117,42 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
         </div>
       </WindowReveal>
 
+      {/* Hidden measurement div - renders off-screen to get height */}
       <div
-        className="bg-noise-gradient relative flex flex-col justify-center bg-card border-2 border-t-0 border-white overflow-hidden transition-all duration-500 ease"
+        ref={measureRef}
+        aria-hidden="true"
+        className="bg-noise-gradient flex flex-col justify-center bg-card border-2 border-t-0 border-white"
         style={{
-          maxHeight: revealed ? '200px' : '0px',
-          borderWidth: revealed ? '2px' : '0px',
+          position: 'absolute',
+          visibility: 'hidden',
+          pointerEvents: 'none',
         }}
       >
-        <div className="p-4">
-          {title && (
-            <h3 className="text-md font-semibold text-center">
-              <GlitchHover active={isHovered}>
-                <GlitchTextReveal>{title}</GlitchTextReveal>
-              </GlitchHover>
-            </h3>
-          )}
+        {titleContent}
+      </div>
+
+      {/* Fixed height container with clip-path reveal */}
+      <div
+        style={{ height: contentHeight ?? 0 }}
+        className="relative overflow-hidden"
+      >
+        <div
+          className="bg-noise-gradient flex flex-col justify-center bg-card border-2 border-t-0 border-white transition-[clip-path] duration-500 ease-out"
+          style={{
+            clipPath: revealed ? 'inset(0 0 0 0)' : 'inset(0 0 100% 0)',
+          }}
+        >
+          {titleContent}
         </div>
+        {/* Animated white line following the clip edge */}
+        {revealed && (
+          <div
+            className="absolute left-0 right-0 h-[2px] bg-white animate-reveal-line"
+            style={{
+              top: 0,
+            }}
+          />
+        )}
       </div>
     </Link>
   )

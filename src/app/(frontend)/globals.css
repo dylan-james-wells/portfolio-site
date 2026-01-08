@@ -304,3 +304,22 @@
 .animate-bounce-scale {
   animation: bounce-scale 3s ease-out;
 }
+
+/* Reveal line animation for WorkCard */
+@keyframes reveal-line {
+  0% {
+    top: 0%;
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.animate-reveal-line {
+  animation: reveal-line 500ms ease-out forwards;
+}
