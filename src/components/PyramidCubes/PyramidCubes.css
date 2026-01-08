@@ -240,69 +240,68 @@
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(0);
   opacity: 0;
-  filter: blur(1px);
   animation: pulseRingExpand 2s ease-out infinite;
   will-change: transform, opacity;
 }
 
-/* Use box-shadow for the ring stroke - doesn't scale with transform */
+/* Use box-shadow for the ring stroke - gradient from red to teal */
 .pulse-ring-1 {
-  box-shadow: inset 0 0 0 1px #ff6b6b;
+  box-shadow: inset 0 0 0 1px #ff6b6b; /* red */
   animation-delay: 0s;
 }
 
 .pulse-ring-2 {
-  box-shadow: inset 0 0 0 1px #4ecdc4;
+  box-shadow: inset 0 0 0 1px #f47a7f; /* red-ish */
   animation-delay: 0.16s;
 }
 
 .pulse-ring-3 {
-  box-shadow: inset 0 0 0 1px #ff6b6b;
+  box-shadow: inset 0 0 0 1px #e98993; /* coral */
   animation-delay: 0.33s;
 }
 
 .pulse-ring-4 {
-  box-shadow: inset 0 0 0 1px #4ecdc4;
+  box-shadow: inset 0 0 0 1px #de98a7; /* pink-coral */
   animation-delay: 0.5s;
 }
 
 .pulse-ring-5 {
-  box-shadow: inset 0 0 0 1px #ff6b6b;
+  box-shadow: inset 0 0 0 1px #c9a7b0; /* dusty pink */
   animation-delay: 0.66s;
 }
 
 .pulse-ring-6 {
-  box-shadow: inset 0 0 0 1px #4ecdc4;
+  box-shadow: inset 0 0 0 1px #a79cac; /* muted purple */
   animation-delay: 0.83s;
 }
 
 .pulse-ring-7 {
-  box-shadow: inset 0 0 0 1px #ff6b6b;
+  box-shadow: inset 0 0 0 1px #8aaba8; /* grey-teal */
   animation-delay: 1s;
 }
 
 .pulse-ring-8 {
-  box-shadow: inset 0 0 0 1px #4ecdc4;
+  box-shadow: inset 0 0 0 1px #79b5ad; /* light teal */
   animation-delay: 1.16s;
 }
 
 .pulse-ring-9 {
-  box-shadow: inset 0 0 0 1px #ff6b6b;
+  box-shadow: inset 0 0 0 1px #68bfb2; /* medium teal */
   animation-delay: 1.33s;
 }
 
 .pulse-ring-10 {
-  box-shadow: inset 0 0 0 1px #4ecdc4;
+  box-shadow: inset 0 0 0 1px #5bc7ba; /* teal */
   animation-delay: 1.5s;
 }
 
 .pulse-ring-11 {
-  box-shadow: inset 0 0 0 1px #ff6b6b;
+  box-shadow: inset 0 0 0 1px #52cabf; /* bright teal */
   animation-delay: 1.66s;
 }
 
 .pulse-ring-12 {
-  box-shadow: inset 0 0 0 1px #4ecdc4;
+  box-shadow: inset 0 0 0 1px #4ecdc4; /* teal */
   animation-delay: 1.83s;
 }
 
@@ -348,7 +347,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: linear-gradient(0deg, rgba(255, 107, 107, 0.25), rgba(78, 205, 196, 0.27));
+  background: linear-gradient(0deg, rgba(255, 107, 107, 0.45), rgba(78, 205, 196, 0.47));
   animation: rotateGradient 5s linear infinite;
 }
 
