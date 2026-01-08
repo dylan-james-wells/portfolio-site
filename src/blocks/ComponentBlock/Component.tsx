@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'
+import dynamic from 'next/dynamic'
 import type { ComponentBlockType } from '@/payload-types'
 import { cn } from '@/utilities/ui'
-import { SlideshowDemo } from '@/components/SlideshowDemo'
 
 type Props = {
   className?: string
@@ -11,7 +11,13 @@ type Props = {
   blockName?: string
 } & ComponentBlockType
 
-const componentMap: Record<string, React.FC<{ className?: string }>> = {
+// Dynamically import components that use Three.js/WebGL to avoid SSR issues
+const SlideshowDemo = dynamic(
+  () => import('@/components/SlideshowDemo').then((mod) => mod.SlideshowDemo),
+  { ssr: false }
+)
+
+const componentMap: Record<string, React.ComponentType<{ className?: string }>> = {
   'react-3d-slideshow': SlideshowDemo,
 }
 
