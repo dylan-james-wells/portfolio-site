@@ -244,64 +244,64 @@
   will-change: transform, opacity;
 }
 
-/* Use box-shadow for the ring stroke - gradient from red to teal */
+/* Use box-shadow for the ring stroke - gradient from red to teal to red */
 .pulse-ring-1 {
   box-shadow: inset 0 0 0 1px #ff6b6b; /* red */
   animation-delay: 0s;
 }
 
 .pulse-ring-2 {
-  box-shadow: inset 0 0 0 1px #f47a7f; /* red-ish */
+  box-shadow: inset 0 0 0 1px #e9848d; /* red-coral */
   animation-delay: 0.16s;
 }
 
 .pulse-ring-3 {
-  box-shadow: inset 0 0 0 1px #e98993; /* coral */
+  box-shadow: inset 0 0 0 1px #b8a3a3; /* muted pink */
   animation-delay: 0.33s;
 }
 
 .pulse-ring-4 {
-  box-shadow: inset 0 0 0 1px #de98a7; /* pink-coral */
+  box-shadow: inset 0 0 0 1px #83b8b3; /* grey-teal */
   animation-delay: 0.5s;
 }
 
 .pulse-ring-5 {
-  box-shadow: inset 0 0 0 1px #c9a7b0; /* dusty pink */
+  box-shadow: inset 0 0 0 1px #5bc7ba; /* light teal */
   animation-delay: 0.66s;
 }
 
 .pulse-ring-6 {
-  box-shadow: inset 0 0 0 1px #a79cac; /* muted purple */
+  box-shadow: inset 0 0 0 1px #4ecdc4; /* teal */
   animation-delay: 0.83s;
 }
 
 .pulse-ring-7 {
-  box-shadow: inset 0 0 0 1px #8aaba8; /* grey-teal */
+  box-shadow: inset 0 0 0 1px #4ecdc4; /* teal */
   animation-delay: 1s;
 }
 
 .pulse-ring-8 {
-  box-shadow: inset 0 0 0 1px #79b5ad; /* light teal */
+  box-shadow: inset 0 0 0 1px #5bc7ba; /* light teal */
   animation-delay: 1.16s;
 }
 
 .pulse-ring-9 {
-  box-shadow: inset 0 0 0 1px #68bfb2; /* medium teal */
+  box-shadow: inset 0 0 0 1px #83b8b3; /* grey-teal */
   animation-delay: 1.33s;
 }
 
 .pulse-ring-10 {
-  box-shadow: inset 0 0 0 1px #5bc7ba; /* teal */
+  box-shadow: inset 0 0 0 1px #b8a3a3; /* muted pink */
   animation-delay: 1.5s;
 }
 
 .pulse-ring-11 {
-  box-shadow: inset 0 0 0 1px #52cabf; /* bright teal */
+  box-shadow: inset 0 0 0 1px #e9848d; /* red-coral */
   animation-delay: 1.66s;
 }
 
 .pulse-ring-12 {
-  box-shadow: inset 0 0 0 1px #4ecdc4; /* teal */
+  box-shadow: inset 0 0 0 1px #ff6b6b; /* red */
   animation-delay: 1.83s;
 }
 
