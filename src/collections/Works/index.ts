@@ -5,6 +5,7 @@ import { authenticatedOrPublished } from '../../access/authenticatedOrPublished'
 import { Archive } from '../../blocks/ArchiveBlock/config'
 import { Biography } from '../../blocks/Biography/config'
 import { CallToAction } from '../../blocks/CallToAction/config'
+import { ComponentBlock } from '../../blocks/ComponentBlock/config'
 import { Content } from '../../blocks/Content/config'
 import { FormBlock } from '../../blocks/Form/config'
 import { ImageGallery } from '../../blocks/ImageGallery/config'
@@ -95,7 +96,7 @@ export const Works: CollectionConfig<'works'> = {
             {
               name: 'layout',
               type: 'blocks',
-              blocks: [Biography, CallToAction, Content, ImageGallery, MediaBlock, Archive, FormBlock, WorksBlock, RichTextBlock],
+              blocks: [Biography, CallToAction, ComponentBlock, Content, ImageGallery, MediaBlock, Archive, FormBlock, WorksBlock, RichTextBlock],
               required: true,
               admin: {
                 initCollapsed: true,

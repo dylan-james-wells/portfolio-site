@@ -252,6 +252,7 @@ export interface Project {
   layout: (
     | BiographyBlock
     | CallToActionBlock
+    | ComponentBlockType
     | ContentBlock
     | ImageGalleryBlock
     | MediaBlock
@@ -476,6 +477,19 @@ export interface CallToActionBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'cta';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ComponentBlockType".
+ */
+export interface ComponentBlockType {
+  /**
+   * Select the component demo to display
+   */
+  component: 'react-3d-slideshow';
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'componentBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -888,6 +902,7 @@ export interface Work {
   layout: (
     | BiographyBlock
     | CallToActionBlock
+    | ComponentBlockType
     | ContentBlock
     | ImageGalleryBlock
     | MediaBlock
@@ -1469,6 +1484,7 @@ export interface ProjectsSelect<T extends boolean = true> {
     | {
         biography?: T | BiographyBlockSelect<T>;
         cta?: T | CallToActionBlockSelect<T>;
+        componentBlock?: T | ComponentBlockTypeSelect<T>;
         content?: T | ContentBlockSelect<T>;
         imageGallery?: T | ImageGalleryBlockSelect<T>;
         mediaBlock?: T | MediaBlockSelect<T>;
@@ -1495,6 +1511,15 @@ export interface ProjectsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ComponentBlockType_select".
+ */
+export interface ComponentBlockTypeSelect<T extends boolean = true> {
+  component?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "works_select".
  */
 export interface WorksSelect<T extends boolean = true> {
@@ -1507,6 +1532,7 @@ export interface WorksSelect<T extends boolean = true> {
     | {
         biography?: T | BiographyBlockSelect<T>;
         cta?: T | CallToActionBlockSelect<T>;
+        componentBlock?: T | ComponentBlockTypeSelect<T>;
         content?: T | ContentBlockSelect<T>;
         imageGallery?: T | ImageGalleryBlockSelect<T>;
         mediaBlock?: T | MediaBlockSelect<T>;

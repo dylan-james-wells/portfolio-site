@@ -1,10 +1,11 @@
 import React, { Fragment } from 'react'
 
-import type { Page, Work } from '@/payload-types'
+import type { Page, Project, Work } from '@/payload-types'
 
 import { ArchiveBlock } from '@/blocks/ArchiveBlock/Component'
 import { BiographyBlock } from '@/blocks/Biography/Component'
 import { CallToActionBlock } from '@/blocks/CallToAction/Component'
+import { ComponentBlockComponent } from '@/blocks/ComponentBlock/Component'
 import { ContentBlock } from '@/blocks/Content/Component'
 import { FormBlock } from '@/blocks/Form/Component'
 import { ImageGalleryBlock } from '@/blocks/ImageGallery/Component'
@@ -17,6 +18,7 @@ import { WorksGridBlock } from '@/blocks/WorksGridBlock/Component'
 const blockComponents = {
   archive: ArchiveBlock,
   biography: BiographyBlock,
+  componentBlock: ComponentBlockComponent,
   content: ContentBlock,
   cta: CallToActionBlock,
   formBlock: FormBlock,
@@ -37,7 +39,7 @@ const blockTypeNames: Record<string, string> = {
 }
 
 export const RenderBlocks: React.FC<{
-  blocks: Page['layout'][0][] | Work['layout'][0][]
+  blocks: Page['layout'][0][] | Project['layout'][0][] | Work['layout'][0][]
 }> = (props) => {
   const { blocks } = props
 
