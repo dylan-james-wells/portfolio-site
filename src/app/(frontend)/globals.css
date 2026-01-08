@@ -305,17 +305,17 @@
   animation: bounce-scale 3s ease-out;
 }
 
-/* Reveal line animation for WorkCard */
+/* Reveal line animation for WorkCard - follows bottom edge of clip-path */
 @keyframes reveal-line {
   0% {
-    top: 0%;
+    bottom: 100%;
     opacity: 1;
   }
   80% {
     opacity: 1;
   }
   100% {
-    top: 100%;
+    bottom: 0%;
     opacity: 0;
   }
 }

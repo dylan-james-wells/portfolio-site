@@ -137,7 +137,7 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
         className="relative overflow-hidden"
       >
         <div
-          className="bg-noise-gradient flex flex-col justify-center bg-card border-2 border-t-0 border-white transition-[clip-path] duration-500 ease-out"
+          className="bg-noise-gradient flex flex-col justify-center bg-card border-2 border-t-0 border-white transition-[clip-path] duration-500 linear"
           style={{
             clipPath: revealed ? 'inset(0 0 0 0)' : 'inset(0 0 100% 0)',
           }}
@@ -145,14 +145,13 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
           {titleContent}
         </div>
         {/* Animated white line following the clip edge */}
-        {revealed && (
-          <div
-            className="absolute left-0 right-0 h-[2px] bg-white animate-reveal-line"
-            style={{
-              top: 0,
-            }}
-          />
-        )}
+        <div
+          className="absolute left-0 right-0 h-[2px] bg-white transition-all duration-500 linear"
+          style={{
+            bottom: revealed ? '0%' : '100%',
+            opacity: revealed ? 0 : 1,
+          }}
+        />
       </div>
     </Link>
   )
