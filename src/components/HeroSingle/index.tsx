@@ -190,7 +190,6 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
   titleBottomOffset = '2rem',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
-  const overlayRef = useRef<HTMLDivElement>(null)
 
   // Loading state for Three.js content
   const [isLoaded, setIsLoaded] = useState(false)
@@ -727,29 +726,6 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
     }
   }, [title, heroImage, titleBottomOffset])
 
-  // Gradient overlay animation (CSS-based like WindowReveal)
-  useEffect(() => {
-    if (!overlayRef.current) return
-
-    let animationId: number
-
-    const animateGradient = (currentTime: number) => {
-      if (overlayRef.current) {
-        const progress = (currentTime % GRADIENT_LOOP_DURATION) / GRADIENT_LOOP_DURATION
-        const currentAngle = 135 + progress * 360
-
-        overlayRef.current.style.background = `linear-gradient(${currentAngle}deg, rgba(255, 107, 107, 0.75), rgba(78, 205, 196, 0.7))`
-      }
-
-      animationId = requestAnimationFrame(animateGradient)
-    }
-
-    animationId = requestAnimationFrame(animateGradient)
-
-    return () => {
-      cancelAnimationFrame(animationId)
-    }
-  }, [])
 
   return (
     <>
@@ -795,7 +771,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
         }}
       />
       <div
-        ref={overlayRef}
+        className="loader-gradient-overlay"
         style={{
           position: 'fixed',
           top: 0,
@@ -803,8 +779,6 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
           width: '100vw',
           height: height,
           zIndex: 1,
-          mixBlendMode: 'hard-light',
-          pointerEvents: 'none',
         }}
       />
       {/* Noise overlay layer - on top of everything for visible grain */}

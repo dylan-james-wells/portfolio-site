@@ -308,9 +308,9 @@
 .loader-gradient-overlay::before {
   content: '';
   position: absolute;
-  /* Make it larger than container so rotation doesn't show corners */
-  width: 200%;
-  height: 200%;
+  /* Make it much larger than container so rotation covers all corners on wide screens */
+  width: 300vmax;
+  height: 300vmax;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
