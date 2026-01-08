@@ -1,8 +1,21 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
-import { Slideshow, SlideshowHandle, SlideData, TransitionStyle } from '@dylanwells/react-3d-slideshow'
+import React, { useState, useRef, useEffect } from 'react'
 import { cn } from '@/utilities/ui'
+
+// Define types locally to avoid importing from the package at module level
+type TransitionStyle = 'glitch' | 'cascade' | 'cube'
+
+interface SlideData {
+  id: number | string
+  image: string
+}
+
+interface SlideshowHandle {
+  next: () => void
+  prev: () => void
+  goTo: (index: number) => void
+}
 import {
   Select,
   SelectContent,
@@ -53,6 +66,8 @@ interface SlideshowDemoProps {
 }
 
 export const SlideshowDemo: React.FC<SlideshowDemoProps> = ({ className }) => {
+  const [mounted, setMounted] = useState(false)
+  const [Slideshow, setSlideshow] = useState<React.ComponentType<any> | null>(null)
   const [selectedStyle, setSelectedStyle] = useState<TransitionStyle>('glitch')
   const [autoPlay, setAutoPlay] = useState(false)
   const [loop, setLoop] = useState(true)
@@ -66,6 +81,14 @@ export const SlideshowDemo: React.FC<SlideshowDemoProps> = ({ className }) => {
   const [cascadeMinTiles, setCascadeMinTiles] = useState(15)
   const [autoPlayInterval, setAutoPlayInterval] = useState(3000)
   const slideshowRef = useRef<SlideshowHandle>(null)
+
+  // Dynamically import Slideshow component only on client side
+  useEffect(() => {
+    import('@dylanwells/react-3d-slideshow').then((mod) => {
+      setSlideshow(() => mod.Slideshow)
+      setMounted(true)
+    })
+  }, [])
 
   const handleSlideChange = (index: number) => {
     setCurrentSlide(index)
@@ -267,27 +290,33 @@ export const SlideshowDemo: React.FC<SlideshowDemoProps> = ({ className }) => {
 
       {/* Slideshow */}
       <div className="rounded-lg overflow-hidden border border-border">
-        <Slideshow
-          ref={slideshowRef}
-          slides={demoSlides}
-          style={selectedStyle}
-          autoPlay={autoPlay}
-          autoPlayInterval={autoPlayInterval}
-          loop={loop}
-          transitionDuration={selectedStyle === 'cube' ? cubeTransitionDuration : 800}
-          height={500}
-          onSlideChange={handleSlideChange}
-          showControls
-          showIndicators
-          enableSwipe
-          enableKeyboard
-          cascadeMinTiles={cascadeMinTiles}
-          aspectRatio={parseAspectRatio(aspectRatio)}
-          glitchAberration={glitchAberration}
-          glitchScanlines={glitchScanlines}
-          glitchGrain={glitchGrain}
-          fullscreen={fullscreen}
-        />
+        {mounted && Slideshow ? (
+          <Slideshow
+            ref={slideshowRef}
+            slides={demoSlides}
+            style={selectedStyle}
+            autoPlay={autoPlay}
+            autoPlayInterval={autoPlayInterval}
+            loop={loop}
+            transitionDuration={selectedStyle === 'cube' ? cubeTransitionDuration : 800}
+            height={500}
+            onSlideChange={handleSlideChange}
+            showControls
+            showIndicators
+            enableSwipe
+            enableKeyboard
+            cascadeMinTiles={cascadeMinTiles}
+            aspectRatio={parseAspectRatio(aspectRatio)}
+            glitchAberration={glitchAberration}
+            glitchScanlines={glitchScanlines}
+            glitchGrain={glitchGrain}
+            fullscreen={fullscreen}
+          />
+        ) : (
+          <div className="h-[500px] flex items-center justify-center bg-card">
+            <span className="text-muted-foreground">Loading slideshow...</span>
+          </div>
+        )}
       </div>
 
       {/* Info Bar */}
