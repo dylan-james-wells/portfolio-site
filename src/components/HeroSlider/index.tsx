@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { RetroBootScreen } from './RetroBootScreen'
+import { PyramidCubes } from '@/components/PyramidCubes'
 import {
   EffectComposer,
   EffectPass,
@@ -30,7 +30,7 @@ import { createWave, processWaves } from './rippleWave'
 export const HeroSlider: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isLoaded, setIsLoaded] = useState(false)
-  const [showBootScreen, setShowBootScreen] = useState(true)
+  const [showLoader, setShowLoader] = useState(true)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -944,27 +944,39 @@ export const HeroSlider: React.FC = () => {
     }
   }, [])
 
-  // Handle boot screen completion
-  const handleBootComplete = () => {
-    // Small delay before hiding boot screen to ensure smooth transition
-    setTimeout(() => {
-      setShowBootScreen(false)
-    }, 300)
-  }
+  // Hide loader after fade-out transition completes
+  useEffect(() => {
+    if (isLoaded) {
+      const timer = setTimeout(() => setShowLoader(false), 600)
+      return () => clearTimeout(timer)
+    }
+  }, [isLoaded])
 
   return (
     <div style={{ paddingTop: '100vh' }}>
-      {/* Retro boot screen - shown behind Three.js while loading */}
-      {showBootScreen && (
+      {/* Loading animation - shown while Three.js loads */}
+      {showLoader && (
         <div
-          className="fixed inset-0 z-0"
+          className="fixed inset-0 bg-noise-gradient-clipped overflow-hidden"
           style={{
-            opacity: !showBootScreen ? 0 : 1,
-            transition: 'opacity 0.8s ease-out',
-            pointerEvents: !showBootScreen ? 'none' : 'auto',
+            zIndex: 50,
+            opacity: isLoaded ? 0 : 1,
+            transition: 'opacity 0.5s ease-out',
+            pointerEvents: isLoaded ? 'none' : 'auto',
           }}
         >
-          <RetroBootScreen onComplete={handleBootComplete} />
+          <div
+            className="noise-overlay-clipped"
+            style={{
+              opacity: 0.15,
+            }}
+          />
+          <div
+            className="flex items-center justify-center"
+            style={{ position: 'absolute', inset: 0 }}
+          >
+            <PyramidCubes />
+          </div>
         </div>
       )}
 
@@ -977,8 +989,8 @@ export const HeroSlider: React.FC = () => {
           position: 'fixed',
           top: 0,
           left: 0,
-          opacity: !showBootScreen ? 1 : 0,
-          transition: 'opacity 0.8s ease-in',
+          opacity: isLoaded ? 1 : 0,
+          transition: 'opacity 0.5s ease-in',
         }}
       />
       {/* Noise overlay layer - on top of everything for visible grain */}
