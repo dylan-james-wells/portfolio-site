@@ -15,6 +15,7 @@ export const FooterClient: React.FC<FooterClientProps> = ({ data }) => {
   const [glitchActive, setGlitchActive] = useState(false)
   const [bounceActive, setBounceActive] = useState(false)
   const [pendingAnimation, setPendingAnimation] = useState(false)
+  const [animationKey, setAnimationKey] = useState(0)
   const footerRef = useRef<HTMLElement>(null)
   const glitchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const bounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -62,7 +63,13 @@ export const FooterClient: React.FC<FooterClientProps> = ({ data }) => {
             clearTimeout(bounceTimeoutRef.current)
           }
 
-          setBounceActive(true)
+          // Increment key to force remount of animations
+          setAnimationKey((k) => k + 1)
+          // Briefly disable then re-enable to restart CSS animation
+          setBounceActive(false)
+          requestAnimationFrame(() => {
+            setBounceActive(true)
+          })
           setPendingAnimation(false)
           bounceTimeoutRef.current = setTimeout(() => {
             setBounceActive(false)
@@ -88,7 +95,7 @@ export const FooterClient: React.FC<FooterClientProps> = ({ data }) => {
     >
       {/* Rising lines animation */}
       {bounceActive && (
-        <div className="footer-rising-lines">
+        <div key={animationKey} className="footer-rising-lines">
           <div className="footer-rising-line footer-rising-line-1" />
           <div className="footer-rising-line footer-rising-line-2" />
           <div className="footer-rising-line footer-rising-line-3" />
