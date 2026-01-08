@@ -13,6 +13,12 @@ export const PyramidCubes: React.FC = () => {
         <div className="pulse-ring pulse-ring-4"></div>
         <div className="pulse-ring pulse-ring-5"></div>
         <div className="pulse-ring pulse-ring-6"></div>
+        <div className="pulse-ring pulse-ring-7"></div>
+        <div className="pulse-ring pulse-ring-8"></div>
+        <div className="pulse-ring pulse-ring-9"></div>
+        <div className="pulse-ring pulse-ring-10"></div>
+        <div className="pulse-ring pulse-ring-11"></div>
+        <div className="pulse-ring pulse-ring-12"></div>
       </div>
 
       {/* Central Pyramid */}
