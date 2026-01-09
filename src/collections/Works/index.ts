@@ -11,6 +11,7 @@ import { FormBlock } from '../../blocks/Form/config'
 import { ImageGallery } from '../../blocks/ImageGallery/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
 import { RichTextBlock } from '../../blocks/RichTextBlock/config'
+import { LinksBlock } from '../../blocks/LinksBlock/config'
 import { WorksBlock } from '../../blocks/WorksBlock/config'
 import { generatePreviewPath } from '../../utilities/generatePreviewPath'
 import { revalidateDelete, revalidateWork } from './hooks/revalidateWork'
@@ -96,7 +97,7 @@ export const Works: CollectionConfig<'works'> = {
             {
               name: 'layout',
               type: 'blocks',
-              blocks: [Biography, CallToAction, ComponentBlock, Content, ImageGallery, MediaBlock, Archive, FormBlock, WorksBlock, RichTextBlock],
+              blocks: [Biography, CallToAction, ComponentBlock, Content, ImageGallery, LinksBlock, MediaBlock, Archive, FormBlock, WorksBlock, RichTextBlock],
               required: true,
               admin: {
                 initCollapsed: true,
