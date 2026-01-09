@@ -13,6 +13,7 @@ import { ProjectsBlock } from '../../blocks/ProjectsBlock/config'
 import { RichTextBlock } from '../../blocks/RichTextBlock/config'
 import { WorksBlock } from '@/blocks/WorksBlock/config'
 import { WorksGridBlock } from '../../blocks/WorksGridBlock/config'
+import { LinksBlock } from '../../blocks/LinksBlock/config'
 import { hero } from '@/heros/config'
 import { slugField } from 'payload'
 import { populatePublishedAt } from '../../hooks/populatePublishedAt'
@@ -90,6 +91,7 @@ export const Pages: CollectionConfig<'pages'> = {
                 RichTextBlock,
                 WorksBlock,
                 WorksGridBlock,
+                LinksBlock,
               ],
               required: true,
               admin: {

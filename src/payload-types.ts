@@ -214,6 +214,7 @@ export interface Page {
     | RichTextBlockType
     | WorksBlockType
     | WorksGridBlockType
+    | LinksBlock
   )[];
   meta?: {
     title?: string | null;
@@ -948,6 +949,21 @@ export interface WorksGridBlockType {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "LinksBlock".
+ */
+export interface LinksBlock {
+  links: {
+    icon: 'laptop' | 'paperclip' | 'github' | 'linkedin' | 'steam';
+    label: string;
+    url: string;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'linksBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
@@ -1289,6 +1305,7 @@ export interface PagesSelect<T extends boolean = true> {
         richTextBlock?: T | RichTextBlockTypeSelect<T>;
         worksBlock?: T | WorksBlockTypeSelect<T>;
         worksGridBlock?: T | WorksGridBlockTypeSelect<T>;
+        linksBlock?: T | LinksBlockSelect<T>;
       };
   meta?:
     | T
@@ -1467,6 +1484,22 @@ export interface WorksGridBlockTypeSelect<T extends boolean = true> {
   title?: T;
   description?: T;
   works?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "LinksBlock_select".
+ */
+export interface LinksBlockSelect<T extends boolean = true> {
+  links?:
+    | T
+    | {
+        icon?: T;
+        label?: T;
+        url?: T;
+        id?: T;
+      };
   id?: T;
   blockName?: T;
 }

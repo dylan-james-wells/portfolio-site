@@ -14,6 +14,7 @@ import { ProjectsBlock } from '@/blocks/ProjectsBlock/Component'
 import { RichTextBlockComponent } from '@/blocks/RichTextBlock/Component'
 import { WorksBlock } from '@/blocks/WorksBlock/Component'
 import { WorksGridBlock } from '@/blocks/WorksGridBlock/Component'
+import { LinksBlockComponent } from '@/blocks/LinksBlock/Component'
 
 const blockComponents = {
   archive: ArchiveBlock,
@@ -28,6 +29,7 @@ const blockComponents = {
   richTextBlock: RichTextBlockComponent,
   worksBlock: WorksBlock,
   worksGridBlock: WorksGridBlock,
+  linksBlock: LinksBlockComponent,
 }
 
 // Map block types to their display names for ID generation

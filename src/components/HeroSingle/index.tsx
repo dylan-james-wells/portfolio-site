@@ -811,7 +811,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       >
         <Link
           href="/"
-          className="group border-t-0 relative inline-flex items-center gap-2 text-white font-mono px-2 md:px-3 h-10 bg-noise-gradient border-2 border-white transition-colors pointer-events-auto"
+          className="group border-t-0 relative hidden md:inline-flex items-center gap-2 text-white font-mono px-2 md:px-3 h-10 bg-noise-gradient border-2 border-white transition-colors pointer-events-auto"
         >
           <GlitchHover>
             <span className="inline-flex items-center gap-2">
