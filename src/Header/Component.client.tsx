@@ -93,7 +93,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
       }}
       {...(theme ? { 'data-theme': theme } : {})}
     >
-      <div className="container flex justify-center md:justify-end">
+      <div className="container flex justify-start md:justify-end">
         <HeaderNav data={data} onAnchorClick={onAnchorClick} />
       </div>
     </header>

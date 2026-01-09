@@ -256,6 +256,7 @@ export interface Project {
     | ComponentBlockType
     | ContentBlock
     | ImageGalleryBlock
+    | LinksBlock
     | MediaBlock
     | ArchiveBlock
     | FormBlock
@@ -561,6 +562,21 @@ export interface ImageGalleryBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'imageGallery';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "LinksBlock".
+ */
+export interface LinksBlock {
+  links: {
+    icon: 'laptop' | 'paperclip' | 'github' | 'linkedin' | 'steam';
+    label: string;
+    url: string;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'linksBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -906,6 +922,7 @@ export interface Work {
     | ComponentBlockType
     | ContentBlock
     | ImageGalleryBlock
+    | LinksBlock
     | MediaBlock
     | ArchiveBlock
     | FormBlock
@@ -946,21 +963,6 @@ export interface WorksGridBlockType {
   id?: string | null;
   blockName?: string | null;
   blockType: 'worksGridBlock';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "LinksBlock".
- */
-export interface LinksBlock {
-  links: {
-    icon: 'laptop' | 'paperclip' | 'github' | 'linkedin' | 'steam';
-    label: string;
-    url: string;
-    id?: string | null;
-  }[];
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'linksBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1520,6 +1522,7 @@ export interface ProjectsSelect<T extends boolean = true> {
         componentBlock?: T | ComponentBlockTypeSelect<T>;
         content?: T | ContentBlockSelect<T>;
         imageGallery?: T | ImageGalleryBlockSelect<T>;
+        linksBlock?: T | LinksBlockSelect<T>;
         mediaBlock?: T | MediaBlockSelect<T>;
         archive?: T | ArchiveBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
@@ -1568,6 +1571,7 @@ export interface WorksSelect<T extends boolean = true> {
         componentBlock?: T | ComponentBlockTypeSelect<T>;
         content?: T | ContentBlockSelect<T>;
         imageGallery?: T | ImageGalleryBlockSelect<T>;
+        linksBlock?: T | LinksBlockSelect<T>;
         mediaBlock?: T | MediaBlockSelect<T>;
         archive?: T | ArchiveBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;

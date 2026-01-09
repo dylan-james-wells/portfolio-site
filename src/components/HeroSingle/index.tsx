@@ -137,6 +137,15 @@ const MAX_W_SINGLE_PX = 50 * 16 // 50rem = 800px
 
 // Calculate left margin for content constrained by max-w-single inside container
 const calculateContentLeftMargin = (viewportWidth: number): number => {
+  // For screens below md breakpoint (768px), just use simple padding
+  // This ensures 3D text matches the container padding on mobile
+  const mdBreakpointPx = remToPx(tailwindScreens.md) // 768px
+
+  if (viewportWidth < mdBreakpointPx) {
+    // Below md: use DEFAULT padding (1rem = 16px)
+    return remToPx(tailwindPadding['DEFAULT'])
+  }
+
   // First get the container's left edge (margin + padding)
   const containerMargin = calculateContainerLeftMargin(
     viewportWidth,
