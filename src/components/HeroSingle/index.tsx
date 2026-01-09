@@ -748,7 +748,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
             left: 0,
             width: '100vw',
             height: height,
-            zIndex: 50,
+            zIndex: 5,
             opacity: isLoaded ? 0 : 1,
             transition: 'opacity 0.5s ease-out',
             pointerEvents: isLoaded ? 'none' : 'auto',
