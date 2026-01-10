@@ -13,6 +13,9 @@ This project is based on the [Payload Website Template](https://github.com/paylo
 **Removed:**
 - **Posts** - The blog/posts collection was removed
 
+**Disabled:**
+- **Search** - The search page route is disabled but the functionality remains in place (search plugin, collection, and components in `src/search/`). To re-enable, rename `src/app/(frontend)/_search/` to `src/app/(frontend)/search/` and add the `/search` entry back to the sitemap in `pages-sitemap.xml/route.ts`.
+
 ### Blocks
 
 **Added:**
