@@ -3,7 +3,7 @@ import { getServerSideURL } from './getURL'
 
 const defaultOpenGraph: Metadata['openGraph'] = {
   type: 'website',
-  description: 'Dylan Wells - Software Engineer & Creative Developer',
+  description: 'Dylan Wells - Web Developer',
   images: [
     {
       url: `${getServerSideURL()}/website-template-OG.webp`,
