@@ -85,7 +85,6 @@ export const HeroSlider: React.FC = () => {
       feather: 0.3,
       kernelSize: 3,
     })
-    // tiltShiftEffect.blur = 0.15
     const tiltShiftPass = new EffectPass(camera, tiltShiftEffect)
     composer.addPass(tiltShiftPass)
 
@@ -298,7 +297,6 @@ export const HeroSlider: React.FC = () => {
     const SCROLL_DEATH_THRESHOLD = 0.4
     const shouldSkipMaterialization = initialScrollProgress >= SCROLL_DEATH_THRESHOLD
     let materializeProgress = shouldSkipMaterialization ? 1 : 0 // 0 = dissipated, 1 = fully materialized
-    let isMaterializing = false
     const MATERIALIZE_DELAY = 500 // ms before starting materialization
     const materializeStartTime = performance.now() + MATERIALIZE_DELAY
 
@@ -728,7 +726,6 @@ export const HeroSlider: React.FC = () => {
       const now = performance.now()
       if (materializeProgress < 1) {
         if (now >= materializeStartTime) {
-          isMaterializing = true
           // Smooth materialization over time
           materializeProgress = Math.min(1, materializeProgress + deltaTime * 1.2)
         }
@@ -790,7 +787,6 @@ export const HeroSlider: React.FC = () => {
       tiltShiftEffect.rotation = mouseX * 0.5
       tiltShiftEffect.focusArea = currentTiltShift.focusArea
       tiltShiftEffect.feather = currentTiltShift.feather
-      // tiltShiftEffect.blur = currentTiltShift.blur
 
       // Update and render all animated 3D slides
       for (const animSlide of animatedSlides) {
