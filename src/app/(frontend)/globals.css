@@ -372,3 +372,9 @@
 .footer-rising-line-10 { background: #b8a3a3; animation-delay: 0.72s; }
 .footer-rising-line-11 { background: #e9848d; animation-delay: 0.8s; }
 .footer-rising-line-12 { background: #ff6b6b; animation-delay: 0.88s; }
+
+
+
+.container.max-w-single .block-nav-target:first-child > .my-16 {
+  margin-top: 0;
+}
