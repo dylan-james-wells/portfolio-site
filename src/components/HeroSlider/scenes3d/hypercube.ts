@@ -179,15 +179,17 @@ export function create(options: HypercubeOptions = {}): Scene3D {
   group.add(connectingGlow.mesh)
   scene.add(group)
 
-  // Interaction state
-  let mouseX = 0
-  let mouseY = 0
+  // Interaction state - target direction from mouse
   let targetMouseX = 0
   let targetMouseY = 0
 
-  // Rotation state
-  let baseRotation = 0
+  // Rotation state - current rotation angles
+  let rotationX = 0
+  let rotationY = 0
   let angle4D = 0
+
+  // Constant rotation speed (radians per second)
+  const ROTATION_SPEED = 0.5
 
   const updateTarget = (clientX: number, clientY: number) => {
     targetMouseX = (clientX / window.innerWidth) * 2 - 1
@@ -211,20 +213,36 @@ export function create(options: HypercubeOptions = {}): Scene3D {
     scene,
     camera,
     update: (deltaTime: number) => {
-      // Smooth following
-      mouseX += (targetMouseX - mouseX) * 0.022
-      mouseY += (targetMouseY - mouseY) * 0.022
+      // Calculate target rotation based on mouse position
+      // Mouse position maps to a target angle offset
+      const targetRotationX = targetMouseY * Math.PI * 0.5
+      const targetRotationY = targetMouseX * Math.PI * 0.5
 
-      // Update rotations
-      baseRotation += deltaTime * 0.2
+      // Move toward target at constant speed
+      const maxDelta = ROTATION_SPEED * deltaTime
+
+      // Smoothly rotate toward target X
+      const diffX = targetRotationX - rotationX
+      if (Math.abs(diffX) > maxDelta) {
+        rotationX += Math.sign(diffX) * maxDelta
+      } else {
+        rotationX = targetRotationX
+      }
+
+      // Smoothly rotate toward target Y
+      const diffY = targetRotationY - rotationY
+      if (Math.abs(diffY) > maxDelta) {
+        rotationY += Math.sign(diffY) * maxDelta
+      } else {
+        rotationY = targetRotationY
+      }
+
+      // Constant 4D rotation
       angle4D += deltaTime * 0.3
-
-      // Mouse influence on 4D rotation speed
-      const mouseInfluence = 1 + Math.abs(mouseX) * 0.1
 
       // Project all vertices from 4D to 3D
       const projected: THREE.Vector3[] = vertices4D.map((v) =>
-        project4Dto3D(v, angle4D * mouseInfluence, 4),
+        project4Dto3D(v, angle4D, 4),
       )
 
       // Update all line positions
@@ -249,9 +267,9 @@ export function create(options: HypercubeOptions = {}): Scene3D {
       outerGlow.mesh.computeLineDistances()
       connectingGlow.mesh.computeLineDistances()
 
-      // 3D rotation influenced by mouse
-      group.rotation.x = baseRotation + mouseY * Math.PI * 0.075
-      group.rotation.y = baseRotation * 0.7 + mouseX * Math.PI * 0.115
+      // Apply rotation to group
+      group.rotation.x = rotationX
+      group.rotation.y = rotationY
     },
     dispose: () => {
       window.removeEventListener('mousemove', handleMouseMove)
