@@ -89,7 +89,7 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <WindowReveal threshold={1} callback={() => setRevealed(true)}>
+      <WindowReveal threshold={0.99} callback={() => setRevealed(true)}>
         <div className="aspect-video relative overflow-hidden w-full">
           <div className="absolute inset-0 transition-transform duration-300 group-hover:scale-105">
             {/* Hero image as background */}
