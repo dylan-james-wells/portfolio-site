@@ -299,6 +299,7 @@ export const HeroSlider: React.FC = () => {
     let materializeProgress = shouldSkipMaterialization ? 1 : 0 // 0 = dissipated, 1 = fully materialized
     const MATERIALIZE_DELAY = 500 // ms before starting materialization
     const materializeStartTime = performance.now() + MATERIALIZE_DELAY
+    let hasTriggeredInitialWave = shouldSkipMaterialization // Skip initial wave if materialization was skipped
 
     // Store base frustum for scroll zoom calculations
     let baseFrustumWidth = frustumWidth
@@ -729,6 +730,17 @@ export const HeroSlider: React.FC = () => {
           // Smooth materialization over time
           materializeProgress = Math.min(1, materializeProgress + deltaTime * 1.2)
         }
+      }
+
+      // Trigger initial rainbow wave when materialization completes
+      // Wave originates from approximate center of the "MAKE FUN" text (left-center of screen)
+      if (materializeProgress >= 1 && !hasTriggeredInitialWave && cubeDataList.length > 0) {
+        hasTriggeredInitialWave = true
+        // Text is left-aligned and vertically centered
+        // Approximate text center: ~25% from left (col), ~50% from bottom (row)
+        const textCenterRow = Math.floor(GRID_SIZE * 0.5)
+        const textCenterCol = Math.floor(GRID_SIZE * 0.25)
+        activeHybridWaves.push(createWave(textCenterRow, textCenterCol, currentTime))
       }
 
       // Calculate effective pixelation based on materialization state
