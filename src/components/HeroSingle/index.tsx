@@ -813,6 +813,7 @@ export const HeroSingle: React.FC<HeroSingleProps> = ({
       </div>
       {/* Back to home button */}
       <div
+        id="SiteBackButton"
         className="fixed top-0 left-0 right-0 z-20 container max-w-single pointer-events-none transition-transform duration-300 ease-out"
         style={{
           transform: hasInitialized && isButtonVisible ? 'translateY(0)' : 'translateY(-100%)',

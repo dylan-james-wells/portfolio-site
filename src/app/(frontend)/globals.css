@@ -375,6 +375,13 @@
 
 
 
+/* Hide header, footer, and back button when modal is open (e.g., image gallery lightbox) */
+body[data-modal-open='true'] #SiteHeader,
+body[data-modal-open='true'] #SiteFooter,
+body[data-modal-open='true'] #SiteBackButton {
+  display: none;
+}
+
 .container.max-w-single .block-nav-target:first-child > .my-16 {
   margin-top: 0;
 }
