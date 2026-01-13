@@ -293,9 +293,9 @@ export const HeroSlider: React.FC = () => {
     let targetScrollProgress = initialScrollProgress
 
     // Materialization state - starts dissipated, materializes on load
-    // If already scrolled past death threshold, skip materialization entirely
-    const SCROLL_DEATH_THRESHOLD = 0.4
-    const shouldSkipMaterialization = initialScrollProgress >= SCROLL_DEATH_THRESHOLD
+    // If already scrolled past threshold, skip materialization entirely
+    const SKIP_MATERIALIZE_THRESHOLD = 0.4
+    const shouldSkipMaterialization = initialScrollProgress >= SKIP_MATERIALIZE_THRESHOLD
     let materializeProgress = shouldSkipMaterialization ? 1 : 0 // 0 = dissipated, 1 = fully materialized
     const MATERIALIZE_DELAY = 500 // ms before starting materialization
     const materializeStartTime = performance.now() + MATERIALIZE_DELAY
@@ -731,27 +731,24 @@ export const HeroSlider: React.FC = () => {
         }
       }
 
-      // Death animation for pixelText when scrolled past threshold
-      // Only apply scroll-based death after materialization is complete
-      const shouldDie = materializeProgress >= 1 && scrollProgress >= SCROLL_DEATH_THRESHOLD
-
-      // Calculate effective pixelation based on materialization and death states
+      // Calculate effective pixelation based on materialization state
+      // Text stays solid after materialization (no death animation on scroll)
       let targetPixelation: number
       if (materializeProgress < 1) {
         // During materialization: go from 1 (dissipated) to 0 (solid)
         targetPixelation = 1 - materializeProgress
       } else {
-        // After materialization: normal scroll-based death
-        targetPixelation = shouldDie ? 1 : 0
+        // After materialization: stay solid
+        targetPixelation = 0
       }
 
-      // Track death progress (0 = alive, 1 = fully dead)
+      // Smoothly interpolate pixelation
       const currentPixelation = blurMaterial.uniforms.pixelation.value
       const newPixelation = currentPixelation + (targetPixelation - currentPixelation) * 0.06
 
       blurMaterial.uniforms.pixelation.value = newPixelation
 
-      // Vibration: peaks in first half of death/materialization
+      // Vibration: peaks during materialization transition
       // Using sine wave that's strongest when pixelation is around 0.3-0.5
       const vibratePhase = Math.sin(newPixelation * Math.PI) // peaks at 0.5
       const vibrateIntensity = vibratePhase * 0.012
