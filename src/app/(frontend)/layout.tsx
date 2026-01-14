@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Analytics } from '@vercel/analytics/next'
 
 import { cn } from '@/utilities/ui'
 import { JetBrains_Mono, Press_Start_2P } from 'next/font/google'
@@ -48,6 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {children}
           <Footer />
         </HeaderThemeProvider>
+        <Analytics />
       </body>
     </html>
   )
