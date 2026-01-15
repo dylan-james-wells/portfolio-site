@@ -344,14 +344,21 @@
 .loader-gradient-overlay::before {
   content: '';
   position: absolute;
-  /* Use calc with max() for Safari compatibility - vmax doesn't work reliably in Safari */
-  width: calc(max(100vw, 100vh) * 3);
-  height: calc(max(100vw, 100vh) * 3);
+  /* Square sized to larger viewport dimension * 3 for rotation coverage */
+  width: 300vw;
+  height: 300vw;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: linear-gradient(0deg, rgba(255, 107, 107, 0.45), rgba(78, 205, 196, 0.47));
   animation: rotateGradient 5s linear infinite;
+}
+
+@supports (width: 1dvmax) {
+  .loader-gradient-overlay::before {
+    width: 300dvmax;
+    height: 300dvmax;
+  }
 }
 
 @keyframes rotateGradient {
