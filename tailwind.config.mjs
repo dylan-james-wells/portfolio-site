@@ -131,6 +131,7 @@ const config = {
             {
               '--tw-prose-body': 'var(--text)',
               '--tw-prose-headings': 'var(--text)',
+              '--tw-prose-bold': 'inherit',
               h1: {
                 fontWeight: 'normal',
                 marginBottom: '0.25em',
