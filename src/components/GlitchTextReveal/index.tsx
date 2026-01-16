@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useRef, useState, useEffect, ReactNode } from 'react'
+import { useIsAndroid } from '@/utilities/useIsAndroid'
 
 interface GlitchTextRevealProps {
   children: ReactNode
@@ -27,6 +28,7 @@ export const GlitchTextReveal: React.FC<GlitchTextRevealProps> = ({
   const [isInViewport, setIsInViewport] = useState(false)
   const [animationComplete, setAnimationComplete] = useState(false)
   const animationRef = useRef<number | null>(null)
+  const isAndroid = useIsAndroid()
 
   // Track viewport intersection
   useEffect(() => {
@@ -52,6 +54,40 @@ export const GlitchTextReveal: React.FC<GlitchTextRevealProps> = ({
   useEffect(() => {
     if (!isInViewport || !containerRef.current) return
 
+    // On Android, use a simple fade-in instead of complex text-shadow animation
+    if (isAndroid) {
+      const FADE_DURATION = 800 // ms
+      const startTime = performance.now()
+
+      const animateFade = (currentTime: number) => {
+        const elapsed = currentTime - startTime
+        const progress = Math.min(elapsed / FADE_DURATION, 1)
+        const easedProgress = easeOutCubic(progress)
+
+        if (containerRef.current) {
+          containerRef.current.style.opacity = String(easedProgress)
+        }
+
+        if (progress < 1) {
+          animationRef.current = requestAnimationFrame(animateFade)
+        } else {
+          setAnimationComplete(true)
+          if (containerRef.current) {
+            containerRef.current.style.opacity = '1'
+          }
+        }
+      }
+
+      animationRef.current = requestAnimationFrame(animateFade)
+
+      return () => {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current)
+        }
+      }
+    }
+
+    // Full glitch animation for non-Android devices
     const ANIMATION_DURATION = 3000 // ms
     const startTime = performance.now()
 
@@ -114,7 +150,7 @@ export const GlitchTextReveal: React.FC<GlitchTextRevealProps> = ({
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [isInViewport])
+  }, [isInViewport, isAndroid])
 
   return (
     <span

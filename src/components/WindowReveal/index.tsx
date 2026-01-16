@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useRef, useState, useEffect, ReactNode } from 'react'
+import { useIsAndroid } from '@/utilities/useIsAndroid'
 
 interface WindowRevealProps {
   children: ReactNode
@@ -33,6 +34,7 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({
   const [animationComplete, setAnimationComplete] = useState(false)
   const animationRef = useRef<number | null>(null)
   const gradientAnimationRef = useRef<number | null>(null)
+  const isAndroid = useIsAndroid()
 
   // Track viewport intersection
   useEffect(() => {
@@ -131,9 +133,15 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({
     }
   }, [isInViewport, dimensions])
 
-  // Continuous gradient rotation animation
+  // Continuous gradient rotation animation (skip on Android for performance)
   useEffect(() => {
     if (!isInViewport || !windowRef.current) return
+
+    // On Android, use a static gradient instead of animated rotation
+    if (isAndroid) {
+      windowRef.current.style.background = `linear-gradient(135deg, rgba(255, 107, 107, 0.55), rgba(78, 205, 196, 0.5))`
+      return
+    }
 
     const GRADIENT_LOOP_DURATION = 10000 // ms for one full rotation
     const GRADIENT_START_ANGLE = 135
@@ -159,7 +167,7 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({
         cancelAnimationFrame(gradientAnimationRef.current)
       }
     }
-  }, [isInViewport])
+  }, [isInViewport, isAndroid])
 
   return (
     <div
@@ -183,7 +191,8 @@ export const WindowReveal: React.FC<WindowRevealProps> = ({
           borderColor: 'currentColor',
           borderWidth: 0,
           boxSizing: 'border-box',
-          mixBlendMode: 'hard-light',
+          // mix-blend-mode causes elements to disappear on Android
+          mixBlendMode: isAndroid ? 'normal' : 'hard-light',
         }}
       />
       <div

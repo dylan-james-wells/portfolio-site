@@ -3,6 +3,7 @@
 import React from 'react'
 import { cn } from '@/utilities/ui'
 import { getMediaUrl } from '@/utilities/getMediaUrl'
+import { useIsAndroid } from '@/utilities/useIsAndroid'
 import type { Media as MediaType } from '@/payload-types'
 
 interface ImageGlitchPanProps {
@@ -24,6 +25,7 @@ export const ImageGlitchPan: React.FC<ImageGlitchPanProps> = ({
   glitchClassName,
   animationDelay = 0,
 }) => {
+  const isAndroid = useIsAndroid()
   let src = srcFromProps || ''
   let alt = altFromProps || ''
 
@@ -35,6 +37,27 @@ export const ImageGlitchPan: React.FC<ImageGlitchPanProps> = ({
   }
 
   const delayStyle = animationDelay ? { animationDelay: `${animationDelay}ms` } : undefined
+
+  // On Android, use a simpler static image without glitch effects
+  // mix-blend-mode and complex animations cause rendering issues
+  if (isAndroid) {
+    return (
+      <div className={cn('group relative overflow-hidden', className)} role="img" aria-label={alt}>
+        <div
+          className={cn(
+            'absolute inset-0',
+            'bg-cover bg-center',
+            'transition-transform duration-300',
+            'group-hover:scale-105',
+            imageClassName,
+          )}
+          style={{
+            backgroundImage: `url(${src})`,
+          }}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className={cn('group relative overflow-hidden', className)} role="img" aria-label={alt}>
