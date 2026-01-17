@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState, ReactNode } from 'react'
 import { cn } from '@/utilities/ui'
-import { useIsAndroid } from '@/utilities/useIsAndroid'
 
 interface TextOutlineProps {
   children: ReactNode
@@ -35,7 +34,6 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
   const gradientRef = useRef<HTMLDivElement>(null)
   const [animationState, setAnimationState] = useState<'hidden' | 'ready' | 'animating'>('hidden')
   const [clipPath, setClipPath] = useState<string>('')
-  const isAndroid = useIsAndroid()
 
   // Track viewport intersection
   useEffect(() => {
@@ -336,18 +334,14 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
   return (
     <div ref={containerRef} className={cn('relative', className)}>
       {/* CSS gradient div with clip-path - contains overflow:hidden wrapper for noise */}
-      {/* On Android, use a simple rectangular background without clip-path */}
-      {useNoiseGradient && (isAndroid || clipPath) && (
+      {useNoiseGradient && clipPath && (
         <div
           ref={gradientRef}
           className="absolute inset-0 bg-noise-gradient-clipped pointer-events-none overflow-hidden"
           style={{
             ...getCanvasStyle(),
             transformOrigin: 'center',
-            // clip-path causes rendering issues on Android - use simple rectangle
-            clipPath: isAndroid ? undefined : clipPath,
-            // Add border radius on Android for visual polish since we lose the custom shape
-            borderRadius: isAndroid ? '4px' : undefined,
+            clipPath,
           }}
         >
           {/* Noise overlay - inside the clipped container with overflow:hidden */}
@@ -355,27 +349,14 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
         </div>
       )}
       {/* Canvas for border (and solid fill when not using noise gradient) */}
-      {/* Hide canvas on Android when using noise gradient since clip-path won't work */}
       <canvas
         ref={canvasRef}
         className="absolute top-0 left-0 pointer-events-none"
         style={{
           ...getCanvasStyle(),
           transformOrigin: 'center',
-          // Hide the custom outline canvas on Android - it relies on matching the clip-path shape
-          display: isAndroid && useNoiseGradient ? 'none' : undefined,
         }}
       />
-      {/* Simple border fallback for Android when using noise gradient */}
-      {isAndroid && useNoiseGradient && (
-        <div
-          className="absolute inset-0 pointer-events-none border-2 border-white rounded"
-          style={{
-            ...getCanvasStyle(),
-            transformOrigin: 'center',
-          }}
-        />
-      )}
       <div className="relative" style={{ zIndex: 1 }}>
         {children}
       </div>

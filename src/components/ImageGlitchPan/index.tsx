@@ -38,27 +38,6 @@ export const ImageGlitchPan: React.FC<ImageGlitchPanProps> = ({
 
   const delayStyle = animationDelay ? { animationDelay: `${animationDelay}ms` } : undefined
 
-  // On Android, use a simpler static image without glitch effects
-  // mix-blend-mode and complex animations cause rendering issues
-  if (isAndroid) {
-    return (
-      <div className={cn('group relative overflow-hidden', className)} role="img" aria-label={alt}>
-        <div
-          className={cn(
-            'absolute inset-0',
-            'bg-cover bg-center',
-            'transition-transform duration-300',
-            'group-hover:scale-105',
-            imageClassName,
-          )}
-          style={{
-            backgroundImage: `url(${src})`,
-          }}
-        />
-      </div>
-    )
-  }
-
   return (
     <div className={cn('group relative overflow-hidden', className)} role="img" aria-label={alt}>
       {/* Base panning image with blur */}
@@ -75,19 +54,21 @@ export const ImageGlitchPan: React.FC<ImageGlitchPanProps> = ({
           ...delayStyle,
         }}
       >
-        {/* Glitch overlay */}
-        <div
-          className={cn(
-            'absolute inset-0 z-[1]',
-            'animate-glitch-pan bg-cover',
-            'opacity-50 mix-blend-hard-light',
-            glitchClassName,
-          )}
-          style={{
-            backgroundImage: `url(${src})`,
-            ...delayStyle,
-          }}
-        />
+        {/* Glitch overlay - skip on Android as mix-blend-mode causes rendering issues */}
+        {!isAndroid && (
+          <div
+            className={cn(
+              'absolute inset-0 z-[1]',
+              'animate-glitch-pan bg-cover',
+              'opacity-50 mix-blend-hard-light',
+              glitchClassName,
+            )}
+            style={{
+              backgroundImage: `url(${src})`,
+              ...delayStyle,
+            }}
+          />
+        )}
       </div>
     </div>
   )
