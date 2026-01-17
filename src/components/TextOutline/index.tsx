@@ -76,6 +76,10 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
     let cachedHeight = 0
     let resolvedBorderColor = ''
 
+    // Track if we need to redraw when becoming visible again
+    // (Android aggressively releases GPU resources when scrolling)
+    let needsRedraw = false
+
     const computeOutlinePath = () => {
       const containerRect = container.getBoundingClientRect()
 
@@ -299,10 +303,33 @@ export const TextOutline: React.FC<TextOutlineProps> = ({
     })
     resizeObserver.observe(container)
 
+    // Redraw when element becomes visible again
+    // Android aggressively releases GPU/canvas resources when elements scroll out of view
+    // This causes the canvas to go blank when scrolling back
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && needsRedraw) {
+          // Force canvas redraw by getting a fresh context
+          const freshCtx = canvas.getContext('2d')
+          if (freshCtx) {
+            computeOutlinePath()
+            drawOutline()
+          }
+          needsRedraw = false
+        } else if (!entry.isIntersecting) {
+          // Mark that we'll need to redraw when visible again
+          needsRedraw = true
+        }
+      },
+      { threshold: 0 },
+    )
+    visibilityObserver.observe(container)
+
     return () => {
       clearTimeout(timeoutId)
       window.removeEventListener('resize', handleResize)
       resizeObserver.disconnect()
+      visibilityObserver.disconnect()
     }
   }, [backgroundColor, borderColor, borderWidth, children, useNoiseGradient])
 
