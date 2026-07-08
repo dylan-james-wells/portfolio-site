@@ -344,21 +344,17 @@
 .loader-gradient-overlay::before {
   content: '';
   position: absolute;
-  /* Square sized to larger viewport dimension * 3 for rotation coverage */
-  width: 300vw;
-  height: 300vw;
+  /* A centered square covers the viewport at any rotation angle once its side
+     is sqrt(2) * the larger viewport dimension (~142vmax). Keep it close to
+     that minimum: Safari clamps very large composited layers (the old 300vw
+     square exceeded the limit), which clipped a corner of the gradient. */
+  width: 160vmax;
+  height: 160vmax;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: linear-gradient(0deg, rgba(255, 107, 107, 0.45), rgba(78, 205, 196, 0.47));
   animation: rotateGradient 5s linear infinite;
-}
-
-@supports (width: 1dvmax) {
-  .loader-gradient-overlay::before {
-    width: 300dvmax;
-    height: 300dvmax;
-  }
 }
 
 @keyframes rotateGradient {
