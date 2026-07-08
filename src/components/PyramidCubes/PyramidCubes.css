@@ -341,27 +341,34 @@
   overflow: hidden;
 }
 
+/* Registered so the gradient angle interpolates smoothly in the animation.
+   (Browsers without @property support show a static gradient - fine.) */
+@property --loader-gradient-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
 .loader-gradient-overlay::before {
   content: '';
   position: absolute;
-  /* A centered square covers the viewport at any rotation angle once its side
-     is sqrt(2) * the larger viewport dimension (~142vmax). Keep it close to
-     that minimum: Safari clamps very large composited layers (the old 300vw
-     square exceeded the limit), which clipped a corner of the gradient. */
-  width: 160vmax;
-  height: 160vmax;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: linear-gradient(0deg, rgba(255, 107, 107, 0.45), rgba(78, 205, 196, 0.47));
+  /* Rotate the gradient angle on a viewport-sized element instead of
+     rotating an oversized square: Safari clamps very large composited
+     layers, which clipped a corner of the old rotating-div approach. */
+  inset: 0;
+  background: linear-gradient(
+    var(--loader-gradient-angle),
+    rgba(255, 107, 107, 0.45),
+    rgba(78, 205, 196, 0.47)
+  );
   animation: rotateGradient 5s linear infinite;
 }
 
 @keyframes rotateGradient {
   0% {
-    transform: translate(-50%, -50%) rotate(0deg);
+    --loader-gradient-angle: 0deg;
   }
   100% {
-    transform: translate(-50%, -50%) rotate(360deg);
+    --loader-gradient-angle: 360deg;
   }
 }
