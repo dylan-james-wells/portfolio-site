@@ -14,12 +14,26 @@ export const SLIDES: SlideType[] = [
   },
   {
     type: '3d',
-    createScene: () => waveDots.create({ colorStart: 0xff6b6b, colorEnd: 0x4ecdc4 }),
+    createScene: (quality) =>
+      waveDots.create({
+        colorStart: 0xff6b6b,
+        colorEnd: 0x4ecdc4,
+        gridWidth: quality?.isMobile ? 96 : 120,
+        gridLength: quality?.isMobile ? 96 : 120,
+        pointSize: quality?.isMobile ? 0.048 : 0.04,
+      }),
     tiltShift: { focusArea: 0.4, feather: 0.3, blur: 0.15 },
   },
   {
     type: '3d',
-    createScene: () => waveDots.create({ colorStart: 0x4ecdc4, colorEnd: 0xff6b6b }),
+    createScene: (quality) =>
+      waveDots.create({
+        colorStart: 0x4ecdc4,
+        colorEnd: 0xff6b6b,
+        gridWidth: quality?.isMobile ? 96 : 120,
+        gridLength: quality?.isMobile ? 96 : 120,
+        pointSize: quality?.isMobile ? 0.048 : 0.04,
+      }),
     tiltShift: { focusArea: 0.4, feather: 0.3, blur: 0.15 },
   },
 ]

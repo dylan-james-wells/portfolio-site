@@ -1,7 +1,7 @@
-import { GRID_SIZE, CUBE_SIZE, GAP } from './constants'
+import { CUBE_SIZE, GAP } from './constants'
 
 // Grid extent calculation
-export const GRID_EXTENT = (GRID_SIZE - 1) * (CUBE_SIZE + GAP) + CUBE_SIZE
+export const getGridExtent = (gridSize: number) => (gridSize - 1) * (CUBE_SIZE + GAP) + CUBE_SIZE
 
 // Easing function for smooth animation
 export const easeInOutCubic = (t: number): number => {
@@ -9,16 +9,17 @@ export const easeInOutCubic = (t: number): number => {
 }
 
 // Calculate frustum to achieve "cover" effect (grid fills viewport, may be cropped)
-export const calculateCoverFrustum = (viewportAspect: number) => {
+export const calculateCoverFrustum = (viewportAspect: number, gridSize: number) => {
+  const gridExtent = getGridExtent(gridSize)
   const gridAspect = 1
   let frustumWidth: number
   let frustumHeight: number
 
   if (viewportAspect > gridAspect) {
-    frustumWidth = GRID_EXTENT / 2
+    frustumWidth = gridExtent / 2
     frustumHeight = frustumWidth / viewportAspect
   } else {
-    frustumHeight = GRID_EXTENT / 2
+    frustumHeight = gridExtent / 2
     frustumWidth = frustumHeight * viewportAspect
   }
 
