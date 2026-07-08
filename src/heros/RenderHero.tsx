@@ -3,7 +3,7 @@ import React from 'react'
 import type { Page } from '@/payload-types'
 
 import { HighImpactHero } from '@/heros/HighImpact'
-import { HeroSlider } from '@/components/HeroSlider'
+import { HeroSliderLazy as HeroSlider } from '@/components/HeroSlider/Lazy'
 import { LowImpactHero } from '@/heros/LowImpact'
 import { MediumImpactHero } from '@/heros/MediumImpact'
 

@@ -215,6 +215,38 @@
   animation: grain 7s steps(10) infinite;
 }
 
+/* Mobile: static grain instead of the animated one. The animated version needs
+   a 600% x 600% composited layer per section (huge GPU memory + compositing
+   bandwidth on phones); a static, element-sized overlay looks nearly identical. */
+@media (pointer: coarse), (max-width: 767px) {
+  .bg-noise-gradient::after,
+  .bg-noise-gradient-dark::after,
+  .noise-overlay-clipped {
+    animation: none;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-noise-gradient::after,
+  .bg-noise-gradient-dark::after,
+  .noise-overlay-clipped {
+    animation: none;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+  }
+
+  .animate-text-shadow-cycle,
+  .animate-spin-slow {
+    animation: none;
+  }
+}
+
 /* Slow spin animation for gradient buttons */
 @keyframes spin-slow {
   from {

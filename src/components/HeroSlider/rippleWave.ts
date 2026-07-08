@@ -1,7 +1,6 @@
 import * as THREE from 'three'
 import type { CubeData, HybridWave } from './types'
 import {
-  GRID_SIZE,
   SPREAD_DROPOFF,
   WAVE_SPEED,
   COLOR_FADE_DURATION,
@@ -30,6 +29,7 @@ export function processWaves(
   activeHybridWaves: HybridWave[],
   cubeDataList: CubeData[],
   currentTime: number,
+  gridSize: number,
 ): void {
   // Reset all cube ripple intensities
   for (const cubeData of cubeDataList) {
@@ -45,7 +45,7 @@ export function processWaves(
 
     // Process new distance rings as the wave expands
     const maxPossibleDist = Math.ceil(currentWaveRadius) + 1
-    for (let dist = 0; dist <= maxPossibleDist && dist < GRID_SIZE * 2; dist++) {
+    for (let dist = 0; dist <= maxPossibleDist && dist < gridSize * 2; dist++) {
       if (wave.processedDistances.has(dist)) continue
 
       // Only process this ring if the wave has reached it
@@ -84,7 +84,8 @@ export function processWaves(
       const row = parseInt(rowStr)
       const col = parseInt(colStr)
 
-      const cubeData = cubeDataList.find((c) => c.row === row && c.col === col)
+      // Cubes are created row-major, so index directly instead of scanning
+      const cubeData = cubeDataList[row * gridSize + col]
       if (!cubeData) continue
 
       const dx = col - wave.originCol
@@ -109,7 +110,7 @@ export function processWaves(
     }
 
     // Remove wave if it's completely faded
-    const maxWaveDist = GRID_SIZE * 1.5
+    const maxWaveDist = gridSize * 1.5
     if (waveAge > maxWaveDist / WAVE_SPEED + COLOR_FADE_DURATION) {
       activeHybridWaves.splice(w, 1)
     }

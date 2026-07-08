@@ -12,6 +12,13 @@ export const DRAG_THRESHOLD = 150 // pixels to drag before committing to advance
 export const ANIMATION_SPEED = 1.5
 export const RENDER_TARGET_SIZE = 1024
 
+// Mobile quality settings - fewer cubes and smaller offscreen buffers on
+// constrained devices (each cube is 6 draw calls, one per face material)
+export const MOBILE_GRID_SIZE = 20
+export const MOBILE_RENDER_TARGET_SIZE = 512
+export const MOBILE_MAX_PIXEL_RATIO = 1.5
+export const DESKTOP_MAX_PIXEL_RATIO = 2
+
 // Scroll zoom settings
 export const BACKGROUND_ZOOM_IN = 0.5 // How much the background zooms in (0.5 = 50% larger)
 export const TEXT_ZOOM_OUT = 0.5 // How much the text zooms out (0.5 = 50% smaller)

@@ -20,15 +20,20 @@ import {
   ANIMATION_SPEED,
   RENDER_TARGET_SIZE,
   BACKGROUND_ZOOM_IN,
+  MOBILE_GRID_SIZE,
+  MOBILE_RENDER_TARGET_SIZE,
+  MOBILE_MAX_PIXEL_RATIO,
+  DESKTOP_MAX_PIXEL_RATIO,
 } from './constants'
 import { defaultTiltShift } from './types'
-import type { CubeData, AnimatedSlide, HybridWave } from './types'
-import { GRID_EXTENT, easeInOutCubic, calculateCoverFrustum } from './utils'
+import type { CubeData, CubeFaceMaterial, AnimatedSlide, HybridWave } from './types'
+import { getGridExtent, easeInOutCubic, calculateCoverFrustum } from './utils'
 import { textBlurVertexShader, textBlurFragmentShader } from './shaders/textBlur'
 import { createWave, processWaves } from './rippleWave'
 
 export const HeroSlider: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [showLoader, setShowLoader] = useState(true)
 
@@ -38,13 +43,20 @@ export const HeroSlider: React.FC = () => {
     const container = containerRef.current
     const slideCount = SLIDES.length
 
+    // Quality settings - strip down effects on constrained devices
+    const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 768
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const gridSize = isMobile ? MOBILE_GRID_SIZE : GRID_SIZE
+    const renderTargetSize = isMobile ? MOBILE_RENDER_TARGET_SIZE : RENDER_TARGET_SIZE
+    const maxPixelRatio = isMobile ? MOBILE_MAX_PIXEL_RATIO : DESKTOP_MAX_PIXEL_RATIO
+
     // Scene setup
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x000000)
 
     // Camera setup - use OrthographicCamera with "cover" behavior
     const aspect = container.clientWidth / container.clientHeight
-    const { frustumWidth, frustumHeight } = calculateCoverFrustum(aspect)
+    const { frustumWidth, frustumHeight } = calculateCoverFrustum(aspect, gridSize)
 
     const camera = new THREE.OrthographicCamera(
       -frustumWidth,
@@ -57,10 +69,15 @@ export const HeroSlider: React.FC = () => {
     camera.position.set(0, 0, 100)
     camera.lookAt(0, 0, 0)
 
-    // Renderer setup
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
+    // Renderer setup - skip antialiasing on mobile (the composer's fullscreen
+    // passes dominate the output anyway and MSAA is expensive on tiled GPUs)
+    const renderer = new THREE.WebGLRenderer({
+      antialias: !isMobile,
+      powerPreference: 'high-performance',
+      stencil: false,
+    })
     renderer.setSize(container.clientWidth, container.clientHeight)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio))
     container.appendChild(renderer.domElement)
 
     // Post-processing setup
@@ -77,16 +94,20 @@ export const HeroSlider: React.FC = () => {
     const chromaticPass = new EffectPass(camera, chromaticAberrationEffect)
     composer.addPass(chromaticPass)
 
-    // Tilt-shift depth of field effect
-    const tiltShiftEffect = new TiltShiftEffect({
-      offset: 0.0,
-      rotation: 0.0,
-      focusArea: 0.4,
-      feather: 0.3,
-      kernelSize: 3,
-    })
-    const tiltShiftPass = new EffectPass(camera, tiltShiftEffect)
-    composer.addPass(tiltShiftPass)
+    // Tilt-shift depth of field effect - skipped on mobile: it is driven by
+    // mouse position (static on touch) and costs a fullscreen blur pass
+    let tiltShiftEffect: TiltShiftEffect | null = null
+    if (!isMobile) {
+      tiltShiftEffect = new TiltShiftEffect({
+        offset: 0.0,
+        rotation: 0.0,
+        focusArea: 0.4,
+        feather: 0.3,
+        kernelSize: 3,
+      })
+      const tiltShiftPass = new EffectPass(camera, tiltShiftEffect)
+      composer.addPass(tiltShiftPass)
+    }
 
     // ============================================
     // Text Overlay Setup
@@ -95,8 +116,8 @@ export const HeroSlider: React.FC = () => {
 
     // Create render target for text with blur effect
     const textRenderTarget = new THREE.WebGLRenderTarget(
-      container.clientWidth * Math.min(window.devicePixelRatio, 2),
-      container.clientHeight * Math.min(window.devicePixelRatio, 2),
+      container.clientWidth * Math.min(window.devicePixelRatio, maxPixelRatio),
+      container.clientHeight * Math.min(window.devicePixelRatio, maxPixelRatio),
       {
         minFilter: THREE.LinearFilter,
         magFilter: THREE.LinearFilter,
@@ -146,13 +167,13 @@ export const HeroSlider: React.FC = () => {
       depth: 0.2,
       depthLayers: 16,
       onSnapBack: (dirX, dirY) => {
-        const centerRow = Math.floor(GRID_SIZE / 2)
-        const centerCol = Math.floor(GRID_SIZE / 2)
-        const offsetAmount = Math.floor(GRID_SIZE * 0.4)
+        const centerRow = Math.floor(gridSize / 2)
+        const centerCol = Math.floor(gridSize / 2)
+        const offsetAmount = Math.floor(gridSize * 0.4)
         const targetRow = Math.round(centerRow + dirY * offsetAmount)
         const targetCol = Math.round(centerCol + dirX * offsetAmount)
-        const clampedRow = Math.max(0, Math.min(GRID_SIZE - 1, targetRow))
-        const clampedCol = Math.max(0, Math.min(GRID_SIZE - 1, targetCol))
+        const clampedRow = Math.max(0, Math.min(gridSize - 1, targetRow))
+        const clampedCol = Math.max(0, Math.min(gridSize - 1, targetCol))
 
         if (triggerGridWave) {
           triggerGridWave(clampedRow, clampedCol)
@@ -322,13 +343,13 @@ export const HeroSlider: React.FC = () => {
     // Setup 3D scenes for animated slides
     SLIDES.forEach((slide, index) => {
       if (slide.type === '3d') {
-        const renderTarget = new THREE.WebGLRenderTarget(RENDER_TARGET_SIZE, RENDER_TARGET_SIZE, {
+        const renderTarget = new THREE.WebGLRenderTarget(renderTargetSize, renderTargetSize, {
           minFilter: THREE.LinearFilter,
           magFilter: THREE.LinearFilter,
           format: THREE.RGBAFormat,
         })
 
-        const scene3d = slide.createScene()
+        const scene3d = slide.createScene({ isMobile })
 
         animatedSlides.push({
           slideIndex: index,
@@ -417,6 +438,7 @@ export const HeroSlider: React.FC = () => {
 
     // Schedule auto-play
     const scheduleAutoPlay = () => {
+      if (prefersReducedMotion) return
       if (autoPlayTimeoutId) {
         clearTimeout(autoPlayTimeoutId)
       }
@@ -448,12 +470,12 @@ export const HeroSlider: React.FC = () => {
       const initialTexture = slideTextures[0]
 
       // Create the grid of cubes
-      for (let row = 0; row < GRID_SIZE; row++) {
-        for (let col = 0; col < GRID_SIZE; col++) {
-          const uMin = col / GRID_SIZE
-          const uMax = (col + 1) / GRID_SIZE
-          const vMin = row / GRID_SIZE
-          const vMax = (row + 1) / GRID_SIZE
+      for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+          const uMin = col / gridSize
+          const uMax = (col + 1) / gridSize
+          const vMin = row / gridSize
+          const vMax = (row + 1) / gridSize
 
           const geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE)
           geometries.push(geometry)
@@ -475,13 +497,20 @@ export const HeroSlider: React.FC = () => {
 
           uvAttribute.needsUpdate = true
 
+          // Lambert on mobile - much cheaper fragment shading than Standard's
+          // PBR, and visually near-identical for flat textured cubes
+          const createFaceMaterial = (): CubeFaceMaterial =>
+            isMobile
+              ? new THREE.MeshLambertMaterial({ map: initialTexture })
+              : new THREE.MeshStandardMaterial({ map: initialTexture })
+
           const faceMaterials = [
-            new THREE.MeshStandardMaterial({ map: initialTexture }),
-            new THREE.MeshStandardMaterial({ map: initialTexture }),
-            new THREE.MeshStandardMaterial({ map: initialTexture }),
-            new THREE.MeshStandardMaterial({ map: initialTexture }),
-            new THREE.MeshStandardMaterial({ map: initialTexture }),
-            new THREE.MeshStandardMaterial({ map: initialTexture }),
+            createFaceMaterial(),
+            createFaceMaterial(),
+            createFaceMaterial(),
+            createFaceMaterial(),
+            createFaceMaterial(),
+            createFaceMaterial(),
           ]
           materials.push(...faceMaterials)
 
@@ -506,17 +535,19 @@ export const HeroSlider: React.FC = () => {
       }
 
       // Center the group
-      const centerOffset = GRID_EXTENT / 2
+      const centerOffset = getGridExtent(gridSize) / 2
       cubeGroup.position.set(-centerOffset + CUBE_SIZE / 2, -centerOffset + CUBE_SIZE / 2, 0)
 
       // Mark as loaded and start the first animation after a short delay
       setIsLoaded(true)
-      setTimeout(() => {
-        animationDirection = 'forward'
-        updateSideTextures('forward')
-        targetProgress = 1
-        isAutoAnimating = true
-      }, 1000)
+      if (!prefersReducedMotion) {
+        setTimeout(() => {
+          animationDirection = 'forward'
+          updateSideTextures('forward')
+          targetProgress = 1
+          isAutoAnimating = true
+        }, 1000)
+      }
     })
 
     // Add lighting
@@ -535,7 +566,7 @@ export const HeroSlider: React.FC = () => {
       const newAspect = width / height
 
       const { frustumWidth: newFrustumWidth, frustumHeight: newFrustumHeight } =
-        calculateCoverFrustum(newAspect)
+        calculateCoverFrustum(newAspect, gridSize)
 
       baseFrustumWidth = newFrustumWidth
       baseFrustumHeight = newFrustumHeight
@@ -564,7 +595,7 @@ export const HeroSlider: React.FC = () => {
         codeRainCamera.updateProjectionMatrix()
       }
 
-      const pixelRatio = Math.min(window.devicePixelRatio, 2)
+      const pixelRatio = Math.min(window.devicePixelRatio, maxPixelRatio)
       textRenderTarget.setSize(width * pixelRatio, height * pixelRatio)
       blurMaterial.uniforms.resolution.value.set(width, height)
 
@@ -690,11 +721,20 @@ export const HeroSlider: React.FC = () => {
     // Animation loop
     let animationId: number
     let lastTime = performance.now() / 1000
+    let isBackgrounded = false
+    let wavesNeedReset = false
 
     const animate = () => {
       animationId = requestAnimationFrame(animate)
 
       const currentTime = performance.now() / 1000
+
+      // Background mode (mobile): once the hero is scrolled past it acts as
+      // the page background behind the content cards - keep the same animation
+      // running but at ~30fps instead of 60 to halve the GPU/CPU cost.
+      // Skipped frames don't update lastTime, so deltaTime stays accurate.
+      if (isBackgrounded && currentTime - lastTime < 1 / 32) return
+
       const deltaTime = currentTime - lastTime
       lastTime = currentTime
 
@@ -736,11 +776,13 @@ export const HeroSlider: React.FC = () => {
       // Wave originates from approximate center of the "MAKE FUN" text (left-center of screen)
       if (materializeProgress >= 1 && !hasTriggeredInitialWave && cubeDataList.length > 0) {
         hasTriggeredInitialWave = true
-        // Text is left-aligned and vertically centered
-        // Approximate text center: ~25% from left (col), ~50% from bottom (row)
-        const textCenterRow = Math.floor(GRID_SIZE * 0.5)
-        const textCenterCol = Math.floor(GRID_SIZE * 0.25)
-        activeHybridWaves.push(createWave(textCenterRow, textCenterCol, currentTime))
+        if (!prefersReducedMotion) {
+          // Text is left-aligned and vertically centered
+          // Approximate text center: ~25% from left (col), ~50% from bottom (row)
+          const textCenterRow = Math.floor(gridSize * 0.5)
+          const textCenterCol = Math.floor(gridSize * 0.25)
+          activeHybridWaves.push(createWave(textCenterRow, textCenterCol, currentTime))
+        }
       }
 
       // Calculate effective pixelation based on materialization state
@@ -791,14 +833,27 @@ export const HeroSlider: React.FC = () => {
       )
 
       // Update tilt-shift based on mouse position and current slide settings
-      const currentTiltShift = SLIDES[currentSlideIndex].tiltShift || defaultTiltShift
-      tiltShiftEffect.offset = mouseY * 0.3
-      tiltShiftEffect.rotation = mouseX * 0.5
-      tiltShiftEffect.focusArea = currentTiltShift.focusArea
-      tiltShiftEffect.feather = currentTiltShift.feather
+      if (tiltShiftEffect) {
+        const currentTiltShift = SLIDES[currentSlideIndex].tiltShift || defaultTiltShift
+        tiltShiftEffect.offset = mouseY * 0.3
+        tiltShiftEffect.rotation = mouseX * 0.5
+        tiltShiftEffect.focusArea = currentTiltShift.focusArea
+        tiltShiftEffect.feather = currentTiltShift.feather
+      }
 
-      // Update and render all animated 3D slides
+      // Update and render only the animated 3D slides whose textures are
+      // currently on screen: the active slide, plus the target slide while a
+      // transition is in progress (side faces show the target texture)
+      const isTransitioning = isDragging || isAutoAnimating || animationProgress > 0
+      const transitionTargetIndex = isTransitioning ? getNextSlideIndex(animationDirection) : -1
       for (const animSlide of animatedSlides) {
+        if (
+          animSlide.slideIndex !== currentSlideIndex &&
+          animSlide.slideIndex !== transitionTargetIndex
+        ) {
+          continue
+        }
+
         animSlide.scene3d.update(deltaTime)
 
         if (animSlide.scene3d.render) {
@@ -810,8 +865,15 @@ export const HeroSlider: React.FC = () => {
         }
       }
 
-      // Process hybrid wave-chaos effects
-      processWaves(activeHybridWaves, cubeDataList, currentTime)
+      // Process hybrid wave-chaos effects - skip entirely when idle (one extra
+      // pass runs after the last wave fades to reset material emissives)
+      if (activeHybridWaves.length > 0) {
+        processWaves(activeHybridWaves, cubeDataList, currentTime, gridSize)
+        wavesNeedReset = true
+      } else if (wavesNeedReset) {
+        processWaves(activeHybridWaves, cubeDataList, currentTime, gridSize)
+        wavesNeedReset = false
+      }
 
       // Auto-animate towards target progress
       if (isAutoAnimating && cubeDataList.length > 0) {
@@ -843,15 +905,15 @@ export const HeroSlider: React.FC = () => {
 
       // Apply animation progress to cubes
       if ((isDragging || isAutoAnimating) && cubeDataList.length > 0 && animationProgress > 0) {
-        const maxDiagonal = (GRID_SIZE - 1) * 2
+        const maxDiagonal = (gridSize - 1) * 2
 
         for (const cubeData of cubeDataList) {
-          const flippedRow = GRID_SIZE - 1 - cubeData.row
+          const flippedRow = gridSize - 1 - cubeData.row
           let diagonalIndex: number
           if (animationDirection === 'forward') {
             diagonalIndex = cubeData.col + flippedRow
           } else {
-            diagonalIndex = GRID_SIZE - 1 - cubeData.col + cubeData.row
+            diagonalIndex = gridSize - 1 - cubeData.col + cubeData.row
           }
 
           const normalizedDiagonal = diagonalIndex / maxDiagonal
@@ -913,6 +975,26 @@ export const HeroSlider: React.FC = () => {
     }
     animate()
 
+    // Mobile only: track when the hero section is scrolled past so the loop
+    // can drop to ~30fps background mode (see the check in animate above).
+    // The canvas stays visible behind the content cards for the whole page,
+    // so it must keep animating - it just doesn't need full frame rate when
+    // it's a backdrop rather than the main interactive element.
+    // The wrapper div (100vh of padding) is the in-flow scroll sentinel.
+    let visibilityObserver: IntersectionObserver | null = null
+    if (isMobile && wrapperRef.current) {
+      visibilityObserver = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0]
+          if (!entry) return
+          isBackgrounded = !entry.isIntersecting
+        },
+        // Restore full frame rate slightly before the hero scrolls back into view
+        { rootMargin: '25% 0px 25% 0px' },
+      )
+      visibilityObserver.observe(wrapperRef.current)
+    }
+
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize)
@@ -925,6 +1007,9 @@ export const HeroSlider: React.FC = () => {
       container.removeEventListener('mouseleave', handleMouseLeave)
       if (autoPlayTimeoutId) {
         clearTimeout(autoPlayTimeoutId)
+      }
+      if (visibilityObserver) {
+        visibilityObserver.disconnect()
       }
       cancelAnimationFrame(animationId)
       container.removeChild(renderer.domElement)
@@ -958,7 +1043,7 @@ export const HeroSlider: React.FC = () => {
   }, [isLoaded])
 
   return (
-    <div style={{ paddingTop: '100vh' }}>
+    <div ref={wrapperRef} style={{ paddingTop: '100vh' }}>
       {/* Loading animation - shown while Three.js loads */}
       {showLoader && (
         <div
