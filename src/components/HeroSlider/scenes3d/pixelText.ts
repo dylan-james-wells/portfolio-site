@@ -232,8 +232,9 @@ export function create(options: PixelTextOptions = {}): Scene3D {
 
     const textMesh = new Text()
     textMesh.text = text
-    textMesh.font =
-      'https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf'
+    // Self-hosted (OFL licensed): loading this from raw.githubusercontent.com
+    // was unreliable - when the fetch failed, the text silently never rendered
+    textMesh.font = '/fonts/PressStart2P-Regular.ttf'
     textMesh.fontSize = initialFontSize
     textMesh.anchorX = 'left'
     textMesh.anchorY = 'middle'
@@ -394,9 +395,9 @@ export function create(options: PixelTextOptions = {}): Scene3D {
   let stretchY = 0
   let velocityX = 0
   let velocityY = 0
-  const springStiffness = 180 // How fast it snaps back
-  const springDamping = 12 // How quickly oscillations die down
-  const stretchMultiplier = 0.8 // How much the drag affects the stretch
+  const springStiffness = 150 // How fast it snaps back
+  const springDamping = 7 // How quickly oscillations die down (lower = more visible bounces)
+  const stretchMultiplier = 1.25 // How much the drag affects the stretch
 
   // Ripple effect state
   let rippleActive = false
@@ -483,8 +484,8 @@ export function create(options: PixelTextOptions = {}): Scene3D {
         triggerRipple(clickNormX, clickNormY)
       } else if (dragMagnitude > 0.02) {
         // Transfer drag momentum to velocity for wobble
-        velocityX += dragOffsetX * 15
-        velocityY += dragOffsetY * 15
+        velocityX += dragOffsetX * 22
+        velocityY += dragOffsetY * 22
 
         // Origin from center, offset by drag direction
         triggerRipple(0.5 + dragOffsetX * 0.5, 0.5 + dragOffsetY * 0.5)
@@ -669,6 +670,22 @@ export function create(options: PixelTextOptions = {}): Scene3D {
       // offset is 0-1, convert to world units (positive offset moves up)
       const { visibleHeight } = getVisibleDimensions(currentAspect)
       baseYOffset = offset * visibleHeight * 1.5 // Move up to 50% of visible height
+    },
+    // True while anything user-driven is in motion (drag, spring wobble,
+    // ripple, mouse-follow rotation still converging). When false, only the
+    // slow ambient float/gradient animate, so the caller can render this
+    // overlay at a reduced rate without any visible difference.
+    isInteracting: (): boolean => {
+      if (isDragging || rippleActive) return true
+      if (
+        Math.abs(stretchX) > 0.0001 ||
+        Math.abs(stretchY) > 0.0001 ||
+        Math.abs(velocityX) > 0.0001 ||
+        Math.abs(velocityY) > 0.0001
+      ) {
+        return true
+      }
+      return Math.abs(targetMouseX - mouseX) > 0.002 || Math.abs(targetMouseY - mouseY) > 0.002
     },
   }
 }
