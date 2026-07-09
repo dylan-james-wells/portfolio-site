@@ -77,6 +77,53 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
     sizeAttenuation: true,
   })
 
+  // Wave displacement runs entirely in the vertex shader. The CPU previously
+  // recomputed every point's height (sqrt/sin/exp x thousands of points) and
+  // re-uploaded the position buffer each frame; the height is a pure function
+  // of the point's base XZ plus a few scalars, so the GPU does it instead and
+  // the position attribute stays static.
+  type WaveUniforms = {
+    uTime: { value: number }
+    uPointer: { value: THREE.Vector2 }
+    uDragIntensity: { value: number }
+    uPush: { value: number }
+  }
+  let waveUniforms: WaveUniforms | null = null
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = { value: 0 }
+    shader.uniforms.uPointer = { value: new THREE.Vector2(0, 0) }
+    shader.uniforms.uDragIntensity = { value: 0 }
+    shader.uniforms.uPush = { value: 0 }
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        [
+          '#include <common>',
+          'uniform float uTime;',
+          'uniform vec2 uPointer;',
+          'uniform float uDragIntensity;',
+          'uniform float uPush;',
+        ].join('\n'),
+      )
+      .replace(
+        '#include <begin_vertex>',
+        [
+          '#include <begin_vertex>',
+          '{',
+          '  float distFromPointer = length(transformed.xz - uPointer);',
+          '  // Wave that follows the pointer - ripples outward from it',
+          '  float mouseWave = sin(distFromPointer * 4.0 - uTime * 3.0) * exp(-distFromPointer * 0.5) * 0.3;',
+          '  // Drag-induced wave - intensity based on drag speed',
+          '  float dragWave = sin(distFromPointer * 6.0 - uTime * 8.0) * exp(-distFromPointer * 0.3) * uDragIntensity;',
+          '  // Push effect - points near the pointer get pushed down while dragging',
+          '  float pushEffect = exp(-distFromPointer * 2.0) * uPush;',
+          '  transformed.y = mouseWave + dragWave + pushEffect;',
+          '}',
+        ].join('\n'),
+      )
+    waveUniforms = shader.uniforms as unknown as WaveUniforms
+  }
+
   const points = new THREE.Points(geometry, material)
   scene.add(points)
 
@@ -90,8 +137,6 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
   let dragVelocityY = 0
   let lastDragX = 0
   let lastDragY = 0
-
-  const basePositions = positions.slice()
 
   const updateTarget = (clientX: number, clientY: number) => {
     targetMouseX = (clientX / window.innerWidth) * 2 - 1
@@ -173,53 +218,18 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
       dragVelocityX *= 0.95
       dragVelocityY *= 0.95
 
-      const positionAttribute = geometry.getAttribute('position') as THREE.BufferAttribute
-      const posArray = positionAttribute.array as Float32Array
-
       // Calculate intensity based on drag velocity
       const dragIntensity = Math.sqrt(dragVelocityX ** 2 + dragVelocityY ** 2) * 10
 
-      let k = 0
-      for (let i = 0; i < gridWidth; i++) {
-        for (let j = 0; j < gridLength; j++) {
-          const u = i / gridWidth
-          const v = j / gridLength
-
-          const baseX = basePositions[3 * k]
-          const baseZ = basePositions[3 * k + 2]
-
-          // Distance from pointer position (mapped to grid space)
-          const gridMouseX = mouseX * spreadX / 2
-          const gridMouseY = mouseY * spreadZ / 2
-          const dx = (u - 0.5) * spreadX - gridMouseX
-          const dz = (v - 0.5) * spreadZ - gridMouseY
-          const distFromMouse = Math.sqrt(dx * dx + dz * dz)
-
-          // Wave that follows pointer - ripples outward from cursor
-          const mouseWave =
-            Math.sin(distFromMouse * 4 - elapsedTime * 3) * Math.exp(-distFromMouse * 0.5) * 0.3
-
-          // Drag-induced wave - intensity based on drag speed
-          const dragWave =
-            Math.sin(distFromMouse * 6 - elapsedTime * 8) *
-            Math.exp(-distFromMouse * 0.3) *
-            dragIntensity
-
-          // Push effect - points near pointer get pushed down when dragging
-          const pushEffect = isDragging ? Math.exp(-distFromMouse * 2) * -0.2 : 0
-
-          // Combine effects
-          const y = mouseWave + dragWave + pushEffect
-
-          posArray[3 * k] = baseX
-          posArray[3 * k + 1] = y
-          posArray[3 * k + 2] = baseZ
-
-          k++
-        }
+      // Feed the wave parameters to the vertex shader (uniforms exist once
+      // the material has compiled, i.e. after the first render)
+      if (waveUniforms) {
+        waveUniforms.uTime.value = elapsedTime
+        // Pointer position mapped to grid space
+        waveUniforms.uPointer.value.set((mouseX * spreadX) / 2, (mouseY * spreadZ) / 2)
+        waveUniforms.uDragIntensity.value = dragIntensity
+        waveUniforms.uPush.value = isDragging ? -0.2 : 0
       }
-
-      positionAttribute.needsUpdate = true
 
       // Camera follows pointer subtly
       camera.position.x = mouseX * 0.3
