@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { CubeData, HybridWave } from './types'
+import type { CubeState, HybridWave } from './types'
 import {
   SPREAD_DROPOFF,
   WAVE_SPEED,
@@ -27,14 +27,15 @@ export function createWave(row: number, col: number, currentTime: number): Hybri
 
 export function processWaves(
   activeHybridWaves: HybridWave[],
-  cubeDataList: CubeData[],
+  cubeStates: CubeState[],
   currentTime: number,
   gridSize: number,
+  emissiveAttribute: THREE.InstancedBufferAttribute,
 ): void {
   // Reset all cube ripple intensities
-  for (const cubeData of cubeDataList) {
-    cubeData.rippleIntensity = 0
-    cubeData.rippleColor = null
+  for (const cubeState of cubeStates) {
+    cubeState.rippleIntensity = 0
+    cubeState.rippleColor = null
   }
 
   // Process each active hybrid wave
@@ -54,14 +55,14 @@ export function processWaves(
       wave.processedDistances.add(dist)
 
       // Find all tiles at this distance and apply probability
-      for (const cubeData of cubeDataList) {
-        const dx = cubeData.col - wave.originCol
-        const dy = cubeData.row - wave.originRow
+      for (const cubeState of cubeStates) {
+        const dx = cubeState.col - wave.originCol
+        const dy = cubeState.row - wave.originRow
         const tileDist = Math.sqrt(dx * dx + dy * dy)
 
         // Check if this tile is approximately at this distance ring
         if (Math.abs(tileDist - dist) < 0.5) {
-          const tileKey = `${cubeData.row},${cubeData.col}`
+          const tileKey = `${cubeState.row},${cubeState.col}`
           if (wave.affectedTiles.has(tileKey)) continue
 
           // Probability decreases with distance
@@ -85,8 +86,8 @@ export function processWaves(
       const col = parseInt(colStr)
 
       // Cubes are created row-major, so index directly instead of scanning
-      const cubeData = cubeDataList[row * gridSize + col]
-      if (!cubeData) continue
+      const cubeState = cubeStates[row * gridSize + col]
+      if (!cubeState) continue
 
       const dx = col - wave.originCol
       const dy = row - wave.originRow
@@ -103,9 +104,9 @@ export function processWaves(
       // Combine: strong when wave passes, then fades over time
       const intensity = Math.max(waveIntensity * 0.8, timeFade * 0.5)
 
-      if (intensity > cubeData.rippleIntensity) {
-        cubeData.rippleIntensity = intensity
-        cubeData.rippleColor = tileData.color
+      if (intensity > cubeState.rippleIntensity) {
+        cubeState.rippleIntensity = intensity
+        cubeState.rippleColor = tileData.color
       }
     }
 
@@ -116,20 +117,20 @@ export function processWaves(
     }
   }
 
-  // Apply colors to materials
-  for (const cubeData of cubeDataList) {
-    if (cubeData.rippleIntensity > 0 && cubeData.rippleColor) {
-      const intensity = cubeData.rippleIntensity
-      for (const mat of cubeData.faceMaterials) {
-        mat.emissive.copy(cubeData.rippleColor)
-        mat.emissiveIntensity = intensity * COLOR_INTENSITY
-      }
+  // Write premultiplied emissive colors into the per-instance attribute
+  const emissive = emissiveAttribute.array as Float32Array
+  for (let i = 0; i < cubeStates.length; i++) {
+    const cubeState = cubeStates[i]
+    if (cubeState.rippleIntensity > 0 && cubeState.rippleColor) {
+      const intensity = cubeState.rippleIntensity * COLOR_INTENSITY
+      emissive[i * 3 + 0] = cubeState.rippleColor.r * intensity
+      emissive[i * 3 + 1] = cubeState.rippleColor.g * intensity
+      emissive[i * 3 + 2] = cubeState.rippleColor.b * intensity
     } else {
-      // Reset to default (no emissive)
-      for (const mat of cubeData.faceMaterials) {
-        mat.emissive.setHex(0x000000)
-        mat.emissiveIntensity = 0
-      }
+      emissive[i * 3 + 0] = 0
+      emissive[i * 3 + 1] = 0
+      emissive[i * 3 + 2] = 0
     }
   }
+  emissiveAttribute.needsUpdate = true
 }
