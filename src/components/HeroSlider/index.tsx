@@ -761,12 +761,17 @@ export const HeroSlider: React.FC = () => {
       }
     }
 
-    container.addEventListener('mousedown', handleMouseDown)
+    // On mobile the only grid interaction is tap-to-ripple: the slide-drag
+    // handlers stay desktop-only so touch drags (and the synthetic mouse
+    // events browsers emit after taps) can't advance the background slideshow.
+    if (!isMobile) {
+      container.addEventListener('mousedown', handleMouseDown)
+      container.addEventListener('mousemove', handleMouseMove, { passive: true })
+      container.addEventListener('mouseup', handleMouseUp)
+      container.addEventListener('mouseleave', handleMouseLeave)
+    }
     container.addEventListener('mousedown', handleClickStart)
-    container.addEventListener('mousemove', handleMouseMove, { passive: true })
-    container.addEventListener('mouseup', handleMouseUp)
     container.addEventListener('mouseup', handleClick)
-    container.addEventListener('mouseleave', handleMouseLeave)
 
     // Scroll handler for zoom effect
     const handleScroll = () => {
