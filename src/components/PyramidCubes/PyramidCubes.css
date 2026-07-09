@@ -341,30 +341,34 @@
   overflow: hidden;
 }
 
-.loader-gradient-overlay::before {
+/* Two static, viewport-sized gradients - the base and its reverse - with the
+   top one cross-fading via opacity. The colors swap ends (red <-> teal) and
+   back, and only opacity animates: no per-frame gradient repaints (which
+   hopped while the WebGL hero loaded) and no oversized rotating layers
+   (which Safari clamps, clipping a corner). */
+.loader-gradient-overlay::before,
+.loader-gradient-overlay::after {
   content: '';
   position: absolute;
-  /* A modest 40vmax square scaled 4x by the compositor: 160vmax of coverage
-     (a centered square needs ~142vmax to cover the viewport at any rotation
-     angle), while the rasterized layer stays small - Safari clamps very
-     large composited layers, which clipped a corner of the old full-size
-     rotating square. The rotation runs entirely on the compositor, so it
-     stays smooth even while the main thread is busy loading the WebGL hero.
-     Upscaling is invisible on a smooth gradient. */
-  width: 40vmax;
-  height: 40vmax;
-  top: 50%;
-  left: 50%;
-  background: linear-gradient(0deg, rgba(255, 107, 107, 0.45), rgba(78, 205, 196, 0.47));
-  transform: translate(-50%, -50%) rotate(0deg) scale(4);
-  animation: rotateGradient 5s linear infinite;
+  inset: 0;
 }
 
-@keyframes rotateGradient {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg) scale(4);
-  }
+.loader-gradient-overlay::before {
+  background: linear-gradient(0deg, rgba(255, 107, 107, 0.45), rgba(78, 205, 196, 0.47));
+}
+
+.loader-gradient-overlay::after {
+  background: linear-gradient(0deg, rgba(78, 205, 196, 0.47), rgba(255, 107, 107, 0.45));
+  opacity: 0;
+  animation: loaderGradientSwap 6s ease-in-out infinite;
+}
+
+@keyframes loaderGradientSwap {
+  0%,
   100% {
-    transform: translate(-50%, -50%) rotate(360deg) scale(4);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
   }
 }
