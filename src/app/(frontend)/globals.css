@@ -121,10 +121,7 @@
   content: '';
   position: absolute;
   z-index: 1;
-  top: -300%;
-  left: -150%;
-  height: 600%;
-  width: 600%;
+  inset: 0;
   background-image: url('/noise.png');
   background-size: 200px;
   background-repeat: repeat;
@@ -133,17 +130,22 @@
   animation: grain 7s steps(10) infinite;
 }
 
+/* Shift the repeating texture via background-position instead of transforming
+   an oversized element: the old 600% x 600% layers were huge composited
+   surfaces (very expensive in Safari), while background-position only
+   repaints at the step rate. The noise tiles at 200px, so any jump of a few
+   dozen px reads as a fresh random frame. */
 @keyframes grain {
-  0%, 100% { transform: translate(0); }
-  10% { transform: translate(-5%, -10%); }
-  20% { transform: translate(-15%, 5%); }
-  30% { transform: translate(7%, -25%); }
-  40% { transform: translate(-5%, 25%); }
-  50% { transform: translate(-15%, 10%); }
-  60% { transform: translate(15%); }
-  70% { transform: translateY(15%); }
-  80% { transform: translate(3%, 35%); }
-  90% { transform: translate(-10%, 10%); }
+  0%, 100% { background-position: 0 0; }
+  10% { background-position: -20px -40px; }
+  20% { background-position: -60px 20px; }
+  30% { background-position: 28px -100px; }
+  40% { background-position: -20px 100px; }
+  50% { background-position: -60px 40px; }
+  60% { background-position: 60px 0; }
+  70% { background-position: 0 60px; }
+  80% { background-position: 12px 140px; }
+  90% { background-position: -40px 40px; }
 }
 
 .bg-noise-gradient > * {
@@ -174,10 +176,7 @@
   content: '';
   position: absolute;
   z-index: 1;
-  top: -300%;
-  left: -150%;
-  height: 600%;
-  width: 600%;
+  inset: 0;
   background-image: url('/noise.png');
   background-size: 200px;
   background-repeat: repeat;
@@ -203,10 +202,7 @@
 /* Noise overlay element for clipped gradients */
 .noise-overlay-clipped {
   position: absolute;
-  top: -300%;
-  left: -150%;
-  height: 600%;
-  width: 600%;
+  inset: 0;
   background-image: url('/noise.png');
   background-size: 200px;
   background-repeat: repeat;
@@ -215,18 +211,13 @@
   animation: grain 7s steps(10) infinite;
 }
 
-/* Mobile: static grain instead of the animated one. The animated version needs
-   a 600% x 600% composited layer per section (huge GPU memory + compositing
-   bandwidth on phones); a static, element-sized overlay looks nearly identical. */
+/* Mobile: static grain - even the background-position repaints add up on
+   phones, and static noise looks nearly identical. */
 @media (pointer: coarse), (max-width: 767px) {
   .bg-noise-gradient::after,
   .bg-noise-gradient-dark::after,
   .noise-overlay-clipped {
     animation: none;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
   }
 }
 
@@ -235,10 +226,6 @@
   .bg-noise-gradient-dark::after,
   .noise-overlay-clipped {
     animation: none;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
   }
 
   .animate-text-shadow-cycle,

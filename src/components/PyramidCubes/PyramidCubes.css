@@ -341,31 +341,34 @@
   overflow: hidden;
 }
 
-.loader-gradient-overlay::before {
+/* Two static, viewport-sized gradients - the base and its reverse - with the
+   top one cross-fading via opacity. The colors swap ends (red <-> teal) and
+   back, and only opacity animates: no per-frame gradient repaints (which
+   hopped while the WebGL hero loaded) and no oversized rotating layers
+   (which Safari clamps, clipping a corner). */
+.loader-gradient-overlay::before,
+.loader-gradient-overlay::after {
   content: '';
   position: absolute;
-  /* Square sized to larger viewport dimension * 3 for rotation coverage */
-  width: 300vw;
-  height: 300vw;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+}
+
+.loader-gradient-overlay::before {
   background: linear-gradient(0deg, rgba(255, 107, 107, 0.45), rgba(78, 205, 196, 0.47));
-  animation: rotateGradient 5s linear infinite;
 }
 
-@supports (width: 1dvmax) {
-  .loader-gradient-overlay::before {
-    width: 300dvmax;
-    height: 300dvmax;
-  }
+.loader-gradient-overlay::after {
+  background: linear-gradient(0deg, rgba(78, 205, 196, 0.47), rgba(255, 107, 107, 0.45));
+  opacity: 0;
+  animation: loaderGradientSwap 6s ease-in-out infinite;
 }
 
-@keyframes rotateGradient {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
+@keyframes loaderGradientSwap {
+  0%,
   100% {
-    transform: translate(-50%, -50%) rotate(360deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
   }
 }
