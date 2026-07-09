@@ -20,6 +20,7 @@ import {
   ANIMATION_SPEED,
   RENDER_TARGET_SIZE,
   BACKGROUND_ZOOM_IN,
+  MIN_FRAME_INTERVAL,
   MOBILE_GRID_SIZE,
   MOBILE_RENDER_TARGET_SIZE,
   MOBILE_MAX_PIXEL_RATIO,
@@ -33,7 +34,6 @@ import { createWave, processWaves } from './rippleWave'
 
 export const HeroSlider: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
-  const wrapperRef = useRef<HTMLDivElement>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [showLoader, setShowLoader] = useState(true)
 
@@ -783,7 +783,6 @@ export const HeroSlider: React.FC = () => {
     // Animation loop
     let animationId: number
     let lastTime = performance.now() / 1000
-    let isBackgrounded = false
     let wavesNeedReset = false
     let textFrameCounter = 0
 
@@ -792,11 +791,9 @@ export const HeroSlider: React.FC = () => {
 
       const currentTime = performance.now() / 1000
 
-      // Background mode (mobile): once the hero is scrolled past it acts as
-      // the page background behind the content cards - keep the same animation
-      // running but at ~30fps instead of 60 to halve the GPU/CPU cost.
-      // Skipped frames don't update lastTime, so deltaTime stays accurate.
-      if (isBackgrounded && currentTime - lastTime < 1 / 32) return
+      // Cap the render loop at ~30fps (see MIN_FRAME_INTERVAL). Skipped
+      // frames don't update lastTime, so deltaTime stays accurate.
+      if (currentTime - lastTime < MIN_FRAME_INTERVAL) return
 
       const deltaTime = currentTime - lastTime
       lastTime = currentTime
@@ -1050,26 +1047,6 @@ export const HeroSlider: React.FC = () => {
     }
     animate()
 
-    // Mobile only: track when the hero section is scrolled past so the loop
-    // can drop to ~30fps background mode (see the check in animate above).
-    // The canvas stays visible behind the content cards for the whole page,
-    // so it must keep animating - it just doesn't need full frame rate when
-    // it's a backdrop rather than the main interactive element.
-    // The wrapper div (100vh of padding) is the in-flow scroll sentinel.
-    let visibilityObserver: IntersectionObserver | null = null
-    if (isMobile && wrapperRef.current) {
-      visibilityObserver = new IntersectionObserver(
-        (entries) => {
-          const entry = entries[0]
-          if (!entry) return
-          isBackgrounded = !entry.isIntersecting
-        },
-        // Restore full frame rate slightly before the hero scrolls back into view
-        { rootMargin: '25% 0px 25% 0px' },
-      )
-      visibilityObserver.observe(wrapperRef.current)
-    }
-
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize)
@@ -1082,9 +1059,6 @@ export const HeroSlider: React.FC = () => {
       container.removeEventListener('mouseleave', handleMouseLeave)
       if (autoPlayTimeoutId) {
         clearTimeout(autoPlayTimeoutId)
-      }
-      if (visibilityObserver) {
-        visibilityObserver.disconnect()
       }
       cancelAnimationFrame(animationId)
       container.removeChild(renderer.domElement)
@@ -1122,7 +1096,7 @@ export const HeroSlider: React.FC = () => {
   }, [isLoaded])
 
   return (
-    <div ref={wrapperRef} style={{ paddingTop: '100vh' }}>
+    <div style={{ paddingTop: '100vh' }}>
       {/* Loading animation - shown while Three.js loads */}
       {showLoader && (
         <div
