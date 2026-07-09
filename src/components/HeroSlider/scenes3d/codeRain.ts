@@ -292,9 +292,9 @@ export function create(options: CodeRainOptions = {}): Scene3D {
   camera.position.set(0, 0, 5)
   camera.lookAt(0, 0, 0)
 
-  // Monospace font URL
-  const monoFontUrl =
-    'https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/fonts/ttf/JetBrainsMono-Regular.ttf'
+  // Self-hosted (OFL licensed): loading this from raw.githubusercontent.com
+  // was unreliable - when the fetch failed, the text silently never rendered
+  const monoFontUrl = '/fonts/JetBrainsMono-Regular.ttf'
 
   // Get random value in range
   const randomRange = (min: number, max: number) => min + Math.random() * (max - min)

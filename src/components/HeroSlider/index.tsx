@@ -85,17 +85,17 @@ export const HeroSlider: React.FC = () => {
     const renderPass = new RenderPass(scene, camera)
     composer.addPass(renderPass)
 
-    // Chromatic aberration effect on the main scene
+    // Chromatic aberration on the main scene. On desktop the tilt-shift
+    // depth-of-field is merged into the SAME EffectPass, so both run in one
+    // fullscreen composite instead of two (only one convolution effect is
+    // allowed per pass - CA is the convolution one here). Tilt-shift is
+    // skipped on mobile: it is driven by mouse position (static on touch)
+    // and costs a fullscreen blur.
     const chromaticAberrationEffect = new ChromaticAberrationEffect({
       offset: new THREE.Vector2(0.002, 0.002),
       radialModulation: true,
       modulationOffset: 0.2,
     })
-    const chromaticPass = new EffectPass(camera, chromaticAberrationEffect)
-    composer.addPass(chromaticPass)
-
-    // Tilt-shift depth of field effect - skipped on mobile: it is driven by
-    // mouse position (static on touch) and costs a fullscreen blur pass
     let tiltShiftEffect: TiltShiftEffect | null = null
     if (!isMobile) {
       tiltShiftEffect = new TiltShiftEffect({
@@ -105,9 +105,13 @@ export const HeroSlider: React.FC = () => {
         feather: 0.3,
         kernelSize: 3,
       })
-      const tiltShiftPass = new EffectPass(camera, tiltShiftEffect)
-      composer.addPass(tiltShiftPass)
     }
+    const effectPass = new EffectPass(
+      camera,
+      chromaticAberrationEffect,
+      ...(tiltShiftEffect ? [tiltShiftEffect] : []),
+    )
+    composer.addPass(effectPass)
 
     // ============================================
     // Text Overlay Setup
@@ -404,11 +408,12 @@ export const HeroSlider: React.FC = () => {
     const updateSideTextures = (direction: 'forward' | 'backward') => {
       const targetIndex = getNextSlideIndex(direction)
       const targetTexture = slideTextures[targetIndex]
+      // Swapping one non-null map for another is a plain uniform update -
+      // needsUpdate (a shader program revalidation) is only required when a
+      // map is added or removed, so skip it for the whole grid
       for (const cubeData of cubeDataList) {
         cubeData.faceMaterials[0].map = targetTexture
         cubeData.faceMaterials[1].map = targetTexture
-        cubeData.faceMaterials[0].needsUpdate = true
-        cubeData.faceMaterials[1].needsUpdate = true
       }
     }
 
@@ -426,10 +431,6 @@ export const HeroSlider: React.FC = () => {
         cubeData.faceMaterials[5].map = currentTexture
         cubeData.faceMaterials[2].map = currentTexture
         cubeData.faceMaterials[3].map = currentTexture
-        cubeData.faceMaterials[4].needsUpdate = true
-        cubeData.faceMaterials[5].needsUpdate = true
-        cubeData.faceMaterials[2].needsUpdate = true
-        cubeData.faceMaterials[3].needsUpdate = true
       }
 
       isAutoAnimating = false
@@ -723,6 +724,7 @@ export const HeroSlider: React.FC = () => {
     let lastTime = performance.now() / 1000
     let isBackgrounded = false
     let wavesNeedReset = false
+    let textFrameCounter = 0
 
     const animate = () => {
       animationId = requestAnimationFrame(animate)
@@ -960,14 +962,28 @@ export const HeroSlider: React.FC = () => {
       renderer.render(codeRainOverlay.scene, codeRainOverlay.camera)
       renderer.autoClear = true
 
-      // Render text overlay on top with blur
+      // Render text overlay on top with blur. Re-render the text scene at
+      // full rate only while something user-visible is in motion
+      // (materialization, scroll, drag/wobble/ripple, mouse follow). When
+      // only the slow ambient float and gradient shift animate, refresh at a
+      // third of the frame rate - imperceptible at those speeds, and it
+      // skips a fullscreen offscreen render on most frames.
       textOverlay.update(deltaTime)
 
-      renderer.setRenderTarget(textRenderTarget)
-      renderer.setClearColor(0x000000, 0)
-      renderer.clear()
-      renderer.render(textOverlay.scene, textOverlay.camera)
-      renderer.setRenderTarget(null)
+      textFrameCounter++
+      const textInMotion =
+        materializeProgress < 1 ||
+        newPixelation > 0.001 ||
+        Math.abs(targetScrollProgress - scrollProgress) > 0.0005 ||
+        // @ts-ignore
+        (textOverlay.isInteracting ? textOverlay.isInteracting() : true)
+      if (textInMotion || textFrameCounter % 3 === 0) {
+        renderer.setRenderTarget(textRenderTarget)
+        renderer.setClearColor(0x000000, 0)
+        renderer.clear()
+        renderer.render(textOverlay.scene, textOverlay.camera)
+        renderer.setRenderTarget(null)
+      }
 
       renderer.autoClear = false
       renderer.render(blurScene, blurCamera)
