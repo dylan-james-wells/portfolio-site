@@ -8,6 +8,9 @@ export interface HypercubeOptions {
   dashSize?: number
   gapSize?: number
   size?: number
+  /** Rotate toward the pointer. Disabled on mobile so touch scrolling/drags
+   *  don't steer the background. */
+  interactive?: boolean
 }
 
 // 4D hypercube (tesseract) vertices
@@ -138,6 +141,7 @@ export function create(options: HypercubeOptions = {}): Scene3D {
     dashSize = 0.15,
     gapSize = 0.05,
     size = 2,
+    interactive = true,
   } = options
 
   const scene = new THREE.Scene()
@@ -206,8 +210,10 @@ export function create(options: HypercubeOptions = {}): Scene3D {
     }
   }
 
-  window.addEventListener('mousemove', handleMouseMove)
-  window.addEventListener('touchmove', handleTouchMove, { passive: true })
+  if (interactive) {
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('touchmove', handleTouchMove, { passive: true })
+  }
 
   return {
     scene,

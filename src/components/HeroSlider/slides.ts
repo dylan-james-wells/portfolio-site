@@ -4,12 +4,22 @@ import type { SlideType } from './types'
 export const SLIDES: SlideType[] = [
   {
     type: '3d',
-    createScene: () => hypercube.create({ colorInner: 0xff6b6b, colorOuter: 0x4ecdc4 }),
+    createScene: (quality) =>
+      hypercube.create({
+        colorInner: 0xff6b6b,
+        colorOuter: 0x4ecdc4,
+        interactive: !quality?.isMobile,
+      }),
     tiltShift: { focusArea: 0.8, feather: 0.4, blur: 0.08 },
   },
   {
     type: '3d',
-    createScene: () => hypercube.create({ colorInner: 0x4ecdc4, colorOuter: 0xff6b6b }),
+    createScene: (quality) =>
+      hypercube.create({
+        colorInner: 0x4ecdc4,
+        colorOuter: 0xff6b6b,
+        interactive: !quality?.isMobile,
+      }),
     tiltShift: { focusArea: 0.8, feather: 0.4, blur: 0.08 },
   },
   {
@@ -21,6 +31,7 @@ export const SLIDES: SlideType[] = [
         gridWidth: quality?.isMobile ? 96 : 120,
         gridLength: quality?.isMobile ? 96 : 120,
         pointSize: quality?.isMobile ? 0.048 : 0.04,
+        interactive: !quality?.isMobile,
       }),
     tiltShift: { focusArea: 0.4, feather: 0.3, blur: 0.15 },
   },
@@ -33,6 +44,7 @@ export const SLIDES: SlideType[] = [
         gridWidth: quality?.isMobile ? 96 : 120,
         gridLength: quality?.isMobile ? 96 : 120,
         pointSize: quality?.isMobile ? 0.048 : 0.04,
+        interactive: !quality?.isMobile,
       }),
     tiltShift: { focusArea: 0.4, feather: 0.3, blur: 0.15 },
   },

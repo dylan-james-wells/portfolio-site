@@ -8,6 +8,9 @@ export interface WaveDotsOptions {
   gridWidth?: number
   gridLength?: number
   pointSize?: number
+  /** Pointer-follow waves and drag/push effects. Disabled on mobile so touch
+   *  scrolling/drags don't disturb the background. */
+  interactive?: boolean
 }
 
 export function create(options: WaveDotsOptions = {}): Scene3D {
@@ -18,6 +21,7 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
     gridWidth = 120,
     gridLength = 120,
     pointSize = 0.04,
+    interactive = true,
   } = options
 
   const scene = new THREE.Scene()
@@ -143,12 +147,14 @@ export function create(options: WaveDotsOptions = {}): Scene3D {
     endDrag()
   }
 
-  window.addEventListener('mousemove', handleMouseMove)
-  window.addEventListener('mousedown', handleMouseDown)
-  window.addEventListener('mouseup', handleMouseUp)
-  window.addEventListener('touchmove', handleTouchMove, { passive: true })
-  window.addEventListener('touchstart', handleTouchStart, { passive: true })
-  window.addEventListener('touchend', handleTouchEnd)
+  if (interactive) {
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mousedown', handleMouseDown)
+    window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('touchmove', handleTouchMove, { passive: true })
+    window.addEventListener('touchstart', handleTouchStart, { passive: true })
+    window.addEventListener('touchend', handleTouchEnd)
+  }
 
   // Animation state
   let elapsedTime = 0
