@@ -2,7 +2,7 @@
 
 import type { Work, WorksGridBlockType } from '@/payload-types'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 
 import { Media } from '@/components/Media'
@@ -60,15 +60,6 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
   const { slug, title, thumbnail, heroImage } = work
   const [isHovered, setIsHovered] = useState(false)
   const [revealed, setRevealed] = useState(false)
-  const [contentHeight, setContentHeight] = useState<number | null>(null)
-  const measureRef = useRef<HTMLDivElement>(null)
-
-  // Measure content height on mount using hidden measurement div
-  useEffect(() => {
-    if (measureRef.current && contentHeight === null) {
-      setContentHeight(measureRef.current.offsetHeight)
-    }
-  }, [contentHeight])
 
   const titleContent = (
     <div className="p-4">
@@ -117,27 +108,10 @@ const WorkCard: React.FC<{ work: Work; index: number }> = ({ work, index }) => {
         </div>
       </WindowReveal>
 
-      {/* Hidden measurement div - renders off-screen to get height */}
-      <div
-        ref={measureRef}
-        aria-hidden="true"
-        className="bg-noise-gradient flex flex-col justify-center bg-card border-2 border-t-0 border-white"
-        style={{
-          position: 'absolute',
-          visibility: 'hidden',
-          pointerEvents: 'none',
-        }}
-      >
-        {titleContent}
-      </div>
-
-      {/* Fixed height container with clip-path reveal */}
-      <div
-        style={{ height: contentHeight ?? 0 }}
-        className="relative overflow-hidden"
-      >
+      {/* Natural-height container with clip-path reveal (clip-path preserves layout space) */}
+      <div className="relative flex flex-1 flex-col overflow-hidden">
         <div
-          className="bg-noise-gradient flex flex-col justify-center bg-card border-2 border-t-0 border-white transition-[clip-path] duration-500 linear"
+          className="bg-noise-gradient flex flex-1 flex-col justify-center bg-card border-2 border-t-0 border-white transition-[clip-path] duration-500 linear"
           style={{
             clipPath: revealed ? 'inset(0 0 0 0)' : 'inset(0 0 100% 0)',
           }}
