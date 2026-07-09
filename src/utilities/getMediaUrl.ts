@@ -1,5 +1,3 @@
-import { getClientSideURL } from '@/utilities/getURL'
-
 /**
  * Processes media resource URL to ensure proper formatting
  * @param url The original URL from the resource
@@ -18,7 +16,9 @@ export const getMediaUrl = (url: string | null | undefined, cacheTag?: string | 
     return cacheTag ? `${url}?${cacheTag}` : url
   }
 
-  // Otherwise prepend client-side URL
-  const baseUrl = getClientSideURL()
-  return cacheTag ? `${baseUrl}${url}?${cacheTag}` : `${baseUrl}${url}`
+  // Keep same-origin media URLs relative. Prefixing an origin made the server
+  // render (NEXT_PUBLIC_SERVER_URL) differ from the client render
+  // (window.location) whenever the site is viewed from any other host - a
+  // hydration mismatch on every image on the page.
+  return cacheTag ? `${url}?${cacheTag}` : url
 }
