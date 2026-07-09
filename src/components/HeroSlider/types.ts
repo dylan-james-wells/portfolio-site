@@ -18,16 +18,14 @@ export type SlideType =
   | { type: 'image'; url: string; tiltShift?: TiltShiftSettings }
   | { type: '3d'; createScene: (quality?: SceneQualityOptions) => Scene3D; tiltShift?: TiltShiftSettings }
 
-// Cube face material - Lambert on mobile (cheaper shading), Standard on desktop
-export type CubeFaceMaterial = THREE.MeshStandardMaterial | THREE.MeshLambertMaterial
+// Grid material - Lambert on mobile (cheaper shading), Standard on desktop
+export type GridMaterial = THREE.MeshStandardMaterial | THREE.MeshLambertMaterial
 
-// Store cube data with animation state
-export interface CubeData {
-  mesh: THREE.Mesh
+// Per-cube state for the instanced grid (transforms live in the instance
+// matrices; this tracks grid position and ripple wave state)
+export interface CubeState {
   row: number
   col: number
-  baseZ: number
-  faceMaterials: CubeFaceMaterial[]
   // Ripple effect state
   rippleColor: THREE.Color | null
   rippleIntensity: number

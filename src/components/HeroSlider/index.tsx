@@ -26,7 +26,7 @@ import {
   DESKTOP_MAX_PIXEL_RATIO,
 } from './constants'
 import { defaultTiltShift } from './types'
-import type { CubeData, CubeFaceMaterial, AnimatedSlide, HybridWave } from './types'
+import type { CubeState, GridMaterial, AnimatedSlide, HybridWave } from './types'
 import { getGridExtent, easeInOutCubic, calculateCoverFrustum } from './utils'
 import { textBlurVertexShader, textBlurFragmentShader } from './shaders/textBlur'
 import { createWave, processWaves } from './rippleWave'
@@ -336,8 +336,6 @@ export const HeroSlider: React.FC = () => {
 
     // Array to hold textures for each slide
     const slideTextures: THREE.Texture[] = []
-    const geometries: THREE.BufferGeometry[] = []
-    const materials: THREE.Material[] = []
 
     // ============================================
     // 3D Scene Setup for animated slides
@@ -365,8 +363,48 @@ export const HeroSlider: React.FC = () => {
       }
     })
 
-    // Store cube data with animation state
-    const cubeDataList: CubeData[] = []
+    // Instanced cube grid. The whole grid renders as TWO instanced meshes
+    // (2 draw calls) instead of one mesh with 6 materials per cube (~6 draw
+    // calls per cube): one mesh holds the four faces showing the current
+    // slide, the other the two side faces that reveal the transition target.
+    const cubeStates: CubeState[] = []
+    let mainMesh: THREE.InstancedMesh | null = null
+    let sideMesh: THREE.InstancedMesh | null = null
+    let mainGeometry: THREE.BufferGeometry | null = null
+    let sideGeometry: THREE.BufferGeometry | null = null
+    let mainMaterial: GridMaterial | null = null
+    let sideMaterial: GridMaterial | null = null
+    let emissiveAttribute: THREE.InstancedBufferAttribute | null = null
+
+    // Write one cube's transform into both instanced meshes
+    const tmpMatrix = new THREE.Matrix4()
+    const setCubeMatrix = (index: number, rotationY: number, zOffset: number) => {
+      const state = cubeStates[index]
+      if (rotationY === 0) {
+        tmpMatrix.identity()
+      } else {
+        tmpMatrix.makeRotationY(rotationY)
+      }
+      tmpMatrix.setPosition(
+        state.col * (CUBE_SIZE + GAP),
+        state.row * (CUBE_SIZE + GAP),
+        zOffset,
+      )
+      mainMesh!.setMatrixAt(index, tmpMatrix)
+      sideMesh!.setMatrixAt(index, tmpMatrix)
+    }
+
+    const markMatricesDirty = () => {
+      if (mainMesh) mainMesh.instanceMatrix.needsUpdate = true
+      if (sideMesh) sideMesh.instanceMatrix.needsUpdate = true
+    }
+
+    const resetCubeMatrices = () => {
+      for (let index = 0; index < cubeStates.length; index++) {
+        setCubeMatrix(index, 0, 0)
+      }
+      markMatricesDirty()
+    }
 
     // Track active hybrid waves
     const activeHybridWaves: HybridWave[] = []
@@ -404,16 +442,12 @@ export const HeroSlider: React.FC = () => {
         : (currentSlideIndex - 1 + slideCount) % slideCount
     }
 
-    // Update side face textures to show the target slide
+    // Update side face texture to show the target slide (one material swap
+    // covers the whole grid - the side faces live in their own instanced mesh)
     const updateSideTextures = (direction: 'forward' | 'backward') => {
       const targetIndex = getNextSlideIndex(direction)
-      const targetTexture = slideTextures[targetIndex]
-      // Swapping one non-null map for another is a plain uniform update -
-      // needsUpdate (a shader program revalidation) is only required when a
-      // map is added or removed, so skip it for the whole grid
-      for (const cubeData of cubeDataList) {
-        cubeData.faceMaterials[0].map = targetTexture
-        cubeData.faceMaterials[1].map = targetTexture
+      if (sideMaterial) {
+        sideMaterial.map = slideTextures[targetIndex]
       }
     }
 
@@ -423,15 +457,10 @@ export const HeroSlider: React.FC = () => {
       animationProgress = 0
       targetProgress = 0
 
-      const currentTexture = slideTextures[currentSlideIndex]
-      for (const cubeData of cubeDataList) {
-        cubeData.mesh.rotation.y = 0
-        cubeData.mesh.position.z = cubeData.baseZ
-        cubeData.faceMaterials[4].map = currentTexture
-        cubeData.faceMaterials[5].map = currentTexture
-        cubeData.faceMaterials[2].map = currentTexture
-        cubeData.faceMaterials[3].map = currentTexture
+      if (mainMaterial) {
+        mainMaterial.map = slideTextures[currentSlideIndex]
       }
+      resetCubeMatrices()
 
       isAutoAnimating = false
       scheduleAutoPlay()
@@ -469,71 +498,103 @@ export const HeroSlider: React.FC = () => {
 
     Promise.all(imageLoadPromises).then(() => {
       const initialTexture = slideTextures[0]
+      const instanceCount = gridSize * gridSize
 
-      // Create the grid of cubes
+      // Split a box into two geometries by face so each group can show a
+      // different slide texture while still being instanced.
+      // BoxGeometry face order: 0 +x, 1 -x, 2 +y, 3 -y, 4 +z, 5 -z.
+      // Faces +-x are the sides that rotate into view during a transition.
+      const box = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE)
+      const extractFaces = (faces: number[]) => {
+        const geo = new THREE.BufferGeometry()
+        geo.setAttribute('position', box.getAttribute('position'))
+        geo.setAttribute('normal', box.getAttribute('normal'))
+        geo.setAttribute('uv', box.getAttribute('uv'))
+        const srcIndex = box.getIndex()!.array
+        const indices: number[] = []
+        for (const face of faces) {
+          for (let i = 0; i < 6; i++) {
+            indices.push(srcIndex[face * 6 + i])
+          }
+        }
+        geo.setIndex(indices)
+        return geo
+      }
+      mainGeometry = extractFaces([2, 3, 4, 5])
+      sideGeometry = extractFaces([0, 1])
+
+      // Per-instance data, shared by both meshes: which tile of the slide
+      // texture this cube shows (aUvRect) and its ripple emissive (aEmissive)
+      const uvRects = new Float32Array(instanceCount * 4)
+      const emissive = new Float32Array(instanceCount * 3)
+      let instanceIndex = 0
       for (let row = 0; row < gridSize; row++) {
         for (let col = 0; col < gridSize; col++) {
-          const uMin = col / gridSize
-          const uMax = (col + 1) / gridSize
-          const vMin = row / gridSize
-          const vMax = (row + 1) / gridSize
-
-          const geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE)
-          geometries.push(geometry)
-
-          const uvAttribute = geometry.getAttribute('uv')
-          const uvArray = uvAttribute.array as Float32Array
-
-          for (let face = 0; face < 6; face++) {
-            const baseIndex = face * 8
-            uvArray[baseIndex + 0] = uMin
-            uvArray[baseIndex + 1] = vMax
-            uvArray[baseIndex + 2] = uMax
-            uvArray[baseIndex + 3] = vMax
-            uvArray[baseIndex + 4] = uMin
-            uvArray[baseIndex + 5] = vMin
-            uvArray[baseIndex + 6] = uMax
-            uvArray[baseIndex + 7] = vMin
-          }
-
-          uvAttribute.needsUpdate = true
-
-          // Lambert on mobile - much cheaper fragment shading than Standard's
-          // PBR, and visually near-identical for flat textured cubes
-          const createFaceMaterial = (): CubeFaceMaterial =>
-            isMobile
-              ? new THREE.MeshLambertMaterial({ map: initialTexture })
-              : new THREE.MeshStandardMaterial({ map: initialTexture })
-
-          const faceMaterials = [
-            createFaceMaterial(),
-            createFaceMaterial(),
-            createFaceMaterial(),
-            createFaceMaterial(),
-            createFaceMaterial(),
-            createFaceMaterial(),
-          ]
-          materials.push(...faceMaterials)
-
-          const cube = new THREE.Mesh(geometry, faceMaterials)
-
-          const x = col * (CUBE_SIZE + GAP)
-          const y = row * (CUBE_SIZE + GAP)
-          cube.position.set(x, y, 0)
-
-          cubeGroup.add(cube)
-
-          cubeDataList.push({
-            mesh: cube,
-            row,
-            col,
-            baseZ: 0,
-            faceMaterials,
-            rippleColor: null,
-            rippleIntensity: 0,
-          })
+          uvRects[instanceIndex * 4 + 0] = col / gridSize
+          uvRects[instanceIndex * 4 + 1] = row / gridSize
+          uvRects[instanceIndex * 4 + 2] = 1 / gridSize
+          uvRects[instanceIndex * 4 + 3] = 1 / gridSize
+          cubeStates.push({ row, col, rippleColor: null, rippleIntensity: 0 })
+          instanceIndex++
         }
       }
+      const uvRectAttribute = new THREE.InstancedBufferAttribute(uvRects, 4)
+      emissiveAttribute = new THREE.InstancedBufferAttribute(emissive, 3)
+      emissiveAttribute.setUsage(THREE.DynamicDrawUsage)
+      for (const geo of [mainGeometry, sideGeometry]) {
+        geo.setAttribute('aUvRect', uvRectAttribute)
+        geo.setAttribute('aEmissive', emissiveAttribute)
+      }
+
+      // Remap each face's 0-1 UVs into the cube's tile of the slide texture
+      // and add the per-instance ripple emissive on top of standard lighting
+      const patchGridMaterial = (material: GridMaterial): GridMaterial => {
+        material.onBeforeCompile = (shader) => {
+          shader.vertexShader = shader.vertexShader
+            .replace(
+              '#include <common>',
+              '#include <common>\nattribute vec4 aUvRect;\nattribute vec3 aEmissive;\nvarying vec3 vInstanceEmissive;',
+            )
+            .replace(
+              '#include <uv_vertex>',
+              '#include <uv_vertex>\nvMapUv = aUvRect.xy + vMapUv * aUvRect.zw;\nvInstanceEmissive = aEmissive;',
+            )
+          shader.fragmentShader = shader.fragmentShader
+            .replace(
+              '#include <common>',
+              '#include <common>\nvarying vec3 vInstanceEmissive;',
+            )
+            .replace(
+              '#include <emissivemap_fragment>',
+              '#include <emissivemap_fragment>\ntotalEmissiveRadiance += vInstanceEmissive;',
+            )
+        }
+        return material
+      }
+
+      // Lambert on mobile - much cheaper fragment shading than Standard's
+      // PBR, and visually near-identical for flat textured cubes
+      const createGridMaterial = (): GridMaterial =>
+        patchGridMaterial(
+          isMobile
+            ? new THREE.MeshLambertMaterial({ map: initialTexture })
+            : new THREE.MeshStandardMaterial({ map: initialTexture }),
+        )
+      mainMaterial = createGridMaterial()
+      sideMaterial = createGridMaterial()
+
+      mainMesh = new THREE.InstancedMesh(mainGeometry, mainMaterial, instanceCount)
+      sideMesh = new THREE.InstancedMesh(sideGeometry, sideMaterial, instanceCount)
+      for (const mesh of [mainMesh, sideMesh]) {
+        mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+        // The grid always fills the viewport - skip per-frame culling math
+        mesh.frustumCulled = false
+      }
+
+      resetCubeMatrices()
+
+      cubeGroup.add(mainMesh)
+      cubeGroup.add(sideMesh)
 
       // Center the group
       const centerOffset = getGridExtent(gridSize) / 2
@@ -687,20 +748,15 @@ export const HeroSlider: React.FC = () => {
       clickMouse.x = ((event.clientX - cachedRect.left) / cachedRect.width) * 2 - 1
       clickMouse.y = -((event.clientY - cachedRect.top) / cachedRect.height) * 2 + 1
 
+      if (!mainMesh) return
       raycaster.setFromCamera(clickMouse, camera)
-      const intersects = raycaster.intersectObjects(
-        cubeDataList.map((c) => c.mesh),
-        false,
-      )
+      const intersects = raycaster.intersectObject(mainMesh)
 
-      if (intersects.length > 0) {
-        const hitMesh = intersects[0].object as THREE.Mesh
-        const hitIndex = cubeDataList.findIndex((c) => c.mesh === hitMesh)
-
-        if (hitIndex !== -1) {
-          const cubeData = cubeDataList[hitIndex]
+      if (intersects.length > 0 && intersects[0].instanceId !== undefined) {
+        const cubeState = cubeStates[intersects[0].instanceId]
+        if (cubeState) {
           const now = performance.now() / 1000
-          activeHybridWaves.push(createWave(cubeData.row, cubeData.col, now))
+          activeHybridWaves.push(createWave(cubeState.row, cubeState.col, now))
         }
       }
     }
@@ -776,7 +832,7 @@ export const HeroSlider: React.FC = () => {
 
       // Trigger initial rainbow wave when materialization completes
       // Wave originates from approximate center of the "MAKE FUN" text (left-center of screen)
-      if (materializeProgress >= 1 && !hasTriggeredInitialWave && cubeDataList.length > 0) {
+      if (materializeProgress >= 1 && !hasTriggeredInitialWave && cubeStates.length > 0) {
         hasTriggeredInitialWave = true
         if (!prefersReducedMotion) {
           // Text is left-aligned and vertically centered
@@ -868,17 +924,19 @@ export const HeroSlider: React.FC = () => {
       }
 
       // Process hybrid wave-chaos effects - skip entirely when idle (one extra
-      // pass runs after the last wave fades to reset material emissives)
-      if (activeHybridWaves.length > 0) {
-        processWaves(activeHybridWaves, cubeDataList, currentTime, gridSize)
-        wavesNeedReset = true
-      } else if (wavesNeedReset) {
-        processWaves(activeHybridWaves, cubeDataList, currentTime, gridSize)
-        wavesNeedReset = false
+      // pass runs after the last wave fades to reset the emissive attribute)
+      if (emissiveAttribute) {
+        if (activeHybridWaves.length > 0) {
+          processWaves(activeHybridWaves, cubeStates, currentTime, gridSize, emissiveAttribute)
+          wavesNeedReset = true
+        } else if (wavesNeedReset) {
+          processWaves(activeHybridWaves, cubeStates, currentTime, gridSize, emissiveAttribute)
+          wavesNeedReset = false
+        }
       }
 
       // Auto-animate towards target progress
-      if (isAutoAnimating && cubeDataList.length > 0) {
+      if (isAutoAnimating && cubeStates.length > 0) {
         if (animationProgress < targetProgress) {
           animationProgress = Math.min(
             animationProgress + deltaTime * ANIMATION_SPEED,
@@ -896,26 +954,24 @@ export const HeroSlider: React.FC = () => {
             completeTransition()
           } else if (targetProgress === 0) {
             isAutoAnimating = false
-            for (const cubeData of cubeDataList) {
-              cubeData.mesh.rotation.y = 0
-              cubeData.mesh.position.z = cubeData.baseZ
-            }
+            resetCubeMatrices()
             scheduleAutoPlay()
           }
         }
       }
 
       // Apply animation progress to cubes
-      if ((isDragging || isAutoAnimating) && cubeDataList.length > 0 && animationProgress > 0) {
+      if ((isDragging || isAutoAnimating) && cubeStates.length > 0 && animationProgress > 0) {
         const maxDiagonal = (gridSize - 1) * 2
 
-        for (const cubeData of cubeDataList) {
-          const flippedRow = gridSize - 1 - cubeData.row
+        for (let index = 0; index < cubeStates.length; index++) {
+          const cubeState = cubeStates[index]
+          const flippedRow = gridSize - 1 - cubeState.row
           let diagonalIndex: number
           if (animationDirection === 'forward') {
-            diagonalIndex = cubeData.col + flippedRow
+            diagonalIndex = cubeState.col + flippedRow
           } else {
-            diagonalIndex = gridSize - 1 - cubeData.col + cubeData.row
+            diagonalIndex = gridSize - 1 - cubeState.col + cubeState.row
           }
 
           const normalizedDiagonal = diagonalIndex / maxDiagonal
@@ -935,15 +991,13 @@ export const HeroSlider: React.FC = () => {
             const easedProgress = easeInOutCubic(cubeProgress)
             const rotation =
               easedProgress * (Math.PI / 2) * (animationDirection === 'forward' ? 1 : -1)
-            cubeData.mesh.rotation.y = rotation
-
             const zOffset = Math.sin(cubeProgress * Math.PI) * CUBE_SIZE
-            cubeData.mesh.position.z = cubeData.baseZ + zOffset
+            setCubeMatrix(index, rotation, zOffset)
           } else {
-            cubeData.mesh.rotation.y = 0
-            cubeData.mesh.position.z = cubeData.baseZ
+            setCubeMatrix(index, 0, 0)
           }
         }
+        markMatricesDirty()
       }
 
       composer.render()
@@ -1029,8 +1083,12 @@ export const HeroSlider: React.FC = () => {
       }
       cancelAnimationFrame(animationId)
       container.removeChild(renderer.domElement)
-      geometries.forEach((g) => g.dispose())
-      materials.forEach((m) => m.dispose())
+      if (mainMesh) mainMesh.dispose()
+      if (sideMesh) sideMesh.dispose()
+      if (mainGeometry) mainGeometry.dispose()
+      if (sideGeometry) sideGeometry.dispose()
+      if (mainMaterial) mainMaterial.dispose()
+      if (sideMaterial) sideMaterial.dispose()
       slideTextures.forEach((t) => {
         if (t && !(t instanceof THREE.WebGLRenderTarget)) {
           t.dispose()
