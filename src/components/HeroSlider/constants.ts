@@ -12,6 +12,12 @@ export const DRAG_THRESHOLD = 150 // pixels to drag before committing to advance
 export const ANIMATION_SPEED = 1.5
 export const RENDER_TARGET_SIZE = 1024
 
+// The hero renders at ~30fps everywhere - a deliberate choice: the motion is
+// slow enough that half rate reads the same, at half the GPU/battery cost.
+// Slightly above 1/30 so 60Hz rAF ticks (16.7ms apart) land reliably on the
+// render side of the threshold.
+export const MIN_FRAME_INTERVAL = 1 / 32
+
 // Mobile quality settings - fewer cubes and smaller offscreen buffers on
 // constrained devices (each cube is 6 draw calls, one per face material)
 export const MOBILE_GRID_SIZE = 20
