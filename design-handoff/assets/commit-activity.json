@@ -1,0 +1,50 @@
+{
+  "description": "Commit activity for the trivai project, for the 'gap chart' graphic. Weekly buckets are ISO weeks of 2026; weekStart is the Monday of that week. Zero-commit weeks are included explicitly because the gap IS the story. Data extracted from git 2026-07-22; refresh before final render (repo gains commits continuously).",
+  "repos": {
+    "ai-trivia": { "note": "the 4-day prototype", "totalCommits": 127, "activeSpan": "2026-01-10 to 2026-01-14" },
+    "trivai-tokens": { "note": "the real repo", "totalCommitsAtExtraction": 1065 }
+  },
+  "narrativeAnnotations": [
+    { "date": "2026-01-10", "label": "first ai-trivia commit" },
+    { "date": "2026-01-14", "label": "new repo: 'delete everything'" },
+    { "date": "2026-02-01", "label": "multiplayer begins" },
+    { "date": "2026-02-24", "label": "last commit before the gap" },
+    { "date": "2026-05-08", "label": "comeback: 'add stealing'" },
+    { "date": "2026-07-11", "label": "public launch" }
+  ],
+  "gapSpan": { "from": "2026-02-25", "to": "2026-05-07", "note": "~10 weeks of zero commits. Activity DECAYS into the gap (big push Feb 6-11, small doc flurry Feb 24, then silence) rather than stopping at a cliff — the chart should show that decay." },
+  "weeklyCommits_trivaiTokens": [
+    { "isoWeek": "2026-W03", "weekStart": "2026-01-12", "commits": 125 },
+    { "isoWeek": "2026-W04", "weekStart": "2026-01-19", "commits": 42 },
+    { "isoWeek": "2026-W05", "weekStart": "2026-01-26", "commits": 53 },
+    { "isoWeek": "2026-W06", "weekStart": "2026-02-02", "commits": 83 },
+    { "isoWeek": "2026-W07", "weekStart": "2026-02-09", "commits": 28 },
+    { "isoWeek": "2026-W08", "weekStart": "2026-02-16", "commits": 0 },
+    { "isoWeek": "2026-W09", "weekStart": "2026-02-23", "commits": 9 },
+    { "isoWeek": "2026-W10", "weekStart": "2026-03-02", "commits": 0 },
+    { "isoWeek": "2026-W11", "weekStart": "2026-03-09", "commits": 0 },
+    { "isoWeek": "2026-W12", "weekStart": "2026-03-16", "commits": 0 },
+    { "isoWeek": "2026-W13", "weekStart": "2026-03-23", "commits": 0 },
+    { "isoWeek": "2026-W14", "weekStart": "2026-03-30", "commits": 0 },
+    { "isoWeek": "2026-W15", "weekStart": "2026-04-06", "commits": 0 },
+    { "isoWeek": "2026-W16", "weekStart": "2026-04-13", "commits": 0 },
+    { "isoWeek": "2026-W17", "weekStart": "2026-04-20", "commits": 0 },
+    { "isoWeek": "2026-W18", "weekStart": "2026-04-27", "commits": 0 },
+    { "isoWeek": "2026-W19", "weekStart": "2026-05-04", "commits": 5 },
+    { "isoWeek": "2026-W20", "weekStart": "2026-05-11", "commits": 38 },
+    { "isoWeek": "2026-W21", "weekStart": "2026-05-18", "commits": 18 },
+    { "isoWeek": "2026-W22", "weekStart": "2026-05-25", "commits": 118 },
+    { "isoWeek": "2026-W23", "weekStart": "2026-06-01", "commits": 23 },
+    { "isoWeek": "2026-W24", "weekStart": "2026-06-08", "commits": 38 },
+    { "isoWeek": "2026-W25", "weekStart": "2026-06-15", "commits": 80 },
+    { "isoWeek": "2026-W26", "weekStart": "2026-06-22", "commits": 70 },
+    { "isoWeek": "2026-W27", "weekStart": "2026-06-29", "commits": 58 },
+    { "isoWeek": "2026-W28", "weekStart": "2026-07-06", "commits": 130 },
+    { "isoWeek": "2026-W29", "weekStart": "2026-07-13", "commits": 136 },
+    { "isoWeek": "2026-W30", "weekStart": "2026-07-20", "commits": 11, "note": "partial week at extraction time" }
+  ],
+  "monthlyCommits_trivaiTokens": {
+    "2026-01": 217, "2026-02": 123, "2026-03": 0, "2026-04": 0,
+    "2026-05": 179, "2026-06": 219, "2026-07": 327
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "description": "Milestone timeline for the making-of trivai article. All dates verified against git history / project records on 2026-07-22. Suitable for a timeline strip graphic; 'act' maps each milestone to the article section it belongs to.",
+  "milestones": [
+    { "date": "2026-01-10", "act": 1, "label": "ai-trivia: first commit", "detail": "Prompt-only prototype. Playable that weekend, corny soundtrack included." },
+    { "date": "2026-01-14", "act": 1, "label": "New repo", "detail": "trivai is born; an early commit is literally titled 'delete everything'." },
+    { "date": "2026-01-15", "act": 2, "label": "Vector search begins", "detail": "Day two of the new repo. Retrieval as founding premise, not optimization." },
+    { "date": "2026-01-27", "act": 2, "label": "First tests", "detail": "Vitest plus unit tests for token service, prompts, embeddings." },
+    { "date": "2026-02-01", "act": 3, "label": "Multiplayer begins", "detail": "Pusher on Feb 1, working multiplayer on Feb 2. Quick and dirty client-relay design." },
+    { "date": "2026-02-06", "act": 3, "label": "Fuzzy match removed", "detail": "Answer judging becomes AI-only." },
+    { "date": "2026-02-07", "act": "interlude", "label": "Wagering experiments", "detail": "Bet modals, bet increments; the mechanic later removed. Evidence of the design search." },
+    { "date": "2026-02-24", "act": "interlude", "label": "Last commit before the gap", "detail": "~10 silent weeks follow." },
+    { "date": "2026-05-08", "act": "interlude", "label": "Comeback: 'add stealing'", "detail": "The missing ingredient was offense." },
+    { "date": "2026-05-31", "act": 4, "label": "Server-authoritative rewrite", "detail": "Pure reducer + transactional harness land in seven phases over one stretch." },
+    { "date": "2026-06-06", "act": 5, "label": "Board reshuffle", "detail": "6x6 compacts to 5x5, 4x4 as questions deplete; hand-built tile animation." },
+    { "date": "2026-06-21", "act": 5, "label": "Traps / Wildcards", "detail": "The final missing mechanic. Secret off-turn placement, enforced by the engine." },
+    { "date": "2026-07-03", "act": 6, "label": "Trivia Studio ships", "detail": "Player-built categories; forces the token economy refactor (1 flat -> 4 + 1 per AI category)." },
+    { "date": "2026-07-11", "act": "launch", "label": "Public launch", "detail": "Site public, Stripe payments live." },
+    { "date": "2026-07-14", "act": 6, "label": "Generation perf fixes", "detail": "Cache pre-warming, reindexing, leaner fetches (generation versions v8/v9)." }
+  ]
+}

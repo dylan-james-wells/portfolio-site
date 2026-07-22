@@ -1,0 +1,84 @@
+<!--
+  Live-counter wiring for the "making of trivai" post on dylanjwells.com.
+  Parked here until the post is ready to publish; the draft itself is
+  plain prose again.
+
+  TO WIRE UP LATER:
+  1. In the published post, wrap the intro sentence's three numbers:
+       <span data-trivai-stat="months">Six months</span>
+       <span data-trivai-stat="commits">1,021</span>
+       <span data-trivai-stat="records">188,000</span>
+     The static text inside each span is the fallback: if the fetch
+     fails or JS is disabled, the post reads exactly as written.
+  2. Do NOT wire the "Six months and 1,021 commits" line in the Launch
+     section — that records the historical time-to-launch and should
+     never change.
+  3. Drop the script below into the post page.
+
+  Backend: GET https://trivai.games/api/stats/making-of
+  (public, CORS *, cached ~1h; built on branch
+  claude/trivai-evolution-outline-46dfcc, commit 7d8dd60).
+  Response fields used here: startedAt, commits (null until a
+  GITHUB_STATS_TOKEN env var is set in Vercel), seeds, triviaSeeds.
+  Also available: quotes, statistics, connections, retrievalRecords
+  (sum across all five tables, ~359k as of July 2026) — if you'd
+  rather show that bigger number, swap it in below AND update the
+  static fallback text so the pre-JS render matches.
+-->
+
+<script>
+(async () => {
+  const NUM_WORDS = ["zero","one","two","three","four","five","six","seven",
+    "eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen",
+    "sixteen","seventeen","eighteen","nineteen","twenty"];
+
+  const set = (key, text) => {
+    const el = document.querySelector(`[data-trivai-stat="${key}"]`);
+    if (el && text) el.textContent = text;
+  };
+
+  // "Six months" (sentence-initial, so capitalized). Past 20 months it
+  // switches to years: "Two years", "Two and a half years".
+  const humanizeSince = (startISO) => {
+    const start = new Date(startISO);
+    const now = new Date();
+    let months = (now.getFullYear() - start.getFullYear()) * 12 +
+                 (now.getMonth() - start.getMonth());
+    if (now.getDate() < start.getDate()) months -= 1;
+    if (months < 1) return null;
+    if (months <= 20) {
+      const w = NUM_WORDS[months];
+      return w.charAt(0).toUpperCase() + w.slice(1) +
+        (months === 1 ? " month" : " months");
+    }
+    const years = Math.floor(months / 12);
+    const rem = months % 12;
+    const yw = NUM_WORDS[years].charAt(0).toUpperCase() +
+               NUM_WORDS[years].slice(1);
+    if (rem >= 5 && rem <= 7) return `${yw} and a half years`;
+    return years === 1 ? "A year" : `${yw} years`;
+  };
+
+  try {
+    const res = await fetch("https://trivai.games/api/stats/making-of");
+    if (!res.ok) return;
+    const s = await res.json();
+
+    set("months", humanizeSince(s.startedAt));
+    if (typeof s.commits === "number") {
+      set("commits", s.commits.toLocaleString("en-US"));
+    }
+    // The sentence's 188,000 means embedded seed records
+    // (Seed + TriviaSeed), matching the "188,000+ seed records"
+    // bullet in Act 2.
+    if (typeof s.seeds === "number" && typeof s.triviaSeeds === "number") {
+      // Round down to the nearest thousand so it reads like prose,
+      // not a database query: 188,417 -> "188,000".
+      const rounded = Math.floor((s.seeds + s.triviaSeeds) / 1000) * 1000;
+      set("records", rounded.toLocaleString("en-US"));
+    }
+  } catch {
+    /* fallback text stays */
+  }
+})();
+</script>
