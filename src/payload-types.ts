@@ -215,6 +215,7 @@ export interface Page {
     | WorksBlockType
     | WorksGridBlockType
     | LinksBlock
+    | TrivaiBandBlock
   )[];
   meta?: {
     title?: string | null;
@@ -966,6 +967,28 @@ export interface WorksGridBlockType {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TrivaiBandBlock".
+ */
+export interface TrivaiBandBlock {
+  /**
+   * Hides the band on the site without deleting it from the page.
+   */
+  hidden?: boolean | null;
+  buttonOrder?: ('playFirst' | 'synopsisFirst') | null;
+  playButton?: {
+    label?: string | null;
+    url?: string | null;
+  };
+  synopsisButton?: {
+    label?: string | null;
+    url?: string | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'trivaiBand';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
@@ -1308,6 +1331,7 @@ export interface PagesSelect<T extends boolean = true> {
         worksBlock?: T | WorksBlockTypeSelect<T>;
         worksGridBlock?: T | WorksGridBlockTypeSelect<T>;
         linksBlock?: T | LinksBlockSelect<T>;
+        trivaiBand?: T | TrivaiBandBlockSelect<T>;
       };
   meta?:
     | T
@@ -1501,6 +1525,28 @@ export interface LinksBlockSelect<T extends boolean = true> {
         label?: T;
         url?: T;
         id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TrivaiBandBlock_select".
+ */
+export interface TrivaiBandBlockSelect<T extends boolean = true> {
+  hidden?: T;
+  buttonOrder?: T;
+  playButton?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+      };
+  synopsisButton?:
+    | T
+    | {
+        label?: T;
+        url?: T;
       };
   id?: T;
   blockName?: T;
