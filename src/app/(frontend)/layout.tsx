@@ -2,12 +2,18 @@ import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 
 import { cn } from '@/utilities/ui'
-import { JetBrains_Mono, Press_Start_2P } from 'next/font/google'
+import { JetBrains_Mono, Play, Press_Start_2P } from 'next/font/google'
 import React from 'react'
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-jetbrains-mono',
+})
+
+const play = Play({
+  weight: '700',
+  subsets: ['latin'],
+  variable: '--font-play',
 })
 
 const pressStart2P = Press_Start_2P({
@@ -30,7 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const { isEnabled } = await draftMode()
 
   return (
-    <html className={cn(jetbrainsMono.variable, pressStart2P.variable)} lang="en">
+    <html className={cn(jetbrainsMono.variable, pressStart2P.variable, play.variable)} lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#100F17"></meta>

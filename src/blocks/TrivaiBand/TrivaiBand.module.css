@@ -1,0 +1,493 @@
+/* trivai CRT band — treatment transcribed from design_handoff_trivai_crt_band */
+
+.band {
+  --gi: 0.33; /* glitch intensity (approved look) */
+  position: relative;
+  height: 520px;
+  overflow: hidden;
+}
+
+/* Every masked layer references the per-instance SVG mask id via --tg-mask (set inline on .band). */
+.masked {
+  -webkit-mask: var(--tg-mask);
+  mask: var(--tg-mask);
+}
+
+.cover {
+  background-position: center 20%;
+  background-size: cover;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+}
+
+/* --- torn-edge chromatic bleed (behind the screen) --- */
+.bleedRed {
+  composes: layer;
+  composes: cover;
+  composes: masked;
+  opacity: calc(var(--gi) * 0.6);
+  mix-blend-mode: screen;
+  filter: brightness(1.3) sepia(1) hue-rotate(-50deg) saturate(6);
+  transform: translateX(-7px);
+  animation: tearShift 3s steps(3) infinite;
+}
+
+.bleedCyan {
+  composes: layer;
+  composes: cover;
+  composes: masked;
+  opacity: calc(var(--gi) * 0.6);
+  mix-blend-mode: screen;
+  filter: brightness(1.3) sepia(1) hue-rotate(130deg) saturate(6);
+  transform: translateX(7px);
+  animation: tearShift2 3.4s steps(3) infinite;
+}
+
+/* --- the screen --- */
+.screen {
+  composes: layer;
+  composes: masked;
+  overflow: hidden;
+  background: #05070e;
+}
+
+.bg {
+  composes: layer;
+  composes: cover;
+  transform: scale(1.05);
+  animation: bgGlitch 12s linear infinite;
+  opacity: 0; /* bgGlitch drives opacity while animating; keeps hidden when frozen */
+}
+
+.bgLead {
+  animation: bgGlitch 12s linear infinite, jitterX 3s steps(4) infinite;
+}
+
+.rgbRed {
+  composes: layer;
+  composes: cover;
+  transform: scale(1.05) translateX(calc(var(--gi) * -3px));
+  mix-blend-mode: screen;
+  opacity: calc(var(--gi) * 0.5);
+  filter: brightness(1.4) sepia(1) hue-rotate(-50deg) saturate(6);
+}
+
+.rgbCyan {
+  composes: layer;
+  composes: cover;
+  transform: scale(1.05) translateX(calc(var(--gi) * 3px));
+  mix-blend-mode: screen;
+  opacity: calc(var(--gi) * 0.5);
+  filter: brightness(1.4) sepia(1) hue-rotate(130deg) saturate(6);
+}
+
+.scanlines {
+  composes: layer;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.26) 0 1px, transparent 1px 3px);
+}
+
+.slice {
+  composes: cover;
+  position: absolute;
+  left: 0;
+  right: 0;
+  opacity: 0; /* sliceGlitch drives opacity; invisible when frozen */
+}
+
+.slice1 {
+  composes: slice;
+  top: 32%;
+  height: 26px;
+  filter: hue-rotate(90deg) saturate(3);
+  animation: sliceGlitch 4.5s linear infinite;
+}
+
+.slice2 {
+  composes: slice;
+  top: 64%;
+  height: 18px;
+  filter: hue-rotate(-60deg) saturate(3);
+  animation: sliceGlitch 5.7s linear infinite;
+  animation-delay: 1.4s;
+}
+
+.vignette {
+  composes: layer;
+  pointer-events: none;
+  background: radial-gradient(ellipse 90% 80% at 50% 46%, transparent 40%, rgba(0, 0, 0, 0.72) 100%);
+}
+
+.dim {
+  composes: layer;
+  pointer-events: none;
+  background: linear-gradient(rgba(6, 8, 16, 0.35), rgba(6, 8, 16, 0.5));
+}
+
+.sheen {
+  composes: layer;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 38%);
+}
+
+.flicker {
+  composes: layer;
+  pointer-events: none;
+  background: #8fc4ff;
+  mix-blend-mode: overlay;
+  opacity: 0; /* crtFlicker drives opacity; no flicker when frozen */
+  animation: crtFlicker 0.4s steps(2) infinite;
+}
+
+.tracking {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 80px;
+  pointer-events: none;
+  background: linear-gradient(rgba(255, 255, 255, 0.14), transparent);
+  filter: blur(1px);
+  opacity: 0; /* trackRoll drives opacity; hidden when frozen */
+  animation: trackRoll 6s linear infinite;
+}
+
+/* --- seam lines --- */
+.seams {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 520px;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.seamTop {
+  filter: drop-shadow(0 0 4px #ff8f8f) drop-shadow(0 0 11px rgba(78, 205, 196, 0.9));
+}
+
+.seamBottom {
+  filter: drop-shadow(0 0 4px #7fe6dd) drop-shadow(0 0 11px rgba(255, 107, 107, 0.9));
+}
+
+/* --- content overlay --- */
+.content {
+  composes: layer;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  text-align: center;
+  padding: 0 40px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #8fc4ff;
+  text-shadow: 0 1px 6px #000;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ecdc4;
+  box-shadow: 0 0 8px #4ecdc4;
+  animation: liveDot 2s ease-in-out infinite;
+}
+
+.lockup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mark {
+  width: 46px;
+  height: 46px;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.6));
+}
+
+.wordmark {
+  font-family: var(--font-play), sans-serif;
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+  color: #fff;
+  white-space: nowrap;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8);
+}
+
+.wordmarkAi {
+  color: #70c0ff;
+  text-shadow: 0 0 20px rgba(112, 192, 255, 0.55);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: rgba(10, 14, 26, 0.55);
+  color: #fff;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 13px 22px;
+  letter-spacing: 0.04em;
+}
+
+.btn:hover,
+.btn:focus-visible {
+  animation: glitchHover 0.28s steps(2) infinite;
+}
+
+.btn:focus-visible {
+  outline: 2px solid #8fc4ff;
+  outline-offset: 3px;
+}
+
+/* --- freeze / pause states --- */
+
+/* Paused while off-screen (CSS animations; SMIL is paused via svg.pauseAnimations()). */
+.paused,
+.paused * {
+  animation-play-state: paused !important;
+}
+
+/* Reduced motion: freeze everything, show the first background, hide animation-driven layers. */
+@media (prefers-reduced-motion: reduce) {
+  .band,
+  .band * {
+    animation: none !important;
+  }
+
+  .bg:first-of-type {
+    opacity: 1;
+  }
+}
+
+/* --- keyframes (copied from the design reference) --- */
+
+@keyframes crtFlicker {
+  0%,
+  100% {
+    opacity: 0.05;
+  }
+  50% {
+    opacity: 0.11;
+  }
+  52% {
+    opacity: 0.03;
+  }
+}
+
+@keyframes trackRoll {
+  0% {
+    transform: translateY(-120px);
+    opacity: 0;
+  }
+  6% {
+    opacity: 0.5;
+  }
+  14% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(760px);
+    opacity: 0;
+  }
+}
+
+@keyframes jitterX {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1px);
+  }
+  50% {
+    transform: translateX(1.5px);
+  }
+  75% {
+    transform: translateX(-0.5px);
+  }
+}
+
+@keyframes tearShift {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(7px);
+  }
+}
+
+@keyframes tearShift2 {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(5px);
+  }
+  50% {
+    transform: translateX(-7px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes sliceGlitch {
+  0%,
+  92%,
+  100% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  93% {
+    transform: translateX(-14px);
+    opacity: 0.8;
+  }
+  95% {
+    transform: translateX(10px);
+    opacity: 0.6;
+  }
+  97% {
+    transform: translateX(-5px);
+    opacity: 0.7;
+  }
+}
+
+@keyframes glitchHover {
+  0% {
+    filter: drop-shadow(2px 0 0 #ff2244) drop-shadow(-2px 0 0 #00e5ff);
+  }
+  25% {
+    filter: drop-shadow(-3px 1px 0 #ff2244) drop-shadow(3px -1px 0 #00e5ff);
+  }
+  50% {
+    filter: drop-shadow(2px -2px 0 #ff2244) drop-shadow(-2px 2px 0 #2266ff);
+  }
+  75% {
+    filter: drop-shadow(-2px -1px 0 #ff2244) drop-shadow(2px 1px 0 #00e5ff);
+  }
+  100% {
+    filter: drop-shadow(2px 0 0 #ff2244) drop-shadow(-2px 0 0 #00e5ff);
+  }
+}
+
+@keyframes bgGlitch {
+  0% {
+    opacity: 1;
+    transform: scale(1.05) translateX(0);
+    filter: none;
+  }
+  28% {
+    opacity: 1;
+    transform: scale(1.05) translateX(0);
+    filter: none;
+  }
+  29.5% {
+    opacity: 1;
+    transform: scale(1.06) translateX(-10px);
+    filter: hue-rotate(70deg) saturate(2.2) contrast(1.3);
+  }
+  31% {
+    opacity: 0.5;
+    transform: scale(1.04) translateX(9px);
+    filter: hue-rotate(-50deg) saturate(2);
+  }
+  33% {
+    opacity: 0;
+    transform: scale(1.05) translateX(0);
+  }
+  96% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+  97.5% {
+    opacity: 1;
+    transform: scale(1.06) translateX(-7px);
+    filter: hue-rotate(-40deg) saturate(2);
+  }
+  99% {
+    opacity: 1;
+    transform: scale(1.05) translateX(4px);
+    filter: hue-rotate(30deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.05) translateX(0);
+    filter: none;
+  }
+}
+
+@keyframes liveDot {
+  0%,
+  44% {
+    background: #4ecdc4;
+    box-shadow: 0 0 8px #4ecdc4;
+  }
+  47% {
+    background: #ff4d4d;
+    box-shadow: 0 0 3px #ff4d4d;
+    transform: translateX(1.5px);
+  }
+  49% {
+    background: #4ecdc4;
+    transform: translateX(-1px);
+  }
+  50%,
+  94% {
+    background: #ff4d4d;
+    box-shadow: 0 0 8px #ff4d4d;
+    transform: translateX(0);
+  }
+  97% {
+    background: #4ecdc4;
+    box-shadow: 0 0 3px #4ecdc4;
+    transform: translateX(-1.5px);
+  }
+  99% {
+    background: #ff4d4d;
+    transform: translateX(1px);
+  }
+  100% {
+    background: #4ecdc4;
+    box-shadow: 0 0 8px #4ecdc4;
+    transform: translateX(0);
+  }
+}
