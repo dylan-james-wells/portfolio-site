@@ -15,6 +15,7 @@ import { RichTextBlockComponent } from '@/blocks/RichTextBlock/Component'
 import { WorksBlock } from '@/blocks/WorksBlock/Component'
 import { WorksGridBlock } from '@/blocks/WorksGridBlock/Component'
 import { LinksBlockComponent } from '@/blocks/LinksBlock/Component'
+import { TrivaiBandBlock } from '@/blocks/TrivaiBand/Component'
 
 const blockComponents = {
   archive: ArchiveBlock,
@@ -30,6 +31,7 @@ const blockComponents = {
   worksBlock: WorksBlock,
   worksGridBlock: WorksGridBlock,
   linksBlock: LinksBlockComponent,
+  trivaiBand: TrivaiBandBlock,
 }
 
 // Map block types to their display names for ID generation
@@ -38,6 +40,7 @@ const blockTypeNames: Record<string, string> = {
   worksGridBlock: 'WorksGrid',
   worksBlock: 'Works',
   projectsBlock: 'Projects',
+  trivaiBand: 'TrivaiBand',
 }
 
 export const RenderBlocks: React.FC<{

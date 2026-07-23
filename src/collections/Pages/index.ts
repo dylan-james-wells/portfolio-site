@@ -14,6 +14,7 @@ import { RichTextBlock } from '../../blocks/RichTextBlock/config'
 import { WorksBlock } from '@/blocks/WorksBlock/config'
 import { WorksGridBlock } from '../../blocks/WorksGridBlock/config'
 import { LinksBlock } from '../../blocks/LinksBlock/config'
+import { TrivaiBand } from '../../blocks/TrivaiBand/config'
 import { hero } from '@/heros/config'
 import { slugField } from 'payload'
 import { populatePublishedAt } from '../../hooks/populatePublishedAt'
@@ -92,6 +93,7 @@ export const Pages: CollectionConfig<'pages'> = {
                 WorksBlock,
                 WorksGridBlock,
                 LinksBlock,
+                TrivaiBand,
               ],
               required: true,
               admin: {
