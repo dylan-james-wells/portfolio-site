@@ -201,10 +201,7 @@ export default function MakingOfTrivaiPage() {
       </section>
 
       {/* ============================ INTRO ============================ */}
-      <section
-        className={cn(styles.pad, styles.prose)}
-        style={{ maxWidth: 760, margin: '0 auto', padding: '40px 30px 0' }}
-      >
+      <section className={cn('container max-w-single', styles.prose)} style={{ paddingTop: 40 }}>
         <p style={proseP}>
           In January, I asked Claude to stop being so predictable. I would eventually come to learn
           that there is a right way to do this and a wrong way to do this. Here&apos;s what the
@@ -239,8 +236,8 @@ export default function MakingOfTrivaiPage() {
 
       {/* ============================ ACT 1 ============================ */}
       <section
-        className={styles.pad}
-        style={{ maxWidth: 760, margin: '0 auto', padding: '80px 30px 0' }}
+        className="container max-w-single"
+        style={{ paddingTop: 80 }}
       >
         <ActHeader eyebrow="ACT 1" title="the four-day prototype" />
         <div className={styles.prose}>
@@ -438,8 +435,8 @@ a movie, not a TV show.`}
 
       {/* ============================ ACT 2 ============================ */}
       <section
-        className={styles.pad}
-        style={{ maxWidth: 760, margin: '0 auto', padding: '80px 30px 0' }}
+        className="container max-w-single"
+        style={{ paddingTop: 80 }}
       >
         <ActHeader eyebrow="ACT 2" title="retrieval, not exhortation" />
         <div className={styles.prose}>
@@ -466,8 +463,8 @@ a movie, not a TV show.`}
 
       {/* before/after breakout */}
       <section
-        className={styles.pad}
-        style={{ maxWidth: 1080, margin: '0 auto', padding: '36px 30px 0' }}
+        className="container max-w-[67.5rem]"
+        style={{ paddingTop: 36 }}
       >
         <div
           className={styles.cols}
@@ -677,8 +674,8 @@ Pairs:   1. Work A (1982) & Work B (1988) - shared director: person [blurb]`}
       </section>
 
       <section
-        className={styles.pad}
-        style={{ maxWidth: 760, margin: '0 auto', padding: '36px 30px 0' }}
+        className="container max-w-single"
+        style={{ paddingTop: 36 }}
       >
         <figure className={styles.fig} style={{ margin: '0 0 34px' }}>
           <div className={styles.figbar}>
@@ -786,8 +783,8 @@ there in the question.`}
 
       {/* ============================ ACT 3 ============================ */}
       <section
-        className={styles.pad}
-        style={{ maxWidth: 760, margin: '0 auto', padding: '80px 30px 0' }}
+        className="container max-w-single"
+        style={{ paddingTop: 80 }}
       >
         <ActHeader eyebrow="ACT 3" title="multiplayer, the naive way" />
         <div className={styles.prose}>
@@ -889,7 +886,7 @@ there in the question.`}
           borderBottom: '2px solid rgba(255,255,255,0.12)',
         }}
       >
-        <div className={styles.pad} style={{ maxWidth: 760, margin: '0 auto', padding: '0 30px' }}>
+        <div className="container max-w-single">
           <ActHeader eyebrow="INTERLUDE" title="the three-month gap" eyebrowColor="#4ecdc4" bg="hsl(249 23% 9%)" />
           <div className={styles.prose}>
             <p style={proseP}>
@@ -903,12 +900,9 @@ there in the question.`}
         </div>
 
         {/* THE CHART */}
-        <GapChart padClassName={styles.pad} />
+        <GapChart />
 
-        <div
-          className={styles.pad}
-          style={{ maxWidth: 760, margin: '40px auto 0', padding: '0 30px' }}
-        >
+        <div className="container max-w-single" style={{ marginTop: 40 }}>
           <div className={styles.prose}>
             <p style={proseP}>
               The version that went quiet was already fun to play, and that mattered more than I
@@ -927,8 +921,8 @@ there in the question.`}
 
       {/* ============================ ACT 4 ============================ */}
       <section
-        className={styles.pad}
-        style={{ maxWidth: 760, margin: '0 auto', padding: '80px 30px 0' }}
+        className="container max-w-single"
+        style={{ paddingTop: 80 }}
       >
         <ActHeader eyebrow="ACT 4" title="the reckoning, or rebuilding multiplayer properly" />
         <div className={styles.prose}>
@@ -957,8 +951,8 @@ there in the question.`}
 
       {/* phase machine breakout */}
       <section
-        className={styles.pad}
-        style={{ maxWidth: 1080, margin: '0 auto', padding: '10px 30px 0' }}
+        className="container max-w-[67.5rem]"
+        style={{ paddingTop: 10 }}
       >
         <div style={{ border: '2px solid rgba(255,255,255,0.25)', background: 'hsl(249 23% 7%)' }}>
           <div
@@ -1028,8 +1022,8 @@ there in the question.`}
       </section>
 
       <section
-        className={styles.pad}
-        style={{ maxWidth: 760, margin: '0 auto', padding: '36px 30px 0' }}
+        className="container max-w-single"
+        style={{ paddingTop: 36 }}
       >
         <div className={styles.prose}>
           <p style={proseP}>
@@ -1096,8 +1090,8 @@ there in the question.`}
 
       {/* ============================ ACT 5 ============================ */}
       <section
-        className={styles.pad}
-        style={{ maxWidth: 760, margin: '0 auto', padding: '80px 30px 0' }}
+        className="container max-w-single"
+        style={{ paddingTop: 80 }}
       >
         <ActHeader eyebrow="ACT 5" title="the missing pieces" />
         <div className={styles.prose}>
@@ -1122,8 +1116,8 @@ there in the question.`}
 
       {/* ring bonus demo breakout */}
       <section
-        className={styles.pad}
-        style={{ maxWidth: 1080, margin: '0 auto', padding: '10px 30px 0' }}
+        className="container max-w-[67.5rem]"
+        style={{ paddingTop: 10 }}
       >
         <div
           className={styles.cols}
@@ -1260,8 +1254,8 @@ there in the question.`}
       </section>
 
       <section
-        className={styles.pad}
-        style={{ maxWidth: 760, margin: '0 auto', padding: '36px 30px 0' }}
+        className="container max-w-single"
+        style={{ paddingTop: 36 }}
       >
         <div className={styles.prose}>
           <p style={prosePLast}>
@@ -1276,8 +1270,8 @@ there in the question.`}
 
       {/* ============================ ACT 6 ============================ */}
       <section
-        className={styles.pad}
-        style={{ maxWidth: 760, margin: '0 auto', padding: '80px 30px 0' }}
+        className="container max-w-single"
+        style={{ paddingTop: 80 }}
       >
         <ActHeader eyebrow="ACT 6" title="becoming a product" />
         <div className={styles.prose}>
@@ -1448,8 +1442,8 @@ export const GENERATION_VERSION = "v9-lean-fetch";`}
 
       {/* ============================ LAUNCH ============================ */}
       <section
-        className={styles.pad}
-        style={{ maxWidth: 760, margin: '0 auto', padding: '80px 30px 0' }}
+        className="container max-w-single"
+        style={{ paddingTop: 80 }}
       >
         <ActHeader eyebrow="LAUNCH" title="July 11, 2026" eyebrowColor="#4ecdc4" />
         <div className={styles.prose}>
@@ -1475,8 +1469,8 @@ export const GENERATION_VERSION = "v9-lean-fetch";`}
 
       {/* timeline strip */}
       <section
-        className={styles.pad}
-        style={{ maxWidth: 1180, margin: '0 auto', padding: '44px 30px 0' }}
+        className="container max-w-[73.75rem]"
+        style={{ paddingTop: 44 }}
       >
         <div
           style={{
@@ -1544,8 +1538,8 @@ export const GENERATION_VERSION = "v9-lean-fetch";`}
 
       {/* ============================ LESSONS ============================ */}
       <section
-        className={styles.pad}
-        style={{ maxWidth: 760, margin: '0 auto', padding: '80px 30px 90px' }}
+        className="container max-w-single"
+        style={{ paddingTop: 80, paddingBottom: 90 }}
       >
         <div style={{ border: '2px solid rgba(255,255,255,0.7)', background: 'hsl(249 23% 6%)' }}>
           <WindowBar label="dylan@portfolio — ~ — zsh" />

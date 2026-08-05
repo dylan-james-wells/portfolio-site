@@ -15,7 +15,7 @@ const MAX = 136
 const H = 178
 const GAP_END = 16
 
-export const GapChart: React.FC<{ padClassName?: string }> = ({ padClassName }) => {
+export const GapChart: React.FC = () => {
   const rootRef = useRef<HTMLDivElement>(null)
   const [chartOn, setChartOn] = useState(false)
 
@@ -42,12 +42,7 @@ export const GapChart: React.FC<{ padClassName?: string }> = ({ padClassName }) 
   }, [])
 
   return (
-    <div
-      ref={rootRef}
-      id="gapchart"
-      className={padClassName}
-      style={{ maxWidth: 1180, margin: '26px auto 0', padding: '0 30px' }}
-    >
+    <div ref={rootRef} id="gapchart" className="container max-w-[73.75rem]" style={{ marginTop: 26 }}>
       <div
         style={{
           border: '2px solid rgba(255,255,255,0.2)',
