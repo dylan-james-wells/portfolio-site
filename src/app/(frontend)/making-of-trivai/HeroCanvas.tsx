@@ -1,17 +1,27 @@
 'use client'
 
-/* The hero seed-cloud scene, ported from the design handoff's
-   `article-hero.js` (drawn with a small local projector on 2D canvas —
-   dependency-free, per the handoff this is an accepted final form).
-   A neural-ish point cloud: nuclei wired by axon chains; signal pulses
-   travel the chains and flare the points they pass. */
+/* The hero seed-cloud scene from the design handoff's `article-hero.js`,
+   ported onto three.js per the handoff's primary note: THREE.Points with
+   position/color attributes and additive blending. All authored values
+   (counts, radii, camera distance, colours, speeds, flare bands) transfer
+   unchanged; the vertex shader reproduces the reference projector exactly,
+   and the fragment shader reproduces the reference's fixed-pixel square
+   points, including the two-layer head glow (4.2px solid + 8.8px at 0.34,
+   additively 1.34× in the overlap). The signal-pulse simulation stays on
+   the CPU (it's a cheap windowed walk over chain ranges) and streams a
+   per-point flare-band attribute to the GPU each frame.
+
+   The subtle drifting rule-line backdrop stays a 2D canvas underneath —
+   ~30 strokes per frame is nothing, and it keeps that layer byte-identical
+   to the reference. */
 
 import React, { useEffect, useRef } from 'react'
+import * as THREE from 'three'
+
+type RGB = [number, number, number]
 
 const CORAL: RGB = [255, 107, 107]
 const TEAL: RGB = [78, 205, 196]
-
-type RGB = [number, number, number]
 
 const rgba = (c: RGB, a: number) => 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'
 const lerpC = (a: RGB, b: RGB, t: number): RGB => [
@@ -20,41 +30,20 @@ const lerpC = (a: RGB, b: RGB, t: number): RGB => [
   Math.round(a[2] + (b[2] - a[2]) * t),
 ]
 
-/* project into a caller-supplied 3-slot array — no allocation */
-function proj(
-  p: number[],
-  yaw: number,
-  pitch: number,
-  focal: number,
-  cz: number,
-  out: number[],
-): number[] {
-  const cy = Math.cos(yaw),
-    sy = Math.sin(yaw)
-  const x1 = p[0] * cy - p[2] * sy
-  const z1 = p[0] * sy + p[2] * cy
-  const cp = Math.cos(pitch),
-    sp = Math.sin(pitch)
-  const y1 = p[1] * cp - z1 * sp
-  const z2 = p[1] * sp + z1 * cp
-  const d = z2 + cz
-  const s = focal / Math.max(0.1, d)
-  out[0] = x1 * s
-  out[1] = y1 * s
-  out[2] = d
-  return out
+type Cloud = {
+  positions: Float32Array
+  base: Float32Array
+  hot: Float32Array
+  flare: Float32Array
+  stepSignals: (dt: number) => void
 }
 
-type DrawFn = (ctx: CanvasRenderingContext2D, w: number, h: number, t: number) => void
-
-function sceneSeeds(reduced: boolean): DrawFn {
+function buildCloud(): Cloud {
   const N = 7600
-  const px = new Float32Array(N),
-    py = new Float32Array(N),
-    pz = new Float32Array(N)
-  const styles = new Array<string>(N) // colour strings built once
-  const hot = new Array<string>(N) // saturated flare colour, built once
-  const flare = new Uint8Array(N) // reused, never reallocated
+  const positions = new Float32Array(N * 3)
+  const base = new Float32Array(N * 3) // resting colour, coral→teal by height
+  const hot = new Float32Array(N * 3) // saturated flare colour
+  const flare = new Float32Array(N) // intensity band (0 dim, 1 tail, 2 body, 3 head)
   const arcPos = new Float32Array(N) // 0..1 position along its chain (-1 = nucleus)
   const MAXCHAIN = 260
   const chainStart = new Int32Array(MAXCHAIN),
@@ -88,6 +77,11 @@ function sceneSeeds(reduced: boolean): DrawFn {
   let w = 0
   const CORE = Math.round(N * 0.24)
   const coreNuc = new Int32Array(N)
+  const setP = (i: number, x: number, y: number, z: number) => {
+    positions[i * 3] = x
+    positions[i * 3 + 1] = y
+    positions[i * 3 + 2] = z
+  }
   // 1) cell bodies — tight gaussian-ish blobs at each nucleus
   for (let i = 0; i < CORE && w < N; i++, w++) {
     const ni = i % NUCLEI
@@ -95,9 +89,7 @@ function sceneSeeds(reduced: boolean): DrawFn {
     const s = 0.24 + Math.pow(Math.random(), 2.2) * 0.5
     const th = Math.random() * Math.PI * 2,
       ph = Math.acos(2 * Math.random() - 1)
-    px[w] = n[0] + Math.sin(ph) * Math.cos(th) * s
-    py[w] = n[1] + Math.cos(ph) * s
-    pz[w] = n[2] + Math.sin(ph) * Math.sin(th) * s
+    setP(w, n[0] + Math.sin(ph) * Math.cos(th) * s, n[1] + Math.cos(ph) * s, n[2] + Math.sin(ph) * Math.sin(th) * s)
     arcPos[w] = -1
     coreNuc[w] = ni
   }
@@ -130,17 +122,18 @@ function sceneSeeds(reduced: boolean): DrawFn {
       cxp += (tx - cxp) * 0.55 + (Math.random() - 0.5) * 0.26
       cyp += (ty - cyp) * 0.55 + (Math.random() - 0.5) * 0.26
       czp += (tz - czp) * 0.55 + (Math.random() - 0.5) * 0.26
-      px[w] = cxp
-      py[w] = cyp
-      pz[w] = czp
+      setP(w, cxp, cyp, czp)
       arcPos[w] = f
       coreNuc[w] = -1
       // occasional dendritic spur off the axon — shares the parent's arc position
       if (Math.random() < 0.2 && w + 1 < N) {
         w++
-        px[w] = cxp + (Math.random() - 0.5) * 0.6
-        py[w] = cyp + (Math.random() - 0.5) * 0.6
-        pz[w] = czp + (Math.random() - 0.5) * 0.6
+        setP(
+          w,
+          cxp + (Math.random() - 0.5) * 0.6,
+          cyp + (Math.random() - 0.5) * 0.6,
+          czp + (Math.random() - 0.5) * 0.6,
+        )
         arcPos[w] = f
         coreNuc[w] = -1
       }
@@ -150,9 +143,7 @@ function sceneSeeds(reduced: boolean): DrawFn {
   }
   // pad any remainder onto the last position so nothing sits at the origin
   while (w < N) {
-    px[w] = px[w - 1]
-    py[w] = py[w - 1]
-    pz[w] = pz[w - 1]
+    setP(w, positions[(w - 1) * 3], positions[(w - 1) * 3 + 1], positions[(w - 1) * 3 + 2])
     arcPos[w] = arcPos[w - 1]
     coreNuc[w] = coreNuc[w - 1]
     w++
@@ -160,16 +151,18 @@ function sceneSeeds(reduced: boolean): DrawFn {
   if (chainCount > 0) chainEnd[chainCount - 1] = Math.min(chainEnd[chainCount - 1], N)
 
   for (let i = 0; i < N; i++) {
-    const mix = Math.max(0, Math.min(1, py[i] / 4.5 + 0.5))
-    styles[i] = rgba(lerpC(CORAL, TEAL, mix), 0.5)
-    // flare colour: same coral→teal position, pushed to a hot, saturated version
-    hot[i] = rgba(lerpC(HOT_CORAL, HOT_TEAL, mix), 1)
+    const mix = Math.max(0, Math.min(1, positions[i * 3 + 1] / 4.5 + 0.5))
+    const b = lerpC(CORAL, TEAL, mix)
+    const h = lerpC(HOT_CORAL, HOT_TEAL, mix)
+    base[i * 3] = b[0] / 255
+    base[i * 3 + 1] = b[1] / 255
+    base[i * 3 + 2] = b[2] / 255
+    hot[i * 3] = h[0] / 255
+    hot[i * 3 + 1] = h[1] / 255
+    hot[i * 3 + 2] = h[2] / 255
   }
-  const P = [0, 0, 0],
-    pt = [0, 0, 0]
 
-  /* --- signals travel ALONG the chains ---
-     flare[] holds an intensity band (0 dim, 1 tail, 2 body, 3 head). */
+  /* --- signals travel ALONG the chains --- */
   const MAXP = 6
   const pulses: Array<{ chain: number; head: number; live: boolean; speed: number }> = []
   for (let k = 0; k < MAXP; k++) pulses.push({ chain: 0, head: 0, live: false, speed: 1 })
@@ -224,52 +217,66 @@ function sceneSeeds(reduced: boolean): DrawFn {
   }
   stepSignals(0)
 
-  return function draw(ctx, w2, h, t) {
-    stepSignals(reduced ? 0 : 0.026)
-    const yaw = reduced ? 0.5 : t * 0.55
-    const pitch = reduced ? 0.1 : Math.sin(t * 0.7) * 0.07
-    const focal = Math.min(w2, h) * 0.9,
-      cz = 12
-    const cx = w2 * 0.7,
-      cyc = h * 0.52
-
-    ctx.globalCompositeOperation = 'lighter'
-    for (let i = 0; i < N; i++) {
-      pt[0] = px[i]
-      pt[1] = py[i]
-      pt[2] = pz[i]
-      proj(pt, yaw, pitch, focal, cz, P)
-      const sx = cx + P[0],
-        sy = cyc - P[1]
-      if (sx < -20 || sx > w2 + 20 || sy < -20 || sy > h + 20) continue
-      const f = flare[i]
-      if (f === 0) {
-        ctx.fillStyle = styles[i]
-        ctx.fillRect(sx - 0.85, sy - 0.85, 1.7, 1.7)
-      } else if (f === 3) {
-        ctx.fillStyle = hot[i]
-        ctx.globalAlpha = 1
-        ctx.fillRect(sx - 2.1, sy - 2.1, 4.2, 4.2)
-        ctx.globalAlpha = 0.34
-        ctx.fillRect(sx - 4.4, sy - 4.4, 8.8, 8.8)
-        ctx.globalAlpha = 1
-      } else if (f === 2) {
-        ctx.fillStyle = hot[i]
-        ctx.globalAlpha = 0.85
-        ctx.fillRect(sx - 1.5, sy - 1.5, 3, 3)
-        ctx.globalAlpha = 1
-      } else {
-        ctx.fillStyle = hot[i]
-        ctx.globalAlpha = 0.4
-        ctx.fillRect(sx - 1.1, sy - 1.1, 2.2, 2.2)
-        ctx.globalAlpha = 1
-      }
-    }
-    ctx.globalCompositeOperation = 'source-over'
-  }
+  return { positions, base, hot, flare, stepSignals }
 }
 
-/* ---------------- shared animated backdrop ----------------
+/* The reference projector, verbatim, in a vertex shader. Point sizes are
+   fixed pixel sizes per flare band (no attenuation), exactly like the
+   reference's fillRect calls. */
+const VERT = /* glsl */ `
+  attribute vec3 aBase;
+  attribute vec3 aHot;
+  attribute float aFlare;
+  uniform float uYaw;
+  uniform float uPitch;
+  uniform float uFocal;
+  uniform float uCz;
+  uniform float uDpr;
+  uniform vec2 uRes;
+  uniform vec2 uCenter;
+  varying vec3 vColor;
+  varying float vFlare;
+  void main() {
+    float cy = cos(uYaw), sy = sin(uYaw);
+    float x1 = position.x * cy - position.z * sy;
+    float z1 = position.x * sy + position.z * cy;
+    float cp = cos(uPitch), sp = sin(uPitch);
+    float y1 = position.y * cp - z1 * sp;
+    float z2 = position.y * sp + z1 * cp;
+    float d = z2 + uCz;
+    float s = uFocal / max(0.1, d);
+    float sx = uCenter.x + x1 * s;
+    float sy2 = uCenter.y - y1 * s;
+    gl_Position = vec4(sx / uRes.x * 2.0 - 1.0, 1.0 - sy2 / uRes.y * 2.0, 0.0, 1.0);
+    float size = aFlare > 2.5 ? 8.8 : (aFlare > 1.5 ? 3.0 : (aFlare > 0.5 ? 2.2 : 1.7));
+    gl_PointSize = size * uDpr;
+    vColor = aFlare > 0.5 ? aHot : aBase;
+    vFlare = aFlare;
+  }
+`
+
+const FRAG = /* glsl */ `
+  precision mediump float;
+  varying vec3 vColor;
+  varying float vFlare;
+  void main() {
+    float a;
+    if (vFlare > 2.5) {
+      // head: 4.2px solid + 8.8px glow at 0.34 — the overlap adds to 1.34
+      vec2 pc = abs(gl_PointCoord - 0.5);
+      a = max(pc.x, pc.y) <= 0.5 * (4.2 / 8.8) ? 1.34 : 0.34;
+    } else if (vFlare > 1.5) {
+      a = 0.85;
+    } else if (vFlare > 0.5) {
+      a = 0.4;
+    } else {
+      a = 0.5;
+    }
+    gl_FragColor = vec4(vColor * a, 1.0);
+  }
+`
+
+/* ---------------- shared animated backdrop (2D canvas, verbatim) ----------------
    Subtle drifting rule lines so the hero isn't a flat field behind the scene. */
 function drawBackdrop(
   ctx: CanvasRenderingContext2D,
@@ -335,43 +342,102 @@ export const HeroCanvas: React.FC<{ className?: string; style?: React.CSSPropert
   className,
   style,
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const backdropRef = useRef<HTMLCanvasElement>(null)
+  const glRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const wrap = wrapRef.current
+    const backdrop = backdropRef.current
+    const glCanvas = glRef.current
+    if (!wrap || !backdrop || !glCanvas) return
 
     let disposed = false
     let resizeObs: ResizeObserver | null = null
     let intersectObs: IntersectionObserver | null = null
     let retry: ReturnType<typeof setTimeout> | null = null
     let tries = 0
+    let renderer: THREE.WebGLRenderer | null = null
+    let geometry: THREE.BufferGeometry | null = null
+    let material: THREE.ShaderMaterial | null = null
 
-    function start(el: HTMLCanvasElement) {
-      const ctx = el.getContext('2d')
+    function start(el: HTMLDivElement) {
+      const ctx = backdrop!.getContext('2d')
       if (!ctx) return
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5)
-      const scene = sceneSeeds(reduced)
+      const dpr2d = Math.min(window.devicePixelRatio || 1, 1.5)
+      const dprGl = Math.min(window.devicePixelRatio || 1, 2)
+      const cloud = buildCloud()
       let running = false,
         visible = true,
         t = 0
 
+      // --- three.js scene (points only; a failed WebGL context just drops the cloud) ---
+      let flareAttr: THREE.BufferAttribute | null = null
+      let uniforms: Record<string, THREE.IUniform> | null = null
+      const scene = new THREE.Scene()
+      const camera = new THREE.Camera() // projection happens in the vertex shader
+      try {
+        renderer = new THREE.WebGLRenderer({ canvas: glCanvas!, alpha: true, antialias: false })
+        renderer.setPixelRatio(dprGl)
+        geometry = new THREE.BufferGeometry()
+        geometry.setAttribute('position', new THREE.BufferAttribute(cloud.positions, 3))
+        geometry.setAttribute('aBase', new THREE.BufferAttribute(cloud.base, 3))
+        geometry.setAttribute('aHot', new THREE.BufferAttribute(cloud.hot, 3))
+        flareAttr = new THREE.BufferAttribute(cloud.flare, 1)
+        flareAttr.setUsage(THREE.DynamicDrawUsage)
+        geometry.setAttribute('aFlare', flareAttr)
+        uniforms = {
+          uYaw: { value: 0.5 },
+          uPitch: { value: 0.1 },
+          uFocal: { value: 1 },
+          uCz: { value: 12 },
+          uDpr: { value: dprGl },
+          uRes: { value: new THREE.Vector2(1, 1) },
+          uCenter: { value: new THREE.Vector2(0, 0) },
+        }
+        material = new THREE.ShaderMaterial({
+          vertexShader: VERT,
+          fragmentShader: FRAG,
+          uniforms,
+          blending: THREE.AdditiveBlending,
+          depthTest: false,
+          depthWrite: false,
+          transparent: true,
+        })
+        const points = new THREE.Points(geometry, material)
+        points.frustumCulled = false
+        scene.add(points)
+      } catch {
+        renderer = null
+      }
+
       function size() {
         const w = el.clientWidth || 1100,
           h = el.clientHeight || 700
-        el.width = Math.round(w * dpr)
-        el.height = Math.round(h * dpr)
+        backdrop!.width = Math.round(w * dpr2d)
+        backdrop!.height = Math.round(h * dpr2d)
+        if (renderer && uniforms) {
+          renderer.setSize(w, h, false)
+          uniforms.uRes.value.set(w, h)
+          uniforms.uFocal.value = Math.min(w, h) * 0.9
+          uniforms.uCenter.value.set(w * 0.7, h * 0.52)
+        }
         paint()
       }
       function paint() {
         if (!ctx) return
-        const w = el.width / dpr,
-          h = el.height / dpr
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+        const w = backdrop!.width / dpr2d,
+          h = backdrop!.height / dpr2d
+        ctx.setTransform(dpr2d, 0, 0, dpr2d, 0, 0)
         ctx.clearRect(0, 0, w, h)
         drawBackdrop(ctx, w, h, t, reduced)
-        scene(ctx, w, h, t)
+        if (renderer && uniforms && flareAttr) {
+          uniforms.uYaw.value = reduced ? 0.5 : t * 0.55
+          uniforms.uPitch.value = reduced ? 0.1 : Math.sin(t * 0.7) * 0.07
+          flareAttr.needsUpdate = true
+          renderer.render(scene, camera)
+        }
       }
       function frame() {
         if (disposed || !visible || reduced) {
@@ -379,6 +445,7 @@ export const HeroCanvas: React.FC<{ className?: string; style?: React.CSSPropert
           return
         }
         t += 0.0075
+        cloud.stepSignals(0.026)
         paint()
         requestAnimationFrame(frame)
       }
@@ -405,8 +472,8 @@ export const HeroCanvas: React.FC<{ className?: string; style?: React.CSSPropert
     // init-polling uses setTimeout, not rAF — rAF never fires in background tabs
     ;(function find() {
       if (disposed) return
-      if (canvas.clientWidth > 0) {
-        start(canvas)
+      if (wrap.clientWidth > 0) {
+        start(wrap)
         return
       }
       tries += 1
@@ -418,8 +485,24 @@ export const HeroCanvas: React.FC<{ className?: string; style?: React.CSSPropert
       if (retry) clearTimeout(retry)
       resizeObs?.disconnect()
       intersectObs?.disconnect()
+      geometry?.dispose()
+      material?.dispose()
+      renderer?.dispose()
     }
   }, [])
 
-  return <canvas ref={canvasRef} className={className} style={style} aria-hidden="true" />
+  const layer: React.CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    display: 'block',
+  }
+
+  return (
+    <div ref={wrapRef} className={className} style={style} aria-hidden="true">
+      <canvas ref={backdropRef} style={layer} />
+      <canvas ref={glRef} style={layer} />
+    </div>
+  )
 }
