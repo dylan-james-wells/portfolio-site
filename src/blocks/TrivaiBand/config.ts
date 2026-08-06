@@ -33,7 +33,7 @@ export const TrivaiBand: Block = {
       type: 'group',
       fields: [
         { name: 'label', type: 'text', defaultValue: 'READ THE MAKING-OF' },
-        { name: 'url', type: 'text', defaultValue: 'https://dylanjwells.com/writing/making-trivai' },
+        { name: 'url', type: 'text', defaultValue: 'https://dylanjwells.com/making-of-trivai' },
       ],
     },
   ],
