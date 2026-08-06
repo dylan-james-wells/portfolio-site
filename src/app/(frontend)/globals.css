@@ -211,6 +211,35 @@
   animation: grain 7s steps(10) infinite;
 }
 
+/* Contact modal entrance animations */
+@keyframes contact-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-contact-overlay-in {
+  animation: contact-overlay-in 200ms ease-out both;
+}
+
+@keyframes contact-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-contact-dialog-in {
+  animation: contact-dialog-in 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Mobile: static grain - even the background-position repaints add up on
    phones, and static noise looks nearly identical. */
 @media (pointer: coarse), (max-width: 767px) {
@@ -230,6 +259,11 @@
 
   .animate-text-shadow-cycle,
   .animate-spin-slow {
+    animation: none;
+  }
+
+  .animate-contact-overlay-in,
+  .animate-contact-dialog-in {
     animation: none;
   }
 }
