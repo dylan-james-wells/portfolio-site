@@ -67,9 +67,11 @@ function maskPath(ys: number[]): string {
 
 const frames = STEPS.map(([b, s]) => topYs(b, s))
 
+/** The 9 closed outline frames, for a CSS clip-path keyframe animation
+    (Safari doesn't support CSS mask references to inline SVG <mask>). */
+export const MASK_FRAMES = frames.map(maskPath)
+
 /** SMIL keyframe values (joined with ';') and the static resting `d`. */
-export const MASK_VALUES = frames.map(maskPath).join(';')
-export const MASK_D = maskPath(frames[0])
 export const TOP_VALUES = frames.map(topPath).join(';')
 export const TOP_D = topPath(frames[0])
 export const BOTTOM_VALUES = frames.map(bottomPath).join(';')

@@ -8,12 +8,6 @@
   margin: 90px 0;
 }
 
-/* Every masked layer references the per-instance SVG mask id via --tg-mask (set inline on .band). */
-.masked {
-  -webkit-mask: var(--tg-mask);
-  mask: var(--tg-mask);
-}
-
 .cover {
   background-position: center 20%;
   background-size: cover;
@@ -28,7 +22,6 @@
 .bleedRed {
   composes: layer;
   composes: cover;
-  composes: masked;
   opacity: calc(var(--gi) * 0.6);
   mix-blend-mode: screen;
   filter: brightness(1.3) sepia(1) hue-rotate(-50deg) saturate(6);
@@ -39,7 +32,6 @@
 .bleedCyan {
   composes: layer;
   composes: cover;
-  composes: masked;
   opacity: calc(var(--gi) * 0.6);
   mix-blend-mode: screen;
   filter: brightness(1.3) sepia(1) hue-rotate(130deg) saturate(6);
@@ -50,7 +42,6 @@
 /* --- the screen --- */
 .screen {
   composes: layer;
-  composes: masked;
   overflow: hidden;
   background: #05070e;
 }
