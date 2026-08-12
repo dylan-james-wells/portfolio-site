@@ -11,10 +11,12 @@ import {
   BAND_H,
   BAND_W,
   BOTTOM_D,
-  BOTTOM_VALUES,
-  MASK_FRAMES,
+  CLIP_D,
+  FRAME_YS,
   TOP_D,
-  TOP_VALUES,
+  buildBottomPath,
+  buildClipPath,
+  buildTopPath,
 } from './waveform'
 
 type Props = {
@@ -28,15 +30,13 @@ const BG_IMAGES = ['/trivai/tg-bg-1.png', '/trivai/tg-bg-2.png', '/trivai/tg-bg-
 const BG_CYCLE_S = 12
 
 /* The torn-edge clipping. Safari doesn't support CSS mask references to an
-   inline SVG <mask>, but every browser we care about supports animating
-   `clip-path: path()` between frames with identical vertex structure — which
-   is exactly what the waveform frames are. Equal keyframe spacing over 2.6s
-   linear reproduces the SMIL `values`/calcMode="linear" morph 1:1. The seam
-   lines stay SMIL; a mount effect zeroes both clocks so they track exactly. */
-const CLIP_CSS = `@keyframes tgClipMorph{${MASK_FRAMES.map(
-  (d, i) => `${((i / (MASK_FRAMES.length - 1)) * 100).toFixed(3)}%{clip-path:path('${d}')}`,
-).join('')}}
-.tg-clip{clip-path:path('${MASK_FRAMES[0]}');animation:tgClipMorph 2.6s linear infinite}`
+   inline SVG <mask>, and Chrome's compositor mis-scales *animated*
+   clip-path: path() keyframes — so the morph is driven imperatively: one rAF
+   loop lerps between the waveform frames (matching the reference's 2.6s
+   linear SMIL morph) and writes the clip-path style and seam `d` attributes
+   together, which also keeps the seam lines and clipped edge in exact sync. */
+const MORPH_DUR_MS = 2600
+const CLIP_STATIC = `path('${CLIP_D}')`
 
 // Absolute URLs pointing at the site itself navigate in-tab as internal links.
 const SITE_HOSTS = new Set(['dylanjwells.com', 'www.dylanjwells.com'])
@@ -93,7 +93,9 @@ export const TrivaiBandBlock: React.FC<Props> = ({
   synopsisButton,
 }) => {
   const rootRef = useRef<HTMLDivElement>(null)
-  const seamSvgRef = useRef<SVGSVGElement>(null)
+  const topPathRef = useRef<SVGPathElement>(null)
+  const bottomPathRef = useRef<SVGPathElement>(null)
+  const phaseRef = useRef(0)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [inView, setInView] = useState(true)
 
@@ -115,30 +117,44 @@ export const TrivaiBandBlock: React.FC<Props> = ({
     return () => observer.disconnect()
   }, [])
 
-  // SMIL animations can't be paused from CSS.
+  // The edge morph: lerp between adjacent waveform frames and write the
+  // clip-path + seam paths together. Pauses off-screen (phase is kept so it
+  // resumes where it left off); reduced motion never starts it.
   useEffect(() => {
-    const svg = seamSvgRef.current
-    if (!svg) return
-    if (inView) svg.unpauseAnimations()
-    else svg.pauseAnimations()
-  }, [inView, reducedMotion])
-
-  // Zero the SMIL timeline and the CSS clip-path animation together so the
-  // seam lines trace the clipped edge exactly.
-  useEffect(() => {
-    if (reducedMotion) return
-    seamSvgRef.current?.setCurrentTime(0)
-    rootRef.current?.querySelectorAll('.tg-clip').forEach((el) => {
-      el.getAnimations().forEach((a) => {
-        if (a instanceof CSSAnimation && a.animationName === 'tgClipMorph') a.currentTime = 0
+    if (reducedMotion || !inView) return
+    const root = rootRef.current
+    if (!root) return
+    const layers = root.querySelectorAll<HTMLElement>('[data-tg-clip]')
+    const segs = FRAME_YS.length - 1
+    const lerped = new Array<number>(FRAME_YS[0].length)
+    let raf = 0
+    let last: number | null = null
+    const tick = (now: number) => {
+      if (last !== null) {
+        phaseRef.current = (phaseRef.current + (now - last) / MORPH_DUR_MS) % 1
+      }
+      last = now
+      const seg = phaseRef.current * segs
+      const i = Math.floor(seg)
+      const f = seg - i
+      const a = FRAME_YS[i]
+      const b = FRAME_YS[i + 1]
+      for (let k = 0; k < lerped.length; k++) lerped[k] = a[k] + (b[k] - a[k]) * f
+      const clip = `path('${buildClipPath(lerped)}')`
+      layers.forEach((el) => {
+        el.style.clipPath = clip
       })
-    })
-  }, [reducedMotion])
+      topPathRef.current?.setAttribute('d', buildTopPath(lerped))
+      bottomPathRef.current?.setAttribute('d', buildBottomPath(lerped))
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [reducedMotion, inView])
 
   if (hidden) return null
 
   const blockId = blockName ? `${blockName}-${blockIndex}` : undefined
-  const animate = !reducedMotion
 
   const play = {
     label: playButton?.label || 'PLAY FREE',
@@ -158,14 +174,20 @@ export const TrivaiBandBlock: React.FC<Props> = ({
       id={blockId}
       className={cn(styles.band, !inView && styles.paused, className)}
     >
-      <style dangerouslySetInnerHTML={{ __html: CLIP_CSS }} />
-
       {/* torn-edge chromatic bleed (loops seamlessly; fixed px period) */}
-      <div className={cn(styles.bleedRed, 'tg-clip')} style={{ backgroundImage: `url(${BG_IMAGES[0]})` }} />
-      <div className={cn(styles.bleedCyan, 'tg-clip')} style={{ backgroundImage: `url(${BG_IMAGES[0]})` }} />
+      <div
+        data-tg-clip
+        className={styles.bleedRed}
+        style={{ backgroundImage: `url(${BG_IMAGES[0]})`, clipPath: CLIP_STATIC }}
+      />
+      <div
+        data-tg-clip
+        className={styles.bleedCyan}
+        style={{ backgroundImage: `url(${BG_IMAGES[0]})`, clipPath: CLIP_STATIC }}
+      />
 
       {/* the screen (torn edges via the animated clip-path) */}
-      <div className={cn(styles.screen, 'tg-clip')}>
+      <div data-tg-clip className={styles.screen} style={{ clipPath: CLIP_STATIC }}>
         {BG_IMAGES.map((src, i) => (
           <div
             key={src}
@@ -190,7 +212,6 @@ export const TrivaiBandBlock: React.FC<Props> = ({
 
       {/* animated waveform seam lines (1:1 px, left-anchored, clipped by the band) */}
       <svg
-        ref={seamSvgRef}
         className={styles.seams}
         width={BAND_W}
         height={BAND_H}
@@ -198,6 +219,7 @@ export const TrivaiBandBlock: React.FC<Props> = ({
         aria-hidden="true"
       >
         <path
+          ref={topPathRef}
           className={styles.seamTop}
           fill="none"
           stroke="#ff8f8f"
@@ -205,18 +227,9 @@ export const TrivaiBandBlock: React.FC<Props> = ({
           strokeLinejoin="round"
           strokeLinecap="round"
           d={TOP_D}
-        >
-          {animate && (
-            <animate
-              attributeName="d"
-              dur="2.6s"
-              repeatCount="indefinite"
-              calcMode="linear"
-              values={TOP_VALUES}
-            />
-          )}
-        </path>
+        />
         <path
+          ref={bottomPathRef}
           className={styles.seamBottom}
           fill="none"
           stroke="#7fe6dd"
@@ -224,17 +237,7 @@ export const TrivaiBandBlock: React.FC<Props> = ({
           strokeLinejoin="round"
           strokeLinecap="round"
           d={BOTTOM_D}
-        >
-          {animate && (
-            <animate
-              attributeName="d"
-              dur="2.6s"
-              repeatCount="indefinite"
-              calcMode="linear"
-              values={BOTTOM_VALUES}
-            />
-          )}
-        </path>
+        />
       </svg>
 
       {/* overlaid content: signal tag + CTAs */}
