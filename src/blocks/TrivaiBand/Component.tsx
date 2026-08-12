@@ -28,12 +28,29 @@ type Props = {
 const BG_IMAGES = ['/trivai/tg-bg-1.png', '/trivai/tg-bg-2.png', '/trivai/tg-bg-3.png']
 const BG_CYCLE_S = 12
 
+// Absolute URLs pointing at the site itself navigate in-tab as internal links.
+const SITE_HOSTS = new Set(['dylanjwells.com', 'www.dylanjwells.com'])
+
 const CtaLink: React.FC<{
   label: string
   url: string
   icon: 'play' | 'synopsis'
 }> = ({ label, url, icon }) => {
-  const isExternal = /^https?:\/\//.test(url)
+  let href = url
+  let isExternal = false
+  if (/^https?:\/\//.test(url)) {
+    try {
+      const u = new URL(url)
+      if (SITE_HOSTS.has(u.host)) {
+        href = u.pathname + u.search + u.hash
+      } else {
+        isExternal = true
+      }
+    } catch {
+      isExternal = true
+    }
+  }
+
   const inner = (
     <>
       {icon === 'synopsis' && <BookOpen size={15} strokeWidth={2} aria-hidden="true" />}
@@ -44,13 +61,13 @@ const CtaLink: React.FC<{
 
   if (isExternal) {
     return (
-      <a className={styles.btn} href={url} target="_blank" rel="noopener noreferrer">
+      <a className={styles.btn} href={href} target="_blank" rel="noopener noreferrer">
         {inner}
       </a>
     )
   }
   return (
-    <Link className={styles.btn} href={url}>
+    <Link className={styles.btn} href={href}>
       {inner}
     </Link>
   )
