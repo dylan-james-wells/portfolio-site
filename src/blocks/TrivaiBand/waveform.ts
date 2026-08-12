@@ -67,12 +67,19 @@ function maskPath(ys: number[]): string {
 
 const frames = STEPS.map(([b, s]) => topYs(b, s))
 
-/** The 9 closed outline frames, for a CSS clip-path keyframe animation
-    (Safari doesn't support CSS mask references to inline SVG <mask>). */
-export const MASK_FRAMES = frames.map(maskPath)
+/** The 9 morph frames as raw vertex y-values (first === last, so the loop
+    closes). The component lerps between adjacent frames each animation frame
+    and rebuilds the clip outline + seam paths from the result — driving the
+    clip imperatively avoids both Safari's missing SVG-mask support and
+    Chrome's composited clip-path animation scaling bug. */
+export const FRAME_YS = frames
 
-/** SMIL keyframe values (joined with ';') and the static resting `d`. */
-export const TOP_VALUES = frames.map(topPath).join(';')
+/** Path builders shared by the static markup and the per-frame morph. */
+export const buildTopPath = topPath
+export const buildBottomPath = bottomPath
+export const buildClipPath = maskPath
+
+/** Static resting geometry (frame 0) for SSR and reduced motion. */
 export const TOP_D = topPath(frames[0])
-export const BOTTOM_VALUES = frames.map(bottomPath).join(';')
 export const BOTTOM_D = bottomPath(frames[0])
+export const CLIP_D = maskPath(frames[0])
