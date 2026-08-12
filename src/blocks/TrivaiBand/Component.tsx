@@ -12,8 +12,7 @@ import {
   BAND_W,
   BOTTOM_D,
   BOTTOM_VALUES,
-  MASK_D,
-  MASK_VALUES,
+  MASK_FRAMES,
   TOP_D,
   TOP_VALUES,
 } from './waveform'
@@ -27,6 +26,17 @@ type Props = {
 // Hardcoded for now (per handoff); the set may grow — keep it array-driven.
 const BG_IMAGES = ['/trivai/tg-bg-1.png', '/trivai/tg-bg-2.png', '/trivai/tg-bg-3.png']
 const BG_CYCLE_S = 12
+
+/* The torn-edge clipping. Safari doesn't support CSS mask references to an
+   inline SVG <mask>, but every browser we care about supports animating
+   `clip-path: path()` between frames with identical vertex structure — which
+   is exactly what the waveform frames are. Equal keyframe spacing over 2.6s
+   linear reproduces the SMIL `values`/calcMode="linear" morph 1:1. The seam
+   lines stay SMIL; a mount effect zeroes both clocks so they track exactly. */
+const CLIP_CSS = `@keyframes tgClipMorph{${MASK_FRAMES.map(
+  (d, i) => `${((i / (MASK_FRAMES.length - 1)) * 100).toFixed(3)}%{clip-path:path('${d}')}`,
+).join('')}}
+.tg-clip{clip-path:path('${MASK_FRAMES[0]}');animation:tgClipMorph 2.6s linear infinite}`
 
 // Absolute URLs pointing at the site itself navigate in-tab as internal links.
 const SITE_HOSTS = new Set(['dylanjwells.com', 'www.dylanjwells.com'])
@@ -83,7 +93,6 @@ export const TrivaiBandBlock: React.FC<Props> = ({
   synopsisButton,
 }) => {
   const rootRef = useRef<HTMLDivElement>(null)
-  const maskSvgRef = useRef<SVGSVGElement>(null)
   const seamSvgRef = useRef<SVGSVGElement>(null)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [inView, setInView] = useState(true)
@@ -108,17 +117,27 @@ export const TrivaiBandBlock: React.FC<Props> = ({
 
   // SMIL animations can't be paused from CSS.
   useEffect(() => {
-    for (const svg of [maskSvgRef.current, seamSvgRef.current]) {
-      if (!svg) continue
-      if (inView) svg.unpauseAnimations()
-      else svg.pauseAnimations()
-    }
+    const svg = seamSvgRef.current
+    if (!svg) return
+    if (inView) svg.unpauseAnimations()
+    else svg.pauseAnimations()
   }, [inView, reducedMotion])
+
+  // Zero the SMIL timeline and the CSS clip-path animation together so the
+  // seam lines trace the clipped edge exactly.
+  useEffect(() => {
+    if (reducedMotion) return
+    seamSvgRef.current?.setCurrentTime(0)
+    rootRef.current?.querySelectorAll('.tg-clip').forEach((el) => {
+      el.getAnimations().forEach((a) => {
+        if (a instanceof CSSAnimation && a.animationName === 'tgClipMorph') a.currentTime = 0
+      })
+    })
+  }, [reducedMotion])
 
   if (hidden) return null
 
   const blockId = blockName ? `${blockName}-${blockIndex}` : undefined
-  const maskId = `tgWaveMask-${blockIndex ?? 0}`
   const animate = !reducedMotion
 
   const play = {
@@ -128,7 +147,7 @@ export const TrivaiBandBlock: React.FC<Props> = ({
   }
   const synopsis = {
     label: synopsisButton?.label || 'READ THE MAKING-OF',
-    url: synopsisButton?.url || 'https://dylanjwells.com/writing/making-trivai',
+    url: synopsisButton?.url || 'https://dylanjwells.com/making-of-trivai',
     icon: 'synopsis' as const,
   }
   const ctas = buttonOrder === 'synopsisFirst' ? [synopsis, play] : [play, synopsis]
@@ -138,41 +157,15 @@ export const TrivaiBandBlock: React.FC<Props> = ({
       ref={rootRef}
       id={blockId}
       className={cn(styles.band, !inView && styles.paused, className)}
-      style={{ '--tg-mask': `url(#${maskId})` } as React.CSSProperties}
     >
-      <svg ref={maskSvgRef} width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
-        <defs>
-          <mask
-            id={maskId}
-            maskUnits="userSpaceOnUse"
-            maskContentUnits="userSpaceOnUse"
-            x="0"
-            y="0"
-            width={BAND_W}
-            height={BAND_H}
-          >
-            <rect x="0" y="0" width={BAND_W} height={BAND_H} fill="#000" />
-            <path fill="#fff" d={MASK_D}>
-              {animate && (
-                <animate
-                  attributeName="d"
-                  dur="2.6s"
-                  repeatCount="indefinite"
-                  calcMode="linear"
-                  values={MASK_VALUES}
-                />
-              )}
-            </path>
-          </mask>
-        </defs>
-      </svg>
+      <style dangerouslySetInnerHTML={{ __html: CLIP_CSS }} />
 
       {/* torn-edge chromatic bleed (loops seamlessly; fixed px period) */}
-      <div className={styles.bleedRed} style={{ backgroundImage: `url(${BG_IMAGES[0]})` }} />
-      <div className={styles.bleedCyan} style={{ backgroundImage: `url(${BG_IMAGES[0]})` }} />
+      <div className={cn(styles.bleedRed, 'tg-clip')} style={{ backgroundImage: `url(${BG_IMAGES[0]})` }} />
+      <div className={cn(styles.bleedCyan, 'tg-clip')} style={{ backgroundImage: `url(${BG_IMAGES[0]})` }} />
 
-      {/* the screen (torn edges via tiling mask) */}
-      <div className={styles.screen}>
+      {/* the screen (torn edges via the animated clip-path) */}
+      <div className={cn(styles.screen, 'tg-clip')}>
         {BG_IMAGES.map((src, i) => (
           <div
             key={src}
